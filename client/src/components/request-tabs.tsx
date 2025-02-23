@@ -8,7 +8,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { SavedRequest, ResponseData } from "@/types/request";
+import { SavedRequest, ResponseData, BodyConfig } from "@/types/request";
 import { RequestPanel } from "./request-panel";
 import { ResponsePanel } from "./response-panel";
 import { useToast } from "@/hooks/use-toast";
@@ -25,11 +25,27 @@ interface RequestTabsProps {
   onTabChange?: (activeTab: string) => void;
 }
 
+const DEFAULT_HEADERS = [
+  { key: "Accept", value: "*/*", enabled: true },
+  { key: "User-Agent", value: "API-Tester/1.0", enabled: true },
+  { key: "Content-Type", value: "application/json", enabled: true }
+];
+
+const DEFAULT_BODY: BodyConfig = {
+  type: "none",
+  rawFormat: "json",
+  raw: "",
+  formData: [],
+  urlEncoded: []
+};
+
 const DEFAULT_REQUEST: Omit<SavedRequest, "id" | "name"> = {
   method: "GET",
   url: "https://api.restful-api.dev/objects",
   queryParams: [{ key: "", value: "" }],
+  headers: DEFAULT_HEADERS,
   auth: { type: "none" },
+  body: DEFAULT_BODY
 };
 
 export function RequestTabs({ onTabChange }: RequestTabsProps) {
