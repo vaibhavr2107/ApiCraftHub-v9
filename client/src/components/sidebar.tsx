@@ -63,25 +63,23 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     }
   }, []);
 
-  const toggleFolder = (folderId: string) => {
-    const newExpanded = new Set(expandedFolders);
-    if (newExpanded.has(folderId)) {
-      newExpanded.delete(folderId);
-    } else {
-      newExpanded.add(folderId);
-    }
-    setExpandedFolders(newExpanded);
-  };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("File upload triggered"); // Debug log
     const files = event.target.files;
-    if (!files || files.length === 0) return;
+    if (!files || files.length === 0) {
+      console.log("No files selected"); // Debug log
+      return;
+    }
+
+    console.log(`Selected ${files.length} files`); // Debug log
 
     const newCollections: Collection[] = [];
     const filePromises = Array.from(files).map(async (file) => {
+      console.log(`Processing file: ${file.name}`); // Debug log
       try {
         const content = await file.text();
         if (file.name.endsWith('.json')) {
+          console.log("Parsing JSON file"); // Debug log
           const json = JSON.parse(content);
           const collection = parsePostmanCollection(json);
           newCollections.push(collection);
@@ -89,7 +87,9 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
             title: "Success",
             description: `Imported collection: ${collection.name}`,
           });
+          console.log(`Successfully parsed collection: ${collection.name}`); // Debug log
         } else {
+          console.log(`Unsupported file format: ${file.name}`); // Debug log
           toast({
             variant: "destructive",
             title: "Error",
@@ -97,7 +97,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
           });
         }
       } catch (error) {
-        console.error("Import error:", error);
+        console.error(`Error processing file ${file.name}:`, error); // Debug log
         toast({
           variant: "destructive",
           title: "Error",
@@ -109,6 +109,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     await Promise.all(filePromises);
 
     if (newCollections.length > 0) {
+      console.log(`Adding ${newCollections.length} new collections`); // Debug log
       const updatedCollections = [...collections, ...newCollections];
       setCollections(updatedCollections);
       localStorage.setItem("collections", JSON.stringify(updatedCollections));
@@ -122,8 +123,8 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     const parseItem = (item: any): CollectionRequest | CollectionFolder => {
       if (item.request) {
         // Parse URL components
-        const url = typeof item.request.url === 'string' 
-          ? { raw: item.request.url } 
+        const url = typeof item.request.url === 'string'
+          ? { raw: item.request.url }
           : item.request.url;
 
         const queryParams = url?.query?.map((q: any) => ({
@@ -170,7 +171,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
           id: nanoid(),
           name: item.name,
           method: item.request.method,
-          url: url?.raw || "", 
+          url: url?.raw || "",
           headers: (item.request.header || []).map((h: any) => ({
             key: h.key,
             value: h.value,
@@ -216,6 +217,16 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       requests,
       folders
     };
+  };
+
+  const toggleFolder = (folderId: string) => {
+    const newExpanded = new Set(expandedFolders);
+    if (newExpanded.has(folderId)) {
+      newExpanded.delete(folderId);
+    } else {
+      newExpanded.add(folderId);
+    }
+    setExpandedFolders(newExpanded);
   };
 
   const renderFolder = (folder: CollectionFolder, level = 0) => {
@@ -274,19 +285,24 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   return (
     <div className="w-64 border-r bg-muted/40 h-screen">
       <div className="p-4 border-b">
-        <label className="cursor-pointer">
+        <div className="cursor-pointer">
           <input
             type="file"
             accept=".json"
             className="hidden"
             multiple
             onChange={handleFileUpload}
+            id="collection-import"
           />
-          <Button variant="outline" className="w-full">
-            <Upload className="mr-2 h-4 w-4" />
-            Import Collection
-          </Button>
-        </label>
+          <label htmlFor="collection-import">
+            <Button variant="outline" className="w-full" asChild>
+              <span>
+                <Upload className="mr-2 h-4 w-4" />
+                Import Collection
+              </span>
+            </Button>
+          </label>
+        </div>
       </div>
       <ScrollArea className="h-[calc(100vh-5rem)]">
         <div className="p-2">
