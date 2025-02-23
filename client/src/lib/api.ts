@@ -4,32 +4,43 @@ interface RequestOptions {
   method: string;
   url: string;
   body?: any;
+  headers?: Record<string, string>;
 }
 
 export async function makeRequest({
   method,
   url,
   body,
+  headers = {},
 }: RequestOptions): Promise<ResponseData> {
   try {
     const response = await fetch(url, {
       method,
       headers: {
         "Content-Type": "application/json",
+        ...headers,
       },
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    const headers: Record<string, string> = {};
+    const responseHeaders: Record<string, string> = {};
     response.headers.forEach((value, key) => {
-      headers[key] = value;
+      responseHeaders[key] = value;
     });
+
+    let data;
+    const contentType = response.headers.get("content-type");
+    if (contentType?.includes("application/json")) {
+      data = await response.json();
+    } else {
+      data = await response.text();
+    }
 
     return {
       status: response.status,
       statusText: response.statusText,
-      headers,
-      data: await response.json(),
+      headers: responseHeaders,
+      data,
     };
   } catch (error) {
     if (error instanceof Error) {
