@@ -86,6 +86,34 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
     localStorage.setItem("saved_requests", JSON.stringify(requests));
   }, [requests]);
 
+  // Listen for storage events to update tabs when a new request is added
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem("saved_requests");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setRequests(parsed.map((req: any) => ({
+            ...DEFAULT_REQUEST,
+            id: req.id || nanoid(),
+            name: req.name || "New Request",
+            ...req,
+            headers: req.headers || DEFAULT_HEADERS,
+            body: {
+              ...DEFAULT_BODY,
+              ...(req.body || {})
+            }
+          })));
+        } catch (e) {
+          console.error("Error loading saved requests:", e);
+        }
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
   const handleNewTab = () => {
     const newRequest = {
       ...DEFAULT_REQUEST,

@@ -1,5 +1,6 @@
 import { RequestTabs } from "@/components/request-tabs";
 import { Sidebar, type CollectionRequest } from "@/components/sidebar";
+import { nanoid } from "nanoid";
 
 export type RequestData = {
   method: string;
@@ -16,8 +17,35 @@ export type ResponseData = {
 
 export default function Home() {
   const handleRequestSelect = (request: CollectionRequest) => {
-    // TODO: Open request in a new tab
-    console.log("Selected request:", request);
+    // Convert CollectionRequest to SavedRequest format
+    const newRequest = {
+      id: nanoid(),
+      name: request.name,
+      method: request.method,
+      url: request.url,
+      queryParams: [{ key: "", value: "" }],
+      headers: request.headers || [
+        { key: "Accept", value: "*/*", enabled: true },
+        { key: "User-Agent", value: "API-Tester/1.0", enabled: true },
+        { key: "Content-Type", value: "application/json", enabled: true }
+      ],
+      auth: { type: "none" },
+      body: {
+        type: "none",
+        rawFormat: "json",
+        raw: "",
+        formData: [],
+        urlEncoded: []
+      }
+    };
+
+    // Add request to local storage
+    const savedRequests = localStorage.getItem("saved_requests");
+    const requests = savedRequests ? JSON.parse(savedRequests) : [];
+    localStorage.setItem("saved_requests", JSON.stringify([...requests, newRequest]));
+
+    // Force RequestTabs to reload
+    window.dispatchEvent(new Event("storage"));
   };
 
   return (
