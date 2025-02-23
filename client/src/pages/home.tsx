@@ -102,14 +102,13 @@ export default function Home() {
       }
     };
 
-    // Add request to local storage and navigate to its tab
+    // Add request to local storage without navigating
     const savedRequests = localStorage.getItem("saved_requests");
     const requests = savedRequests ? JSON.parse(savedRequests) : [];
     localStorage.setItem("saved_requests", JSON.stringify([...requests, newRequest]));
 
-    // Switch to request view and navigate to the new request's tab
-    setSelectedCollection(null);
-    setLocation(`/request/${newRequest.id}`);
+    // Force RequestTabs to reload
+    window.dispatchEvent(new Event("storage"));
   };
 
   const handleCollectionSelect = (collection: Collection) => {

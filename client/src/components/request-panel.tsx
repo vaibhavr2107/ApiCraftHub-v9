@@ -16,6 +16,7 @@ import { makeRequest } from "@/lib/api";
 import type { ResponseData, SavedRequest, QueryParam, Header, BodyConfig } from "@/types/request";
 import { useToast } from "@/hooks/use-toast";
 import { X, Plus } from "lucide-react";
+import { useLocation } from "wouter";
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"];
 const BODY_TYPES = ["none", "form-data", "x-www-form-urlencoded", "raw"] as const;
@@ -36,6 +37,7 @@ export function RequestPanel({
   onLoading,
   onError,
 }: RequestPanelProps) {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
 
   // URL and Query Parameters Synchronization
@@ -293,7 +295,7 @@ export function RequestPanel({
               <div key={index} className="flex items-center gap-2">
                 <Checkbox
                   checked={header.enabled}
-                  onCheckedChange={(checked) => 
+                  onCheckedChange={(checked) =>
                     updateHeader(index, "enabled", checked === true)
                   }
                 />
@@ -564,9 +566,18 @@ export function RequestPanel({
           </TabsContent>
         </Tabs>
 
-        <Button onClick={handleSend} className="w-full">
-          Send Request
-        </Button>
+        <div className="space-y-2">
+          <Button onClick={handleSend} className="w-full">
+            Send Request
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setLocation(`/request/${request.id}`)}
+          >
+            Go to Route Page
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
