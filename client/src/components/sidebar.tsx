@@ -8,8 +8,24 @@ import { useToast } from "@/hooks/use-toast";
 export interface Collection {
   id: string;
   name: string;
+  description?: string;
   requests: CollectionRequest[];
   folders?: CollectionFolder[];
+  variables: CollectionVariable[];
+  auth?: {
+    type: "none" | "basic" | "bearer" | "oauth2";
+    basic?: { username: string; password: string; };
+    bearer?: { token: string; };
+    oauth2?: any;
+  };
+}
+
+export interface CollectionVariable {
+  id: string;
+  key: string;
+  value: string;
+  type: "default" | "secret";
+  description?: string;
 }
 
 export interface CollectionFolder {
@@ -44,9 +60,10 @@ export interface CollectionRequest {
 
 interface SidebarProps {
   onRequestSelect: (request: CollectionRequest) => void;
+  onCollectionSelect: (collection: Collection) => void;
 }
 
-export function Sidebar({ onRequestSelect }: SidebarProps) {
+export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
   const { toast } = useToast();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -64,22 +81,22 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   }, []);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("File upload triggered"); // Debug log
+    console.log("File upload triggered");
     const files = event.target.files;
     if (!files || files.length === 0) {
-      console.log("No files selected"); // Debug log
+      console.log("No files selected");
       return;
     }
 
-    console.log(`Selected ${files.length} files`); // Debug log
+    console.log(`Selected ${files.length} files`);
 
     const newCollections: Collection[] = [];
     const filePromises = Array.from(files).map(async (file) => {
-      console.log(`Processing file: ${file.name}`); // Debug log
+      console.log(`Processing file: ${file.name}`);
       try {
         const content = await file.text();
         if (file.name.endsWith('.json')) {
-          console.log("Parsing JSON file"); // Debug log
+          console.log("Parsing JSON file");
           const json = JSON.parse(content);
           const collection = parsePostmanCollection(json);
           newCollections.push(collection);
@@ -87,9 +104,9 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
             title: "Success",
             description: `Imported collection: ${collection.name}`,
           });
-          console.log(`Successfully parsed collection: ${collection.name}`); // Debug log
+          console.log(`Successfully parsed collection: ${collection.name}`);
         } else {
-          console.log(`Unsupported file format: ${file.name}`); // Debug log
+          console.log(`Unsupported file format: ${file.name}`);
           toast({
             variant: "destructive",
             title: "Error",
@@ -97,7 +114,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
           });
         }
       } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error); // Debug log
+        console.error(`Error processing file ${file.name}:`, error);
         toast({
           variant: "destructive",
           title: "Error",
@@ -109,17 +126,25 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     await Promise.all(filePromises);
 
     if (newCollections.length > 0) {
-      console.log(`Adding ${newCollections.length} new collections`); // Debug log
+      console.log(`Adding ${newCollections.length} new collections`);
       const updatedCollections = [...collections, ...newCollections];
       setCollections(updatedCollections);
       localStorage.setItem("collections", JSON.stringify(updatedCollections));
     }
 
-    // Reset the input value to allow importing the same file again
     event.target.value = '';
   };
 
   const parsePostmanCollection = (json: any): Collection => {
+    // Parse collection variables
+    const variables: CollectionVariable[] = (json.variable || []).map((v: any) => ({
+      id: nanoid(),
+      key: v.key || '',
+      value: v.value || '',
+      type: v.type === 'secret' ? 'secret' : 'default',
+      description: v.description
+    }));
+
     const parseItem = (item: any): CollectionRequest | CollectionFolder => {
       if (item.request) {
         // Parse URL components
@@ -214,8 +239,21 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     return {
       id: nanoid(),
       name: json.info?.name || "Imported Collection",
+      description: json.info?.description,
       requests,
-      folders
+      folders,
+      variables,
+      auth: json.auth ? {
+        type: json.auth.type as "none" | "basic" | "bearer" | "oauth2",
+        basic: json.auth.type === 'basic' ? {
+          username: json.auth.basic?.[0]?.value || '',
+          password: json.auth.basic?.[1]?.value || ''
+        } : undefined,
+        bearer: json.auth.type === 'bearer' ? {
+          token: json.auth.bearer?.[0]?.value || ''
+        } : undefined,
+        oauth2: json.auth.type === 'oauth2' ? json.auth.oauth2 : undefined
+      } : { type: "none" }
     };
   };
 
@@ -308,7 +346,13 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
         <div className="p-2">
           {collections.map((collection) => (
             <div key={collection.id} className="mb-4">
-              <div className="font-medium px-2 py-1">{collection.name}</div>
+              <Button
+                variant="ghost"
+                className="w-full justify-start font-medium px-2 py-1"
+                onClick={() => onCollectionSelect(collection)}
+              >
+                {collection.name}
+              </Button>
               {collection.folders?.map((folder) => renderFolder(folder))}
               {collection.requests.map((request) => renderRequest(request))}
             </div>
