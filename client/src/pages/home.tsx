@@ -17,20 +17,21 @@ export type ResponseData = {
 
 export default function Home() {
   const handleRequestSelect = (request: CollectionRequest) => {
-    // Convert CollectionRequest to SavedRequest format
+    // Convert CollectionRequest to SavedRequest format with all parameters
     const newRequest = {
       id: nanoid(),
       name: request.name,
       method: request.method,
       url: request.url,
-      queryParams: [{ key: "", value: "" }],
+      queryParams: request.queryParams || [{ key: "", value: "" }],
+      pathVariables: request.pathVariables || [],
       headers: request.headers || [
         { key: "Accept", value: "*/*", enabled: true },
         { key: "User-Agent", value: "API-Tester/1.0", enabled: true },
         { key: "Content-Type", value: "application/json", enabled: true }
       ],
-      auth: { type: "none" },
-      body: {
+      auth: request.auth || { type: "none" },
+      body: request.body || {
         type: "none",
         rawFormat: "json",
         raw: "",
