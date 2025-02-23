@@ -1,6 +1,7 @@
-import { Plus, Save } from "lucide-react";
+import { Plus, Save, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { nanoid } from "nanoid";
+import { useLocation } from "wouter";
 import {
   Tabs,
   TabsContent,
@@ -49,6 +50,7 @@ const DEFAULT_REQUEST: Omit<SavedRequest, "id" | "name"> = {
 };
 
 export function RequestTabs({ onTabChange }: RequestTabsProps) {
+  const [location, setLocation] = useLocation();
   const [requests, setRequests] = useState<SavedRequest[]>(() => {
     const saved = localStorage.getItem("saved_requests");
     if (saved) {
@@ -60,7 +62,7 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
           id: req.id || nanoid(),
           name: req.name || "New Request",
           ...req,
-          headers: req.headers || DEFAULT_HEADERS, // Ensure headers exist
+          headers: req.headers || DEFAULT_HEADERS,
           body: {
             ...DEFAULT_BODY,
             ...(req.body || {})
@@ -74,7 +76,10 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
     return [{ ...DEFAULT_REQUEST, id: nanoid(), name: "New Request" }];
   });
 
-  const [activeTab, setActiveTab] = useState(requests[0].id);
+  // Get active tab from route or first request
+  const requestId = location.split('/').pop();
+  const activeTab = requests.find(r => r.id === requestId)?.id || requests[0]?.id;
+
   const [responses, setResponses] = useState<Record<string, ResponseData | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string | null>>({});
@@ -121,7 +126,23 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
       name: "New Request",
     };
     setRequests([...requests, newRequest]);
-    setActiveTab(newRequest.id);
+    setLocation(`/request/${newRequest.id}`);
+  };
+
+  const handleCloseTab = (requestId: string) => {
+    const updatedRequests = requests.filter(req => req.id !== requestId);
+    setRequests(updatedRequests);
+
+    // If we're closing the active tab, navigate to another tab
+    if (requestId === activeTab) {
+      const nextTab = updatedRequests[0]?.id;
+      if (nextTab) {
+        setLocation(`/request/${nextTab}`);
+      } else {
+        setLocation('/');
+        handleNewTab();
+      }
+    }
   };
 
   const handleSaveRequest = (requestId: string) => {
@@ -154,15 +175,39 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
     );
   }, []);
 
+  // Handle tab changes through route updates
+  const handleTabChange = (value: string) => {
+    setLocation(`/request/${value}`);
+  };
+
+  if (requests.length === 0) {
+    return null;
+  }
+
   return (
     <div className="container py-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center gap-2 mb-4">
           <TabsList className="flex-1">
             {requests.map((request) => (
-              <TabsTrigger key={request.id} value={request.id} className="flex-1">
-                {request.name}
-              </TabsTrigger>
+              <div key={request.id} className="flex items-center">
+                <TabsTrigger value={request.id} className="flex-1">
+                  {request.name}
+                </TabsTrigger>
+                {requests.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCloseTab(request.id);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             ))}
           </TabsList>
           <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>

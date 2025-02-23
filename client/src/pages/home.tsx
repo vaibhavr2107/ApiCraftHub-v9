@@ -1,8 +1,11 @@
 import { RequestTabs } from "@/components/request-tabs";
 import { Sidebar, type Collection, type CollectionRequest } from "@/components/sidebar";
 import { CollectionHome } from "@/components/collection-home";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useState } from "react";
+import { useLocation } from "wouter";
 
 export type RequestData = {
   method: string;
@@ -19,6 +22,7 @@ export type ResponseData = {
 
 export default function Home() {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
+  const [, setLocation] = useLocation();
 
   const substituteVariables = (str: string, collection: Collection): string => {
     const variablePattern = /\{\{([^}]+)\}\}/g;
@@ -32,16 +36,34 @@ export default function Home() {
     // Get the parent collection for this request to access its variables
     const parentCollection = selectedCollection;
 
+    // Process URL and query parameters
+    let processedUrl = request.url;
+    let processedQueryParams = request.queryParams || [];
+
+    if (parentCollection) {
+      processedUrl = substituteVariables(request.url, parentCollection);
+      // Extract existing query parameters from the URL
+      const urlObj = new URL(processedUrl, 'http://placeholder.com');
+      const urlQueryParams = Array.from(urlObj.searchParams.entries()).map(([key, value]) => ({
+        key,
+        value
+      }));
+      // Combine URL query params with explicit query params
+      processedQueryParams = [...urlQueryParams, ...(request.queryParams || [])].map(param => ({
+        key: substituteVariables(param.key, parentCollection),
+        value: substituteVariables(param.value, parentCollection)
+      }));
+      // Remove query string from URL as we're handling them separately
+      processedUrl = urlObj.origin + urlObj.pathname;
+    }
+
     // Convert CollectionRequest to SavedRequest format with all parameters
     const newRequest = {
       id: nanoid(),
       name: request.name,
       method: request.method,
-      url: parentCollection ? substituteVariables(request.url, parentCollection) : request.url,
-      queryParams: request.queryParams?.map(param => ({
-        key: parentCollection ? substituteVariables(param.key, parentCollection) : param.key,
-        value: parentCollection ? substituteVariables(param.value, parentCollection) : param.value
-      })) || [{ key: "", value: "" }],
+      url: processedUrl,
+      queryParams: processedQueryParams.length > 0 ? processedQueryParams : [{ key: "", value: "" }],
       pathVariables: request.pathVariables?.map(param => ({
         key: parentCollection ? substituteVariables(param.key, parentCollection) : param.key,
         value: parentCollection ? substituteVariables(param.value, parentCollection) : param.value
@@ -80,13 +102,14 @@ export default function Home() {
       }
     };
 
-    // Add request to local storage
+    // Add request to local storage and navigate to its tab
     const savedRequests = localStorage.getItem("saved_requests");
     const requests = savedRequests ? JSON.parse(savedRequests) : [];
     localStorage.setItem("saved_requests", JSON.stringify([...requests, newRequest]));
 
-    // Force RequestTabs to reload
-    window.dispatchEvent(new Event("storage"));
+    // Switch to request view and navigate to the new request's tab
+    setSelectedCollection(null);
+    setLocation(`/request/${newRequest.id}`);
   };
 
   const handleCollectionSelect = (collection: Collection) => {
@@ -114,8 +137,19 @@ export default function Home() {
       />
       <div className="flex-1">
         <header className="border-b">
-          <div className="container py-4">
-            <h1 className="text-2xl font-bold">API Request Tester</h1>
+          <div className="container flex items-center gap-4 py-4">
+            {selectedCollection && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setSelectedCollection(null)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <h1 className="text-2xl font-bold">
+              {selectedCollection ? selectedCollection.name : "API Request Tester"}
+            </h1>
           </div>
         </header>
 
