@@ -12,11 +12,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useEffect, useState } from "react";
 import { makeRequest } from "@/lib/api";
-import type { ResponseData, SavedRequest, QueryParam } from "@/types/request";
+import type { ResponseData, SavedRequest, QueryParam, Header } from "@/types/request"; // Added Header type
 import { useToast } from "@/hooks/use-toast";
 import { X } from "lucide-react";
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+const DEFAULT_HEADERS = [
+  { key: "Content-Type", value: "application/json" }
+];
 
 interface RequestPanelProps {
   request: SavedRequest;
@@ -108,6 +111,8 @@ export function RequestPanel({
 
     try {
       const headers: Record<string, string> = {};
+      // Include default headers
+      DEFAULT_HEADERS.forEach(header => headers[header.key] = header.value);
 
       if (request.auth.type === "basic" && request.auth.username && request.auth.password) {
         headers["Authorization"] = `Basic ${btoa(
@@ -116,6 +121,14 @@ export function RequestPanel({
       } else if (request.auth.type === "bearer" && request.auth.token) {
         headers["Authorization"] = `Bearer ${request.auth.token}`;
       }
+
+      // Add request headers
+      request.headers.forEach(header => {
+        if (header.key && header.value) {
+          headers[header.key] = header.value;
+        }
+      });
+
 
       const response = await makeRequest({
         method: request.method,
@@ -135,6 +148,24 @@ export function RequestPanel({
     } finally {
       onLoading(false);
     }
+  };
+
+  const addHeader = () => {
+    onRequestChange({ headers: [...request.headers, { key: "", value: "" }] });
+  };
+
+  const removeHeader = (index: number) => {
+    const newHeaders = request.headers.filter((_, i) => i !== index);
+    if (newHeaders.length === 0) {
+      newHeaders.push({ key: "", value: "" });
+    }
+    onRequestChange({ headers: newHeaders });
+  };
+
+  const updateHeader = (index: number, field: "key" | "value", value: string) => {
+    const newHeaders = [...request.headers];
+    newHeaders[index][field] = value;
+    onRequestChange({ headers: newHeaders });
   };
 
   return (
@@ -168,8 +199,9 @@ export function RequestPanel({
         </div>
 
         <Tabs defaultValue="params" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="params">Params</TabsTrigger>
+            <TabsTrigger value="headers">Headers</TabsTrigger>
             <TabsTrigger value="auth">Authorization</TabsTrigger>
             <TabsTrigger value="body">Body</TabsTrigger>
           </TabsList>
@@ -200,6 +232,35 @@ export function RequestPanel({
             ))}
             <Button onClick={addQueryParam} variant="outline" className="w-full">
               Add Parameter
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="headers" className="space-y-4">
+            {request.headers.map((header, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  placeholder="Header"
+                  value={header.key}
+                  onChange={(e) => updateHeader(index, "key", e.target.value)}
+                  className="flex-1"
+                />
+                <Input
+                  placeholder="Value"
+                  value={header.value}
+                  onChange={(e) => updateHeader(index, "value", e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeHeader(index)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button onClick={addHeader} variant="outline" className="w-full">
+              Add Header
             </Button>
           </TabsContent>
 
