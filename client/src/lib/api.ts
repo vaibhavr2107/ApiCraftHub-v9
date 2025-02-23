@@ -1,4 +1,4 @@
-import { ResponseData } from "@/types/request";
+import { ResponseData } from "@/pages/home";
 
 interface RequestOptions {
   method: string;
@@ -14,8 +14,6 @@ export async function makeRequest({
   headers = {},
 }: RequestOptions): Promise<ResponseData> {
   try {
-    const startTime = performance.now();
-
     const response = await fetch(url, {
       method,
       headers: {
@@ -24,8 +22,6 @@ export async function makeRequest({
       },
       body: body ? JSON.stringify(body) : undefined,
     });
-
-    const responseTime = Math.round(performance.now() - startTime);
 
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((value, key) => {
@@ -40,27 +36,11 @@ export async function makeRequest({
       data = await response.text();
     }
 
-    // Parse cookies from response headers
-    const cookies: Record<string, string> = {};
-    const cookieHeader = response.headers.get("set-cookie");
-    if (cookieHeader) {
-      cookieHeader.split(",").forEach(cookie => {
-        const [name, ...parts] = cookie.split("=");
-        cookies[name.trim()] = parts.join("=").split(";")[0].trim();
-      });
-    }
-
-    // Calculate response size
-    const size = new TextEncoder().encode(JSON.stringify(data)).length;
-
     return {
       status: response.status,
       statusText: response.statusText,
       headers: responseHeaders,
       data,
-      time: responseTime,
-      size,
-      cookies,
     };
   } catch (error) {
     if (error instanceof Error) {
