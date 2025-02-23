@@ -60,7 +60,9 @@ export function RequestPanel({
 
   const updateUrl = (baseUrl: string) => {
     try {
+      // Create a URL object to handle the base URL
       const url = new URL(baseUrl);
+      // Add query parameters if they exist
       request.queryParams.forEach(({ key, value }) => {
         if (key && value) {
           url.searchParams.set(key, value);
@@ -68,6 +70,7 @@ export function RequestPanel({
       });
       onRequestChange({ url: url.toString() });
     } catch (e) {
+      // If the URL is invalid (might be using variables), just store it as is
       onRequestChange({ url: baseUrl });
     }
   };
@@ -113,7 +116,7 @@ export function RequestPanel({
 
     try {
       const url = new URL(request.url);
-      url.search = "";
+      url.search = '';
       newParams.forEach(({ key, value }) => {
         if (key && value) {
           url.searchParams.append(key, value);

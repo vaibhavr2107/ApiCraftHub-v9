@@ -27,7 +27,7 @@ export default function Home() {
   const substituteVariables = (str: string, collection: Collection): string => {
     const variablePattern = /\{\{([^}]+)\}\}/g;
     return str.replace(variablePattern, (match, variableName) => {
-      const variable = collection.variables?.find(v => v.key === variableName);
+      const variable = collection.variables?.find(v => v.key === variableName.trim());
       return variable ? variable.value : match;
     });
   };
@@ -41,20 +41,39 @@ export default function Home() {
     let processedQueryParams = request.queryParams || [];
 
     if (parentCollection) {
+      // First, substitute variables in the base URL
       processedUrl = substituteVariables(request.url, parentCollection);
-      // Extract existing query parameters from the URL
-      const urlObj = new URL(processedUrl, 'http://placeholder.com');
-      const urlQueryParams = Array.from(urlObj.searchParams.entries()).map(([key, value]) => ({
-        key,
-        value
-      }));
-      // Combine URL query params with explicit query params
-      processedQueryParams = [...urlQueryParams, ...(request.queryParams || [])].map(param => ({
-        key: substituteVariables(param.key, parentCollection),
-        value: substituteVariables(param.value, parentCollection)
-      }));
-      // Remove query string from URL as we're handling them separately
-      processedUrl = urlObj.origin + urlObj.pathname;
+
+      try {
+        // Create a URL object for parsing
+        const urlObj = new URL(processedUrl);
+
+        // Get existing query parameters from URL
+        const urlSearchParams = new URLSearchParams(urlObj.search);
+        const urlQueryParams = Array.from(urlSearchParams.entries()).map(([key, value]) => ({
+          key,
+          value: decodeURIComponent(value)
+        }));
+
+        // Combine URL query params with explicit query params and substitute variables
+        processedQueryParams = [...urlQueryParams, ...(request.queryParams || [])].map(param => ({
+          key: substituteVariables(param.key, parentCollection),
+          value: substituteVariables(param.value, parentCollection)
+        }));
+
+        // Remove query string from URL as we're handling them separately
+        urlObj.search = '';
+        processedUrl = urlObj.toString();
+
+        // Remove trailing slash if present
+        if (processedUrl.endsWith('/')) {
+          processedUrl = processedUrl.slice(0, -1);
+        }
+      } catch (e) {
+        console.error('Invalid URL:', e);
+        // If URL parsing fails, just substitute variables
+        processedUrl = substituteVariables(request.url, parentCollection);
+      }
     }
 
     // Convert CollectionRequest to SavedRequest format with all parameters
