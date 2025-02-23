@@ -83,12 +83,58 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   };
 
   const parsePostmanCollection = (json: any): Collection => {
-    // Basic Postman collection parsing
+    const parseItem = (item: any): CollectionRequest | CollectionFolder => {
+      if (item.request) {
+        // This is a request
+        return {
+          id: nanoid(),
+          name: item.name,
+          method: item.request.method,
+          url: typeof item.request.url === 'string' ? item.request.url : item.request.url.raw,
+          headers: (item.request.header || []).map((h: any) => ({
+            key: h.key,
+            value: h.value,
+            enabled: !h.disabled
+          })),
+          body: item.request.body ? {
+            type: item.request.body.mode || "none",
+            content: item.request.body[item.request.body.mode]
+          } : undefined
+        };
+      } else {
+        // This is a folder
+        return {
+          id: nanoid(),
+          name: item.name,
+          requests: [],
+          folders: [],
+          ...processItems(item.item)
+        };
+      }
+    };
+
+    const processItems = (items: any[] = []): { requests: CollectionRequest[], folders: CollectionFolder[] } => {
+      const requests: CollectionRequest[] = [];
+      const folders: CollectionFolder[] = [];
+
+      items.forEach(item => {
+        const parsed = parseItem(item);
+        if ('url' in parsed) {
+          requests.push(parsed as CollectionRequest);
+        } else {
+          folders.push(parsed as CollectionFolder);
+        }
+      });
+
+      return { requests, folders };
+    };
+
+    const { requests, folders } = processItems(json.item);
     return {
       id: nanoid(),
       name: json.info?.name || "Imported Collection",
-      requests: [], // TODO: Implement full parsing
-      folders: [], // TODO: Implement full parsing
+      requests,
+      folders
     };
   };
 
