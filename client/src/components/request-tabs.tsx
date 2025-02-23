@@ -52,7 +52,24 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
   const [requests, setRequests] = useState<SavedRequest[]>(() => {
     const saved = localStorage.getItem("saved_requests");
     if (saved) {
-      return JSON.parse(saved);
+      try {
+        const parsed = JSON.parse(saved);
+        // Ensure each request has the required structure
+        return parsed.map((req: any) => ({
+          ...DEFAULT_REQUEST,
+          id: req.id || nanoid(),
+          name: req.name || "New Request",
+          ...req,
+          headers: req.headers || DEFAULT_HEADERS, // Ensure headers exist
+          body: {
+            ...DEFAULT_BODY,
+            ...(req.body || {})
+          }
+        }));
+      } catch (e) {
+        console.error("Error loading saved requests:", e);
+        return [{ ...DEFAULT_REQUEST, id: nanoid(), name: "New Request" }];
+      }
     }
     return [{ ...DEFAULT_REQUEST, id: nanoid(), name: "New Request" }];
   });
