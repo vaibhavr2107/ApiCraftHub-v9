@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export interface Collection {
   id: string;
@@ -47,11 +47,21 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onRequestSelect }: SidebarProps) {
-  const [collections, setCollections] = useState<Collection[]>(() => {
-    const saved = localStorage.getItem("collections");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const { toast } = useToast();
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
+  // Load collections from localStorage on component mount
+  useEffect(() => {
+    const savedCollections = localStorage.getItem("collections");
+    if (savedCollections) {
+      try {
+        setCollections(JSON.parse(savedCollections));
+      } catch (error) {
+        console.error("Failed to load collections:", error);
+      }
+    }
+  }, []);
 
   const toggleFolder = (folderId: string) => {
     const newExpanded = new Set(expandedFolders);
@@ -71,11 +81,9 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     const filePromises = Array.from(files).map(async (file) => {
       try {
         const content = await file.text();
-        let collection: Collection;
-
         if (file.name.endsWith('.json')) {
           const json = JSON.parse(content);
-          collection = parsePostmanCollection(json);
+          const collection = parsePostmanCollection(json);
           newCollections.push(collection);
           toast({
             title: "Success",
@@ -89,6 +97,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
           });
         }
       } catch (error) {
+        console.error("Import error:", error);
         toast({
           variant: "destructive",
           title: "Error",
@@ -104,6 +113,9 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       setCollections(updatedCollections);
       localStorage.setItem("collections", JSON.stringify(updatedCollections));
     }
+
+    // Reset the input value to allow importing the same file again
+    event.target.value = '';
   };
 
   const parsePostmanCollection = (json: any): Collection => {
@@ -114,12 +126,12 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
           ? { raw: item.request.url } 
           : item.request.url;
 
-        const queryParams = url.query?.map((q: any) => ({
+        const queryParams = url?.query?.map((q: any) => ({
           key: q.key || '',
           value: q.value || '',
         })) || [];
 
-        const pathVariables = url.variable?.map((v: any) => ({
+        const pathVariables = url?.variable?.map((v: any) => ({
           key: v.key || '',
           value: v.value || '',
         })) || [];
@@ -143,7 +155,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
         // Parse authentication
         const auth = item.request.auth || json.auth;
         const authData = auth ? {
-          type: auth.type || 'none',
+          type: auth.type as "none" | "basic" | "bearer" | "oauth2",
           basic: auth.type === 'basic' ? {
             username: auth.basic?.[0]?.value || '',
             password: auth.basic?.[1]?.value || ''
@@ -152,13 +164,13 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
             token: auth.bearer?.[0]?.value || ''
           } : undefined,
           oauth2: auth.type === 'oauth2' ? auth.oauth2 : undefined
-        } : { type: 'none' };
+        } : { type: "none" as const };
 
         return {
           id: nanoid(),
           name: item.name,
           method: item.request.method,
-          url: url.raw || "", // Handle cases where url.raw might be undefined.
+          url: url?.raw || "", 
           headers: (item.request.header || []).map((h: any) => ({
             key: h.key,
             value: h.value,
