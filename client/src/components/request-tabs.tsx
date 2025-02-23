@@ -31,6 +31,7 @@ const DEFAULT_REQUEST: Omit<SavedRequest, "id" | "name"> = {
   queryParams: [{ key: "", value: "" }],
   headers: [{ key: "", value: "" }],
   auth: { type: "none" },
+  body: ""
 };
 
 export function RequestTabs({ onTabChange }: RequestTabsProps) {
