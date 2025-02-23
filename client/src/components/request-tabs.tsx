@@ -29,9 +29,7 @@ const DEFAULT_REQUEST: Omit<SavedRequest, "id" | "name"> = {
   method: "GET",
   url: "https://api.restful-api.dev/objects",
   queryParams: [{ key: "", value: "" }],
-  headers: [{ key: "", value: "" }],
   auth: { type: "none" },
-  body: ""
 };
 
 export function RequestTabs({ onTabChange }: RequestTabsProps) {
