@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponseData } from "@/pages/home";
+import { ResponseData } from "@/types/request";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -69,6 +69,9 @@ export function ResponsePanel({ response, isLoading, error }: ResponsePanelProps
           <Badge variant={getStatusColor(response.status) as any}>
             {response.status} {response.statusText}
           </Badge>
+          <div className="text-sm text-muted-foreground ml-auto">
+            {response.time}ms • {formatSize(response.size)}
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -76,6 +79,7 @@ export function ResponsePanel({ response, isLoading, error }: ResponsePanelProps
           <TabsList>
             <TabsTrigger value="body">Body</TabsTrigger>
             <TabsTrigger value="headers">Headers</TabsTrigger>
+            <TabsTrigger value="cookies">Cookies</TabsTrigger>
           </TabsList>
 
           <TabsContent value="body">
@@ -94,8 +98,33 @@ export function ResponsePanel({ response, isLoading, error }: ResponsePanelProps
               ))}
             </div>
           </TabsContent>
+
+          <TabsContent value="cookies">
+            <div className="rounded-lg bg-muted p-4 space-y-2">
+              {Object.entries(response.cookies).length > 0 ? (
+                Object.entries(response.cookies).map(([key, value]) => (
+                  <div key={key} className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="font-medium">{key}</div>
+                    <div className="col-span-2 font-mono">{value}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  No cookies in response
+                </div>
+              )}
+            </div>
+          </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
   );
+}
+
+function formatSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
