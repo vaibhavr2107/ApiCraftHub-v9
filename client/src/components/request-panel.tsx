@@ -10,62 +10,96 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { makeRequest } from "@/lib/api";
-import { ResponseData } from "@/pages/home";
+import type { ResponseData, SavedRequest, QueryParam } from "@/types/request";
 import { useToast } from "@/hooks/use-toast";
 import { X } from "lucide-react";
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"];
 
 interface RequestPanelProps {
+  request: SavedRequest;
+  onRequestChange: (updates: Partial<SavedRequest>) => void;
   onResponse: (response: ResponseData) => void;
   onLoading: (isLoading: boolean) => void;
   onError: (error: string | null) => void;
 }
 
-interface QueryParam {
-  key: string;
-  value: string;
-}
-
-interface AuthConfig {
-  type: "none" | "basic" | "bearer";
-  username?: string;
-  password?: string;
-  token?: string;
-}
-
-export function RequestPanel({ onResponse, onLoading, onError }: RequestPanelProps) {
-  const [method, setMethod] = useState("GET");
-  const [url, setUrl] = useState("https://api.restful-api.dev/objects");
-  const [queryParams, setQueryParams] = useState<QueryParam[]>([{ key: "", value: "" }]);
-  const [body, setBody] = useState("");
-  const [auth, setAuth] = useState<AuthConfig>({ type: "none" });
+export function RequestPanel({
+  request,
+  onRequestChange,
+  onResponse,
+  onLoading,
+  onError,
+}: RequestPanelProps) {
   const { toast } = useToast();
 
+  // Synchronize URL and query parameters
+  useEffect(() => {
+    try {
+      const url = new URL(request.url);
+      const params: QueryParam[] = Array.from(url.searchParams.entries()).map(
+        ([key, value]) => ({ key, value })
+      );
+
+      if (params.length === 0) {
+        params.push({ key: "", value: "" });
+      }
+
+      onRequestChange({ queryParams: params });
+    } catch (e) {
+      // Invalid URL, keep existing query params
+    }
+  }, [request.url, onRequestChange]);
+
+  const updateUrl = (baseUrl: string) => {
+    try {
+      const url = new URL(baseUrl);
+      request.queryParams.forEach(({ key, value }) => {
+        if (key && value) {
+          url.searchParams.set(key, value);
+        }
+      });
+      onRequestChange({ url: url.toString() });
+    } catch (e) {
+      // Invalid URL, just update the raw value
+      onRequestChange({ url: baseUrl });
+    }
+  };
+
   const addQueryParam = () => {
-    setQueryParams([...queryParams, { key: "", value: "" }]);
+    onRequestChange({
+      queryParams: [...request.queryParams, { key: "", value: "" }],
+    });
   };
 
   const removeQueryParam = (index: number) => {
-    setQueryParams(queryParams.filter((_, i) => i !== index));
+    const newParams = request.queryParams.filter((_, i) => i !== index);
+    if (newParams.length === 0) {
+      newParams.push({ key: "", value: "" });
+    }
+    onRequestChange({ queryParams: newParams });
   };
 
   const updateQueryParam = (index: number, field: "key" | "value", value: string) => {
-    const newParams = [...queryParams];
+    const newParams = [...request.queryParams];
     newParams[index][field] = value;
-    setQueryParams(newParams);
-  };
+    onRequestChange({ queryParams: newParams });
 
-  const buildUrl = () => {
-    const baseUrl = new URL(url);
-    queryParams.forEach(({ key, value }) => {
-      if (key && value) {
-        baseUrl.searchParams.append(key, value);
-      }
-    });
-    return baseUrl.toString();
+    // Update URL with new query parameters
+    try {
+      const url = new URL(request.url);
+      url.search = ""; // Clear existing query parameters
+      newParams.forEach(({ key, value }) => {
+        if (key && value) {
+          url.searchParams.append(key, value);
+        }
+      });
+      onRequestChange({ url: url.toString() });
+    } catch (e) {
+      // Invalid URL, skip URL update
+    }
   };
 
   const handleSend = async () => {
@@ -75,16 +109,18 @@ export function RequestPanel({ onResponse, onLoading, onError }: RequestPanelPro
     try {
       const headers: Record<string, string> = {};
 
-      if (auth.type === "basic" && auth.username && auth.password) {
-        headers["Authorization"] = `Basic ${btoa(`${auth.username}:${auth.password}`)}`;
-      } else if (auth.type === "bearer" && auth.token) {
-        headers["Authorization"] = `Bearer ${auth.token}`;
+      if (request.auth.type === "basic" && request.auth.username && request.auth.password) {
+        headers["Authorization"] = `Basic ${btoa(
+          `${request.auth.username}:${request.auth.password}`
+        )}`;
+      } else if (request.auth.type === "bearer" && request.auth.token) {
+        headers["Authorization"] = `Bearer ${request.auth.token}`;
       }
 
       const response = await makeRequest({
-        method,
-        url: buildUrl(),
-        body: body ? JSON.parse(body) : undefined,
+        method: request.method,
+        url: request.url,
+        body: request.body ? JSON.parse(request.body) : undefined,
         headers,
       });
       onResponse(response);
@@ -108,7 +144,10 @@ export function RequestPanel({ onResponse, onLoading, onError }: RequestPanelPro
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex gap-2">
-          <Select value={method} onValueChange={setMethod}>
+          <Select
+            value={request.method}
+            onValueChange={(value) => onRequestChange({ method: value as SavedRequest["method"] })}
+          >
             <SelectTrigger className="w-[120px]">
               <SelectValue />
             </SelectTrigger>
@@ -121,8 +160,8 @@ export function RequestPanel({ onResponse, onLoading, onError }: RequestPanelPro
             </SelectContent>
           </Select>
           <Input
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            value={request.url}
+            onChange={(e) => updateUrl(e.target.value)}
             placeholder="Enter URL"
             className="flex-1"
           />
@@ -136,7 +175,7 @@ export function RequestPanel({ onResponse, onLoading, onError }: RequestPanelPro
           </TabsList>
 
           <TabsContent value="params" className="space-y-4">
-            {queryParams.map((param, index) => (
+            {request.queryParams.map((param, index) => (
               <div key={index} className="flex gap-2">
                 <Input
                   placeholder="Parameter"
@@ -166,9 +205,9 @@ export function RequestPanel({ onResponse, onLoading, onError }: RequestPanelPro
 
           <TabsContent value="auth" className="space-y-4">
             <Select
-              value={auth.type}
+              value={request.auth.type}
               onValueChange={(value: "none" | "basic" | "bearer") =>
-                setAuth({ type: value })
+                onRequestChange({ auth: { ...request.auth, type: value } })
               }
             >
               <SelectTrigger>
@@ -181,39 +220,47 @@ export function RequestPanel({ onResponse, onLoading, onError }: RequestPanelPro
               </SelectContent>
             </Select>
 
-            {auth.type === "basic" && (
+            {request.auth.type === "basic" && (
               <div className="space-y-2">
                 <Input
                   placeholder="Username"
-                  value={auth.username}
+                  value={request.auth.username}
                   onChange={(e) =>
-                    setAuth({ ...auth, username: e.target.value })
+                    onRequestChange({
+                      auth: { ...request.auth, username: e.target.value },
+                    })
                   }
                 />
                 <Input
                   type="password"
                   placeholder="Password"
-                  value={auth.password}
+                  value={request.auth.password}
                   onChange={(e) =>
-                    setAuth({ ...auth, password: e.target.value })
+                    onRequestChange({
+                      auth: { ...request.auth, password: e.target.value },
+                    })
                   }
                 />
               </div>
             )}
 
-            {auth.type === "bearer" && (
+            {request.auth.type === "bearer" && (
               <Input
                 placeholder="Token"
-                value={auth.token}
-                onChange={(e) => setAuth({ ...auth, token: e.target.value })}
+                value={request.auth.token}
+                onChange={(e) =>
+                  onRequestChange({
+                    auth: { ...request.auth, token: e.target.value },
+                  })
+                }
               />
             )}
           </TabsContent>
 
           <TabsContent value="body" className="space-y-2">
             <Textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
+              value={request.body}
+              onChange={(e) => onRequestChange({ body: e.target.value })}
               placeholder="{}"
               className="font-mono min-h-[200px]"
             />
@@ -221,8 +268,12 @@ export function RequestPanel({ onResponse, onLoading, onError }: RequestPanelPro
               variant="outline"
               onClick={() => {
                 try {
-                  const formatted = JSON.stringify(JSON.parse(body), null, 2);
-                  setBody(formatted);
+                  const formatted = JSON.stringify(
+                    JSON.parse(request.body || ""),
+                    null,
+                    2
+                  );
+                  onRequestChange({ body: formatted });
                 } catch (e) {
                   toast({
                     variant: "destructive",
