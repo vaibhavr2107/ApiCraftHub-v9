@@ -56,7 +56,6 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Ensure each request has the required structure
         return parsed.map((req: any) => ({
           ...DEFAULT_REQUEST,
           id: req.id || nanoid(),
@@ -177,10 +176,13 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
 
   // Handle tab changes through route updates
   const handleTabChange = (value: string) => {
-    setLocation(`/request/${value}`);
+    if (value !== activeTab) {
+      setLocation(`/request/${value}`);
+    }
   };
 
   if (requests.length === 0) {
+    handleNewTab();
     return null;
   }
 
