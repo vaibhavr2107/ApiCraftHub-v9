@@ -25,9 +25,20 @@ export interface CollectionRequest {
   method: string;
   url: string;
   headers: { key: string; value: string; enabled: boolean; }[];
+  queryParams?: { key: string; value: string; }[];
+  pathVariables?: { key: string; value: string; }[];
   body?: {
     type: "none" | "form-data" | "x-www-form-urlencoded" | "raw";
+    rawFormat?: "json" | "text" | "xml" | "html";
     content?: any;
+    formData?: { key: string; value: string; type: "text" | "file"; }[];
+    urlEncoded?: { key: string; value: string; }[];
+  };
+  auth?: {
+    type: "none" | "basic" | "bearer" | "oauth2";
+    basic?: { username: string; password: string; };
+    bearer?: { token: string; };
+    oauth2?: any;
   };
 }
 
@@ -36,7 +47,10 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onRequestSelect }: SidebarProps) {
-  const [collections, setCollections] = useState<Collection[]>([]);
+  const [collections, setCollections] = useState<Collection[]>(() => {
+    const saved = localStorage.getItem("collections");
+    return saved ? JSON.parse(saved) : [];
+  });
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   const toggleFolder = (folderId: string) => {
@@ -50,65 +64,119 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    try {
-      const content = await file.text();
-      let collection: Collection;
+    const newCollections: Collection[] = [];
+    const filePromises = Array.from(files).map(async (file) => {
+      try {
+        const content = await file.text();
+        let collection: Collection;
 
-      if (file.name.endsWith('.json')) {
-        // Parse Postman Collection
-        const json = JSON.parse(content);
-        collection = parsePostmanCollection(json);
-      } else if (file.name.endsWith('.yaml') || file.name.endsWith('.yml')) {
-        // Parse OpenAPI YAML
-        collection = parseOpenAPICollection(content);
-      } else {
-        throw new Error('Unsupported file format');
+        if (file.name.endsWith('.json')) {
+          const json = JSON.parse(content);
+          collection = parsePostmanCollection(json);
+          newCollections.push(collection);
+          toast({
+            title: "Success",
+            description: `Imported collection: ${collection.name}`,
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: `Unsupported file format: ${file.name}`,
+          });
+        }
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `Failed to import ${file.name}. Please check the file format.`,
+        });
       }
+    });
 
-      setCollections([...collections, collection]);
-      toast({
-        title: "Success",
-        description: `Imported collection: ${collection.name}`,
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to import collection. Please check the file format.",
-      });
+    await Promise.all(filePromises);
+
+    if (newCollections.length > 0) {
+      const updatedCollections = [...collections, ...newCollections];
+      setCollections(updatedCollections);
+      localStorage.setItem("collections", JSON.stringify(updatedCollections));
     }
   };
 
   const parsePostmanCollection = (json: any): Collection => {
     const parseItem = (item: any): CollectionRequest | CollectionFolder => {
       if (item.request) {
-        // This is a request
+        // Parse URL components
+        const url = typeof item.request.url === 'string' 
+          ? { raw: item.request.url } 
+          : item.request.url;
+
+        const queryParams = url.query?.map((q: any) => ({
+          key: q.key || '',
+          value: q.value || '',
+        })) || [];
+
+        const pathVariables = url.variable?.map((v: any) => ({
+          key: v.key || '',
+          value: v.value || '',
+        })) || [];
+
+        // Parse request body
+        const body = item.request.body ? {
+          type: item.request.body.mode || "none",
+          rawFormat: item.request.body.mode === 'raw' ? (item.request.body.options?.raw?.language || 'json') : undefined,
+          content: item.request.body[item.request.body.mode],
+          formData: item.request.body.formdata?.map((f: any) => ({
+            key: f.key,
+            value: f.value,
+            type: f.type || 'text'
+          })),
+          urlEncoded: item.request.body.urlencoded?.map((u: any) => ({
+            key: u.key,
+            value: u.value
+          }))
+        } : undefined;
+
+        // Parse authentication
+        const auth = item.request.auth || json.auth;
+        const authData = auth ? {
+          type: auth.type || 'none',
+          basic: auth.type === 'basic' ? {
+            username: auth.basic?.[0]?.value || '',
+            password: auth.basic?.[1]?.value || ''
+          } : undefined,
+          bearer: auth.type === 'bearer' ? {
+            token: auth.bearer?.[0]?.value || ''
+          } : undefined,
+          oauth2: auth.type === 'oauth2' ? auth.oauth2 : undefined
+        } : { type: 'none' };
+
         return {
           id: nanoid(),
           name: item.name,
           method: item.request.method,
-          url: typeof item.request.url === 'string' ? item.request.url : item.request.url.raw,
+          url: url.raw || "", // Handle cases where url.raw might be undefined.
           headers: (item.request.header || []).map((h: any) => ({
             key: h.key,
             value: h.value,
             enabled: !h.disabled
           })),
-          body: item.request.body ? {
-            type: item.request.body.mode || "none",
-            content: item.request.body[item.request.body.mode]
-          } : undefined
+          queryParams,
+          pathVariables,
+          body,
+          auth: authData
         };
       } else {
         // This is a folder
+        const { requests, folders } = processItems(item.item || []);
         return {
           id: nanoid(),
           name: item.name,
-          requests: [],
-          folders: [],
-          ...processItems(item.item)
+          requests,
+          folders
         };
       }
     };
@@ -135,16 +203,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       name: json.info?.name || "Imported Collection",
       requests,
       folders
-    };
-  };
-
-  const parseOpenAPICollection = (yaml: string): Collection => {
-    // Basic OpenAPI parsing
-    return {
-      id: nanoid(),
-      name: "OpenAPI Collection",
-      requests: [], // TODO: Implement full parsing
-      folders: [], // TODO: Implement full parsing
     };
   };
 
@@ -177,6 +235,13 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
 
   const renderRequest = (request: CollectionRequest, level = 0) => {
     const paddingLeft = `${level * 1.5}rem`;
+    const methodColors: Record<string, string> = {
+      GET: "text-green-600",
+      POST: "text-blue-600",
+      PUT: "text-orange-600",
+      DELETE: "text-red-600",
+      PATCH: "text-purple-600"
+    };
 
     return (
       <Button
@@ -186,7 +251,9 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
         style={{ paddingLeft }}
         onClick={() => onRequestSelect(request)}
       >
-        <span className="mr-2">📄</span>
+        <span className={`mr-2 font-mono font-semibold ${methodColors[request.method] || "text-gray-600"}`}>
+          {request.method}
+        </span>
         {request.name}
       </Button>
     );
@@ -198,8 +265,9 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
         <label className="cursor-pointer">
           <input
             type="file"
-            accept=".json,.yaml,.yml"
+            accept=".json"
             className="hidden"
+            multiple
             onChange={handleFileUpload}
           />
           <Button variant="outline" className="w-full">
