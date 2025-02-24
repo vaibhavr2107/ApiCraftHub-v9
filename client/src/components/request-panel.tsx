@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -15,20 +15,8 @@ import { useEffect, useState } from "react";
 import { makeRequest } from "@/lib/api";
 import type { ApiRequest, RequestParameter, BodyType, RawFormat } from "@/types/api-request";
 import { useToast } from "@/hooks/use-toast";
-import { X, Plus } from "lucide-react";
+import { X, Send, Play } from "lucide-react";
 import { useLocation } from "wouter";
-
-const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
-const BODY_TYPES: BodyType[] = ["none", "form-data", "x-www-form-urlencoded", "raw"];
-const RAW_FORMATS: RawFormat[] = ["json", "text", "xml", "html"];
-
-interface RequestPanelProps {
-  request: ApiRequest;
-  onRequestChange: (updates: Partial<ApiRequest>) => void;
-  onResponse: (response: any) => void;
-  onLoading: (isLoading: boolean) => void;
-  onError: (error: string | null) => void;
-}
 
 // Detect path variables in URL
 const detectPathVariables = (url: string): RequestParameter[] => {
@@ -66,6 +54,18 @@ const replacePathVariables = (url: string, pathVariables: RequestParameter[]): s
   });
   return processedUrl;
 };
+
+const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
+const BODY_TYPES: BodyType[] = ["none", "form-data", "x-www-form-urlencoded", "raw"];
+const RAW_FORMATS: RawFormat[] = ["json", "text", "xml", "html"];
+
+interface RequestPanelProps {
+  request: ApiRequest;
+  onRequestChange: (updates: Partial<ApiRequest>) => void;
+  onResponse: (response: any) => void;
+  onLoading: (isLoading: boolean) => void;
+  onError: (error: string | null) => void;
+}
 
 export function RequestPanel({
   request,
@@ -285,17 +285,14 @@ export function RequestPanel({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Request</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex gap-2">
+    <div className="flex flex-col h-full bg-background/95">
+      <div className="p-4 border-b space-y-4">
+        <div className="flex items-center gap-2">
           <Select
             value={request.method}
             onValueChange={(value) => onRequestChange({ method: value as ApiRequest["method"] })}
           >
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-[100px] h-9 bg-background">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -306,401 +303,427 @@ export function RequestPanel({
               ))}
             </SelectContent>
           </Select>
-          <Input
-            value={request.url}
-            onChange={(e) => updateUrl(e.target.value)}
-            placeholder="Enter URL"
-            className="flex-1"
-          />
+          <div className="flex-1 flex gap-2">
+            <Input
+              value={request.url}
+              onChange={(e) => updateUrl(e.target.value)}
+              placeholder="Enter URL"
+              className="flex-1 h-9 font-mono text-sm"
+            />
+            <Button onClick={handleSend} size="sm" className="h-9">
+              <Send className="w-4 h-4 mr-2" />
+              Send
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="params" className="flex-1">
+        <div className="border-b bg-muted/40">
+          <TabsList className="p-0 h-auto bg-transparent border-b-0">
+            <TabsTrigger value="params" className="data-[state=active]:bg-background rounded-none border-b-2 data-[state=active]:border-primary">
+              Params
+            </TabsTrigger>
+            <TabsTrigger value="auth" className="data-[state=active]:bg-background rounded-none border-b-2 data-[state=active]:border-primary">
+              Authorization
+            </TabsTrigger>
+            <TabsTrigger value="headers" className="data-[state=active]:bg-background rounded-none border-b-2 data-[state=active]:border-primary">
+              Headers
+            </TabsTrigger>
+            <TabsTrigger value="body" className="data-[state=active]:bg-background rounded-none border-b-2 data-[state=active]:border-primary">
+              Body
+            </TabsTrigger>
+          </TabsList>
         </div>
 
-        <Tabs defaultValue="params" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="params">Params</TabsTrigger>
-            <TabsTrigger value="headers">Headers</TabsTrigger>
-            <TabsTrigger value="auth">Authorization</TabsTrigger>
-            <TabsTrigger value="body">Body</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="params" className="space-y-4">
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Query Parameters</h3>
-              {request.queryParams.map((param, index) => (
-                <div key={index} className="flex gap-2">
-                  <Checkbox
-                    checked={param.enabled}
-                    onCheckedChange={(checked) =>
-                      updateQueryParam(index, "enabled", checked === true)
-                    }
-                  />
-                  <Input
-                    placeholder="Parameter"
-                    value={param.key}
-                    onChange={(e) => updateQueryParam(index, "key", e.target.value)}
-                    className="flex-1"
-                  />
-                  <Input
-                    placeholder="Value"
-                    value={param.value}
-                    onChange={(e) => updateQueryParam(index, "value", e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeQueryParam(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button onClick={addQueryParam} variant="outline" className="w-full">
-                Add Query Parameter
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium">Path Variables</h3>
-              {request.pathVariables?.map((param, index) => (
-                <div key={index} className="flex gap-2">
-                  <Checkbox
-                    checked={param.enabled}
-                    onCheckedChange={(checked) =>
-                      updatePathVariable(index, "enabled", checked === true)
-                    }
-                  />
-                  <Input
-                    placeholder="Variable"
-                    value={param.key}
-                    onChange={(e) => updatePathVariable(index, "key", e.target.value)}
-                    className="flex-1"
-                  />
-                  <Input
-                    placeholder="Value"
-                    value={param.value}
-                    onChange={(e) => updatePathVariable(index, "value", e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removePathVariable(index)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button onClick={addPathVariable} variant="outline" className="w-full">
-                Add Path Variable
-              </Button>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="headers" className="space-y-4">
-            {request.headers.map((header, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Checkbox
-                  checked={header.enabled}
-                  onCheckedChange={(checked) =>
-                    updateHeader(index, "enabled", checked === true)
-                  }
-                />
-                <Input
-                  placeholder="Header"
-                  value={header.key}
-                  onChange={(e) => updateHeader(index, "key", e.target.value)}
-                  className="flex-1"
-                />
-                <Input
-                  placeholder="Value"
-                  value={header.value}
-                  onChange={(e) => updateHeader(index, "value", e.target.value)}
-                  className="flex-1"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeHeader(index)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button onClick={addHeader} variant="outline" className="w-full">
-              Add Header
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="auth" className="space-y-4">
-            <Select
-              value={request.auth.type}
-              onValueChange={(value: "none" | "basic" | "bearer") =>
-                onRequestChange({
-                  auth: value === "basic" 
-                    ? { type: "basic", basic: { username: "", password: "" } }
-                    : value === "bearer"
-                    ? { type: "bearer", bearer: { token: "" } }
-                    : { type: "none" }
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select auth type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No Auth</SelectItem>
-                <SelectItem value="basic">Basic Auth</SelectItem>
-                <SelectItem value="bearer">Bearer Token</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {request.auth.type === "basic" && (
+        <div className="flex-1 overflow-auto">
+          <TabsContent value="params" className="p-0 m-0 h-full">
+            <div className="p-4 space-y-6">
               <div className="space-y-2">
-                <Input
-                  placeholder="Username"
-                  value={request.auth.basic?.username || ""}
-                  onChange={(e) =>
-                    onRequestChange({
-                      auth: { 
-                        ...request.auth, 
-                        basic: { 
-                          ...request.auth.basic,
-                          username: e.target.value,
-                          password: request.auth.basic?.password || ""
+                <h3 className="text-sm font-medium text-muted-foreground">Query Parameters</h3>
+                <div className="space-y-2">
+                  {request.queryParams.map((param, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={param.enabled}
+                        onCheckedChange={(checked) =>
+                          updateQueryParam(index, "enabled", checked === true)
                         }
-                      },
-                    })
-                  }
-                />
-                <Input
-                  type="password"
-                  placeholder="Password"
-                  value={request.auth.basic?.password || ""}
-                  onChange={(e) =>
-                    onRequestChange({
-                      auth: { 
-                        ...request.auth, 
-                        basic: {
-                          ...request.auth.basic,
-                          username: request.auth.basic?.username || "",
-                          password: e.target.value
-                        }
-                      },
-                    })
-                  }
-                />
+                      />
+                      <Input
+                        placeholder="Key"
+                        value={param.key}
+                        onChange={(e) => updateQueryParam(index, "key", e.target.value)}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Value"
+                        value={param.value}
+                        onChange={(e) => updateQueryParam(index, "value", e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeQueryParam(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button onClick={addQueryParam} variant="outline" size="sm" className="w-full">
+                    Add Query Parameter
+                  </Button>
+                </div>
               </div>
-            )}
 
-            {request.auth.type === "bearer" && (
-              <Input
-                placeholder="Bearer Token"
-                value={request.auth.bearer?.token || ""}
-                onChange={(e) =>
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground">Path Variables</h3>
+                <div className="space-y-2">
+                  {request.pathVariables?.map((param, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={param.enabled}
+                        onCheckedChange={(checked) =>
+                          updatePathVariable(index, "enabled", checked === true)
+                        }
+                      />
+                      <Input
+                        placeholder="Variable"
+                        value={param.key}
+                        onChange={(e) => updatePathVariable(index, "key", e.target.value)}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Value"
+                        value={param.value}
+                        onChange={(e) => updatePathVariable(index, "value", e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removePathVariable(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button onClick={addPathVariable} variant="outline" size="sm" className="w-full">
+                    Add Path Variable
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="auth" className="p-0 m-0 h-full">
+            <div className="p-4 space-y-4">
+              <Select
+                value={request.auth.type}
+                onValueChange={(value: "none" | "basic" | "bearer") =>
                   onRequestChange({
-                    auth: { 
-                      ...request.auth, 
-                      bearer: { token: e.target.value }
-                    },
+                    auth: value === "basic" 
+                      ? { type: "basic", basic: { username: "", password: "" } }
+                      : value === "bearer"
+                      ? { type: "bearer", bearer: { token: "" } }
+                      : { type: "none" }
                   })
                 }
-              />
-            )}
-          </TabsContent>
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select auth type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Auth</SelectItem>
+                  <SelectItem value="basic">Basic Auth</SelectItem>
+                  <SelectItem value="bearer">Bearer Token</SelectItem>
+                </SelectContent>
+              </Select>
 
-          <TabsContent value="body" className="space-y-4">
-            <Select
-              value={request.body.type}
-              onValueChange={(value) => updateBodyType(value as BodyType)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Body Type" />
-              </SelectTrigger>
-              <SelectContent>
-                {BODY_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {request.body.type === "raw" && (
-              <div className="space-y-2">
-                <Select
-                  value={request.body.rawFormat}
-                  onValueChange={(format) =>
-                    onRequestChange({
-                      body: { ...request.body, rawFormat: format as RawFormat },
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Format" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {RAW_FORMATS.map((format) => (
-                      <SelectItem key={format} value={format}>
-                        {format.toUpperCase()}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="relative">
-                  <Textarea
-                    value={request.body.content}
+              {request.auth.type === "basic" && (
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Username"
+                    value={request.auth.basic?.username || ""}
                     onChange={(e) =>
                       onRequestChange({
-                        body: { ...request.body, content: e.target.value },
+                        auth: { 
+                          ...request.auth, 
+                          basic: { 
+                            ...request.auth.basic,
+                            username: e.target.value,
+                            password: request.auth.basic?.password || ""
+                          }
+                        },
                       })
                     }
-                    placeholder="Enter request body"
-                    className="font-mono min-h-[200px] pl-8"
                   />
-                  <div className="absolute left-0 top-0 bottom-0 w-8 bg-muted border-r text-right pr-2 text-sm text-muted-foreground select-none">
-                    {request.body.content.split('\n').map((_, i) => (
-                      <div key={i}>{i + 1}</div>
-                    ))}
-                  </div>
+                  <Input
+                    type="password"
+                    placeholder="Password"
+                    value={request.auth.basic?.password || ""}
+                    onChange={(e) =>
+                      onRequestChange({
+                        auth: { 
+                          ...request.auth, 
+                          basic: {
+                            ...request.auth.basic,
+                            username: request.auth.basic?.username || "",
+                            password: e.target.value
+                          }
+                        },
+                      })
+                    }
+                  />
                 </div>
-                <Button onClick={formatBody} variant="outline">
-                  Format {request.body.rawFormat?.toUpperCase()}
-                </Button>
-              </div>
-            )}
+              )}
 
-            {request.body.type === "form-data" && request.body.formData && (
-              <div className="space-y-2">
-                {request.body.formData.map((item, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder="Key"
-                      value={item.key}
-                      onChange={(e) => {
-                        const newFormData = [...request.body.formData!];
-                        newFormData[index] = { ...item, key: e.target.value };
-                        onRequestChange({
-                          body: { ...request.body, formData: newFormData },
-                        });
-                      }}
-                      className="flex-1"
-                    />
-                    <Input
-                      placeholder="Value"
-                      value={item.value}
-                      onChange={(e) => {
-                        const newFormData = [...request.body.formData!];
-                        newFormData[index] = { ...item, value: e.target.value };
-                        onRequestChange({
-                          body: { ...request.body, formData: newFormData },
-                        });
-                      }}
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        const newFormData = request.body.formData!.filter(
-                          (_, i) => i !== index
-                        );
-                        onRequestChange({
-                          body: { ...request.body, formData: newFormData },
-                        });
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  onClick={() => {
-                    const newFormData = [
-                      ...(request.body.formData || []),
-                      { key: "", value: "", type: "text" as const, enabled: true },
-                    ];
+              {request.auth.type === "bearer" && (
+                <Input
+                  placeholder="Bearer Token"
+                  value={request.auth.bearer?.token || ""}
+                  onChange={(e) =>
                     onRequestChange({
-                      body: { ...request.body, formData: newFormData },
-                    });
-                  }}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Add Form Field
-                </Button>
-              </div>
-            )}
-
-            {request.body.type === "x-www-form-urlencoded" && request.body.urlEncoded && (
-              <div className="space-y-2">
-                {request.body.urlEncoded.map((item, index) => (
-                  <div key={index} className="flex gap-2">
-                    <Input
-                      placeholder="Key"
-                      value={item.key}
-                      onChange={(e) => {
-                        const newUrlEncoded = [...request.body.urlEncoded!];
-                        newUrlEncoded[index] = { ...item, key: e.target.value };
-                        onRequestChange({
-                          body: { ...request.body, urlEncoded: newUrlEncoded },
-                        });
-                      }}
-                      className="flex-1"
-                    />
-                    <Input
-                      placeholder="Value"
-                      value={item.value}
-                      onChange={(e) => {
-                        const newUrlEncoded = [...request.body.urlEncoded!];
-                        newUrlEncoded[index] = { ...item, value: e.target.value };
-                        onRequestChange({
-                          body: { ...request.body, urlEncoded: newUrlEncoded },
-                        });
-                      }}
-                      className="flex-1"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        const newUrlEncoded = request.body.urlEncoded!.filter(
-                          (_, i) => i !== index
-                        );
-                        onRequestChange({
-                          body: { ...request.body, urlEncoded: newUrlEncoded },
-                        });
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  onClick={() => {
-                    const newUrlEncoded = [
-                      ...(request.body.urlEncoded || []),
-                      { key: "", value: "", enabled: true },
-                    ];
-                    onRequestChange({
-                      body: { ...request.body, urlEncoded: newUrlEncoded },
-                    });
-                  }}
-                  variant="outline"
-                  className="w-full"
-                >
-                  Add URL Encoded Field
-                </Button>
-              </div>
-            )}
+                      auth: { 
+                        ...request.auth, 
+                        bearer: { token: e.target.value }
+                      },
+                    })
+                  }
+                />
+              )}
+            </div>
           </TabsContent>
-        </Tabs>
 
-        <div className="space-y-2">
-          <Button onClick={handleSend} className="w-full">
-            Send Request
-          </Button>
+          <TabsContent value="headers" className="p-0 m-0 h-full">
+            <div className="p-4 space-y-4">
+              {request.headers.map((header, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Checkbox
+                    checked={header.enabled}
+                    onCheckedChange={(checked) =>
+                      updateHeader(index, "enabled", checked === true)
+                    }
+                  />
+                  <Input
+                    placeholder="Header"
+                    value={header.key}
+                    onChange={(e) => updateHeader(index, "key", e.target.value)}
+                    className="flex-1"
+                  />
+                  <Input
+                    placeholder="Value"
+                    value={header.value}
+                    onChange={(e) => updateHeader(index, "value", e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeHeader(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button onClick={addHeader} variant="outline" size="sm" className="w-full">
+                Add Header
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="body" className="p-0 m-0 h-full">
+            <div className="p-4 space-y-4">
+              <Select
+                value={request.body.type}
+                onValueChange={(value) => updateBodyType(value as BodyType)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Body Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BODY_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {request.body.type === "raw" && (
+                <div className="space-y-2">
+                  <Select
+                    value={request.body.rawFormat}
+                    onValueChange={(format) =>
+                      onRequestChange({
+                        body: { ...request.body, rawFormat: format as RawFormat },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Format" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RAW_FORMATS.map((format) => (
+                        <SelectItem key={format} value={format}>
+                          {format.toUpperCase()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="relative">
+                    <Textarea
+                      value={request.body.content}
+                      onChange={(e) =>
+                        onRequestChange({
+                          body: { ...request.body, content: e.target.value },
+                        })
+                      }
+                      placeholder="Enter request body"
+                      className="font-mono min-h-[200px] pl-8"
+                    />
+                    <div className="absolute left-0 top-0 bottom-0 w-8 bg-muted border-r text-right pr-2 text-sm text-muted-foreground select-none">
+                      {request.body.content.split('\n').map((_, i) => (
+                        <div key={i}>{i + 1}</div>
+                      ))}
+                    </div>
+                  </div>
+                  <Button onClick={formatBody} variant="outline">
+                    Format {request.body.rawFormat?.toUpperCase()}
+                  </Button>
+                </div>
+              )}
+
+              {request.body.type === "form-data" && request.body.formData && (
+                <div className="space-y-2">
+                  {request.body.formData.map((item, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        placeholder="Key"
+                        value={item.key}
+                        onChange={(e) => {
+                          const newFormData = [...request.body.formData!];
+                          newFormData[index] = { ...item, key: e.target.value };
+                          onRequestChange({
+                            body: { ...request.body, formData: newFormData },
+                          });
+                        }}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Value"
+                        value={item.value}
+                        onChange={(e) => {
+                          const newFormData = [...request.body.formData!];
+                          newFormData[index] = { ...item, value: e.target.value };
+                          onRequestChange({
+                            body: { ...request.body, formData: newFormData },
+                          });
+                        }}
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const newFormData = request.body.formData!.filter(
+                            (_, i) => i !== index
+                          );
+                          onRequestChange({
+                            body: { ...request.body, formData: newFormData },
+                          });
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    onClick={() => {
+                      const newFormData = [
+                        ...(request.body.formData || []),
+                        { key: "", value: "", type: "text" as const, enabled: true },
+                      ];
+                      onRequestChange({
+                        body: { ...request.body, formData: newFormData },
+                      });
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    Add Form Field
+                  </Button>
+                </div>
+              )}
+
+              {request.body.type === "x-www-form-urlencoded" && request.body.urlEncoded && (
+                <div className="space-y-2">
+                  {request.body.urlEncoded.map((item, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        placeholder="Key"
+                        value={item.key}
+                        onChange={(e) => {
+                          const newUrlEncoded = [...request.body.urlEncoded!];
+                          newUrlEncoded[index] = { ...item, key: e.target.value };
+                          onRequestChange({
+                            body: { ...request.body, urlEncoded: newUrlEncoded },
+                          });
+                        }}
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="Value"
+                        value={item.value}
+                        onChange={(e) => {
+                          const newUrlEncoded = [...request.body.urlEncoded!];
+                          newUrlEncoded[index] = { ...item, value: e.target.value };
+                          onRequestChange({
+                            body: { ...request.body, urlEncoded: newUrlEncoded },
+                          });
+                        }}
+                        className="flex-1"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const newUrlEncoded = request.body.urlEncoded!.filter(
+                            (_, i) => i !== index
+                          );
+                          onRequestChange({
+                            body: { ...request.body, urlEncoded: newUrlEncoded },
+                          });
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    onClick={() => {
+                      const newUrlEncoded = [
+                        ...(request.body.urlEncoded || []),
+                        { key: "", value: "", enabled: true },
+                      ];
+                      onRequestChange({
+                        body: { ...request.body, urlEncoded: newUrlEncoded },
+                      });
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    Add URL Encoded Field
+                  </Button>
+                </div>
+              )}
+            </div>
+          </TabsContent>
         </div>
-      </CardContent>
-    </Card>
+      </Tabs>
+    </div>
   );
 }
