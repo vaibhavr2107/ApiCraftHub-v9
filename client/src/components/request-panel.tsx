@@ -30,6 +30,21 @@ interface RequestPanelProps {
   onError: (error: string | null) => void;
 }
 
+const validateAndFormatUrl = (url: string): string => {
+  if (!url) return url;
+
+  // If URL starts with {{, it might contain variables, return as is
+  if (url.startsWith('{{')) return url;
+
+  // Check if URL starts with http:// or https://
+  if (!url.match(/^https?:\/\//i)) {
+    // Add https:// as default
+    return `https://${url}`;
+  }
+
+  return url;
+};
+
 export function RequestPanel({
   request,
   onRequestChange,
@@ -43,25 +58,36 @@ export function RequestPanel({
   // URL and Query Parameters Synchronization
   useEffect(() => {
     try {
-      const url = new URL(request.url);
-      const params: QueryParam[] = Array.from(url.searchParams.entries()).map(
-        ([key, value]) => ({ key, value })
-      );
+      // Only process URL if it doesn't contain variables
+      if (!request.url.includes('{{')) {
+        const url = new URL(validateAndFormatUrl(request.url));
+        const params: QueryParam[] = Array.from(url.searchParams.entries()).map(
+          ([key, value]) => ({ key, value })
+        );
 
-      if (params.length === 0) {
-        params.push({ key: "", value: "" });
+        if (params.length === 0) {
+          params.push({ key: "", value: "" });
+        }
+
+        onRequestChange({ queryParams: params });
       }
-
-      onRequestChange({ queryParams: params });
     } catch (e) {
-      // Invalid URL, keep existing query params
+      // Invalid URL or contains variables, keep existing query params
+      console.log('URL processing skipped:', e);
     }
   }, [request.url, onRequestChange]);
 
   const updateUrl = (baseUrl: string) => {
     try {
-      // Create a URL object to handle the base URL
-      const url = new URL(baseUrl);
+      // Don't process URL if it contains variables
+      if (baseUrl.includes('{{')) {
+        onRequestChange({ url: baseUrl });
+        return;
+      }
+
+      const formattedUrl = validateAndFormatUrl(baseUrl);
+      const url = new URL(formattedUrl);
+
       // Add query parameters if they exist
       request.queryParams.forEach(({ key, value }) => {
         if (key && value) {
@@ -70,7 +96,7 @@ export function RequestPanel({
       });
       onRequestChange({ url: url.toString() });
     } catch (e) {
-      // If the URL is invalid (might be using variables), just store it as is
+      // If URL is invalid, store it as is
       onRequestChange({ url: baseUrl });
     }
   };

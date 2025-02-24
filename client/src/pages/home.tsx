@@ -47,7 +47,7 @@ export default function Home() {
 
     if (parentCollection) {
       try {
-        // First, substitute variables in the base URL
+        // First, substitute variables in the URL
         processedUrl = substituteVariables(processedUrl, parentCollection);
 
         // Handle query parameters if present in the URL
@@ -59,8 +59,8 @@ export default function Home() {
         if (queryString) {
           const existingParams = new URLSearchParams(queryString);
           const urlQueryParams = Array.from(existingParams.entries()).map(([key, value]) => ({
-            key,
-            value: decodeURIComponent(value)
+            key: substituteVariables(key, parentCollection),
+            value: substituteVariables(decodeURIComponent(value), parentCollection)
           }));
 
           // Combine URL query params with explicit query params
@@ -70,8 +70,11 @@ export default function Home() {
           }));
         }
 
-        // Use the base URL without query parameters
+        // Ensure the URL is properly formatted
         processedUrl = baseUrl;
+        if (!processedUrl.startsWith('{{') && !processedUrl.match(/^https?:\/\//i)) {
+          processedUrl = `https://${processedUrl}`;
+        }
 
         // Remove trailing slash if present
         if (processedUrl.endsWith('/')) {
@@ -106,7 +109,7 @@ export default function Home() {
       body: request.body ? {
         type: request.body.type,
         rawFormat: request.body.rawFormat || "json",
-        raw: parentCollection && typeof request.body.content === 'string' 
+        raw: parentCollection && typeof request.body.content === 'string'
           ? substituteVariables(request.body.content, parentCollection)
           : request.body.content || "",
         formData: request.body.formData?.map(field => ({
@@ -155,7 +158,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar 
+      <Sidebar
         onRequestSelect={handleRequestSelect}
         onCollectionSelect={handleCollectionSelect}
       />
