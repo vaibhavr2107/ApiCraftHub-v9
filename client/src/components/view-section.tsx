@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FolderTree, Settings, History } from "lucide-react";
 import {
   SidebarGroup,
@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Environment {
   id: string;
@@ -37,6 +38,23 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
   });
   const [newEnvDialogOpen, setNewEnvDialogOpen] = useState(false);
   const [newEnvName, setNewEnvName] = useState("");
+  const [requestHistory, setRequestHistory] = useState<any[]>(() => {
+    const saved = localStorage.getItem("request_history");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Keep history in sync with localStorage
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem("request_history");
+      if (saved) {
+        setRequestHistory(JSON.parse(saved));
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   const handleAddEnvironment = () => {
     if (!newEnvName.trim()) return;
@@ -61,6 +79,17 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
     if (onEnvironmentSelect) {
       onEnvironmentSelect(env);
     }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  const getStatusColor = (status: number) => {
+    if (status >= 200 && status < 300) return "text-emerald-500";
+    if (status >= 400 && status < 500) return "text-amber-500";
+    if (status >= 500) return "text-red-500";
+    return "text-gray-500";
   };
 
   return (
@@ -157,9 +186,36 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
         {activeView === "history" && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium">History</h3>
-            <div className="text-sm text-muted-foreground">
-              No recent requests
-            </div>
+            <ScrollArea className="h-[calc(100vh-12rem)]">
+              <div className="space-y-2">
+                {requestHistory.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className="rounded-md border p-2 text-xs space-y-1"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={cn(
+                        "font-mono font-medium",
+                        getStatusColor(entry.response.status)
+                      )}>
+                        {entry.request.method} ({entry.response.status})
+                      </span>
+                      <span className="text-muted-foreground">
+                        {formatDate(entry.timestamp)}
+                      </span>
+                    </div>
+                    <div className="truncate font-mono text-muted-foreground">
+                      {entry.request.url}
+                    </div>
+                  </div>
+                ))}
+                {requestHistory.length === 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    No recent requests
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           </div>
         )}
       </div>
