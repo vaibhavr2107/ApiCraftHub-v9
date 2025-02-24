@@ -15,10 +15,10 @@ import { useEffect, useState } from "react";
 import { makeRequest } from "@/lib/api";
 import type { ApiRequest, RequestParameter, BodyType, RawFormat } from "@/types/api-request";
 import { useToast } from "@/hooks/use-toast";
-import { X, Send, Play } from "lucide-react";
+import { X, Send } from "lucide-react";
 import { useLocation } from "wouter";
 import { EnvironmentSelector } from "./environment-selector";
-import { Environment, EnvironmentStore } from "@/types/environment";
+import { Environment, EnvironmentStore, DEFAULT_ENVIRONMENTS } from "@/types/environment";
 
 // Detect path variables in URL
 const detectPathVariables = (url: string): RequestParameter[] => {
@@ -68,12 +68,6 @@ interface RequestPanelProps {
   onLoading: (isLoading: boolean) => void;
   onError: (error: string | null) => void;
 }
-
-const DEFAULT_ENVIRONMENTS = {
-  dev: { baseUrl: "http://localhost:3000", bearerToken: null },
-  prod: { baseUrl: "https://api.example.com", bearerToken: "your_prod_token" },
-  // Add more environments as needed
-};
 
 
 export function RequestPanel({
@@ -337,31 +331,33 @@ export function RequestPanel({
 
     try {
       const store: EnvironmentStore = JSON.parse(envStore);
-      const requestEnvironments = store.requestConfigs[request.id] || DEFAULT_ENVIRONMENTS; // Use request specific configs if available, otherwise defaults
+
+      // Initialize request environments if not present
+      if (!store.environments[request.id]) {
+        store.environments[request.id] = DEFAULT_ENVIRONMENTS;
+      }
+
+      const requestEnvironments = store.environments[request.id];
       const config = requestEnvironments[environment];
 
-      // Update URL if it's a relative path or matches any environment's baseUrl
+      // For dev environment, keep the original URL
+      if (environment === 'dev') {
+        onRequestChange({
+          selectedEnvironment: environment,
+          auth: { type: "none" }
+        });
+        return;
+      }
+
+      // Update URL if base URL is configured
       let newUrl = request.url;
-      try {
-        const currentUrl = new URL(request.url);
-
-        // For dev environment, keep the original URL
-        if (environment === 'dev') {
-          newUrl = request.url;
-        } else {
-          const isRelative = !request.url.startsWith('http');
-          const matchesEnvUrl = Object.values(requestEnvironments).some(
-            env => request.url.startsWith(env.baseUrl)
-          );
-
-          if (isRelative || matchesEnvUrl) {
-            const path = currentUrl.pathname + currentUrl.search;
-            newUrl = config.baseUrl ? new URL(path, config.baseUrl).toString() : request.url;
-          }
-        }
-      } catch (e) {
-        // If URL parsing fails and it's not dev environment, treat it as a relative path
-        if (environment !== 'dev' && config.baseUrl) {
+      if (config && config.baseUrl) {
+        try {
+          const currentUrl = new URL(request.url);
+          const path = currentUrl.pathname + currentUrl.search;
+          newUrl = new URL(path, config.baseUrl).toString();
+        } catch (e) {
+          // If URL parsing fails, treat it as a relative path
           newUrl = new URL(request.url, config.baseUrl).toString();
         }
       }
@@ -369,10 +365,9 @@ export function RequestPanel({
       // Update URL, auth, and selected environment in a single change
       onRequestChange({
         url: newUrl,
-        auth: {
-          type: config.bearerToken ? "bearer" : "none",
-          ...(config.bearerToken ? { bearer: { token: config.bearerToken } } : {})
-        },
+        auth: config?.bearerToken
+          ? { type: "bearer", bearer: { token: config.bearerToken } }
+          : { type: "none" },
         selectedEnvironment: environment
       });
 
@@ -382,6 +377,11 @@ export function RequestPanel({
 
     } catch (e) {
       console.error("Error processing environment change:", e);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update environment configuration"
+      });
     }
   };
 
