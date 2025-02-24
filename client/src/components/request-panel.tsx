@@ -200,6 +200,8 @@ export function RequestPanel({
         url: processedUrl,
         body,
         headers,
+      }).catch((error: Error) => {
+        throw error;
       });
 
       const endTime = performance.now();
@@ -218,7 +220,7 @@ export function RequestPanel({
       onError(message);
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Request Failed",
         description: message,
       });
     } finally {
@@ -379,10 +381,6 @@ export function RequestPanel({
     return processedUrl;
   };
 
-
-  // Placeholder for other helper components (ParametersSection, AuthorizationSection, etc.)
-  // These need to be defined elsewhere and imported.  I cannot generate these components
-  // without more information on their intended functionality and structure.
 
   const ParametersSection = ({title, parameters, onAdd, onRemove, onChange}: any) => (
     <div className="space-y-2">
