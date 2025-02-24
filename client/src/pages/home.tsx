@@ -9,8 +9,18 @@ import { useLocation } from "wouter";
 import { ApiRequest, createApiRequest } from "@/types/api-request";
 import { SidebarProvider } from "@/components/ui/sidebar";
 
+type View = "request-tabs" | "collection-home" | "environment-editor";
+
+interface Environment {
+  id: string;
+  name: string;
+  variables: { key: string; value: string }[];
+}
+
 export default function Home() {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
+  const [selectedEnvironment, setSelectedEnvironment] = useState<Environment | null>(null);
+  const [currentView, setCurrentView] = useState<View>("request-tabs");
   const [, setLocation] = useLocation();
 
   const getCollectionById = (collectionId: string): Collection | null => {
@@ -127,8 +137,14 @@ export default function Home() {
     window.dispatchEvent(new CustomEvent('activateTab', { detail: newRequest.id }));
   };
 
+  const handleEnvironmentSelect = (environment: Environment) => {
+    setSelectedEnvironment(environment);
+    setCurrentView("environment-editor");
+  };
+
   const handleCollectionSelect = (collection: Collection) => {
     setSelectedCollection(collection);
+    setCurrentView("collection-home");
   };
 
   const handleCollectionUpdate = (updatedCollection: Collection) => {
@@ -144,41 +160,61 @@ export default function Home() {
     }
   };
 
+  const renderMainContent = () => {
+    switch (currentView) {
+      case "collection-home":
+        return selectedCollection ? (
+          <CollectionHome
+            collection={selectedCollection}
+            onUpdate={handleCollectionUpdate}
+          />
+        ) : null;
+      case "environment-editor":
+        return selectedEnvironment ? (
+          <div>Environment Editor</div> // We'll implement this component next
+        ) : null;
+      default:
+        return <RequestTabs />;
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
       <SidebarProvider>
         <Sidebar
           onRequestSelect={handleRequestSelect}
           onCollectionSelect={handleCollectionSelect}
+          onEnvironmentSelect={handleEnvironmentSelect}
         />
       </SidebarProvider>
       <div className="flex-1">
         <header className="border-b">
           <div className="container flex items-center gap-4 py-4">
-            {selectedCollection && (
+            {(currentView === "collection-home" || currentView === "environment-editor") && (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSelectedCollection(null)}
+                onClick={() => {
+                  setCurrentView("request-tabs");
+                  setSelectedCollection(null);
+                  setSelectedEnvironment(null);
+                }}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
             <h1 className="text-2xl font-bold">
-              {selectedCollection ? selectedCollection.name : "API Request Tester"}
+              {currentView === "collection-home" && selectedCollection
+                ? selectedCollection.name
+                : currentView === "environment-editor" && selectedEnvironment
+                ? `Environment: ${selectedEnvironment.name}`
+                : "API Request Tester"}
             </h1>
           </div>
         </header>
 
         <main className="p-4">
-          {selectedCollection ? (
-            <CollectionHome
-              collection={selectedCollection}
-              onUpdate={handleCollectionUpdate}
-            />
-          ) : (
-            <RequestTabs />
-          )}
+          {renderMainContent()}
         </main>
       </div>
     </div>
