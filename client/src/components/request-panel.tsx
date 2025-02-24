@@ -348,12 +348,12 @@ export function RequestPanel({
 
           if (isRelative || matchesEnvUrl) {
             const path = currentUrl.pathname + currentUrl.search;
-            newUrl = new URL(path, config.baseUrl).toString();
+            newUrl = config.baseUrl ? new URL(path, config.baseUrl).toString() : request.url;
           }
         }
       } catch (e) {
         // If URL parsing fails and it's not dev environment, treat it as a relative path
-        if (environment !== 'dev') {
+        if (environment !== 'dev' && config.baseUrl) {
           newUrl = new URL(request.url, config.baseUrl).toString();
         }
       }
@@ -361,7 +361,10 @@ export function RequestPanel({
       // Update URL, auth, and selected environment in a single change
       onRequestChange({
         url: newUrl,
-        auth: config.bearerToken ? { type: "bearer", bearer: { token: config.bearerToken } } : { type: "none" },
+        auth: {
+          type: config.bearerToken ? "bearer" : "none",
+          ...(config.bearerToken ? { bearer: { token: config.bearerToken } } : {})
+        },
         selectedEnvironment: environment
       });
 
