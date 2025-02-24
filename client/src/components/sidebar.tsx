@@ -37,6 +37,7 @@ export interface CollectionFolder {
 
 export interface CollectionRequest {
   id: string;
+  collectionId: string; // Added to track which collection the request belongs to
   name: string;
   method: string;
   url: string;
@@ -145,6 +146,8 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
       description: v.description
     }));
 
+    const collectionId = nanoid();
+
     const parseItem = (item: any): CollectionRequest | CollectionFolder => {
       if (item.request) {
         // Parse URL components
@@ -194,6 +197,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
 
         return {
           id: nanoid(),
+          collectionId, // Add collectionId to each request
           name: item.name,
           method: item.request.method,
           url: url?.raw || "",
