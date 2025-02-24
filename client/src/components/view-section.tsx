@@ -25,7 +25,11 @@ interface Environment {
   variables: { key: string; value: string }[];
 }
 
-export function ViewSection() {
+interface ViewSectionProps {
+  onEnvironmentSelect?: (environment: Environment) => void;
+}
+
+export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
   const [activeView, setActiveView] = useState<"collections" | "environment" | "history">("collections");
   const [environments, setEnvironments] = useState<Environment[]>(() => {
     const saved = localStorage.getItem("environments");
@@ -36,21 +40,27 @@ export function ViewSection() {
 
   const handleAddEnvironment = () => {
     if (!newEnvName.trim()) return;
-    
+
     const newEnv: Environment = {
       id: crypto.randomUUID(),
       name: newEnvName,
       variables: []
     };
-    
+
     setEnvironments(prev => {
       const updated = [...prev, newEnv];
       localStorage.setItem("environments", JSON.stringify(updated));
       return updated;
     });
-    
+
     setNewEnvDialogOpen(false);
     setNewEnvName("");
+  };
+
+  const handleEnvironmentClick = (env: Environment) => {
+    if (onEnvironmentSelect) {
+      onEnvironmentSelect(env);
+    }
   };
 
   return (
@@ -123,13 +133,14 @@ export function ViewSection() {
                 </DialogContent>
               </Dialog>
             </div>
-            
+
             <div className="space-y-2">
               {environments.map((env) => (
                 <Button
                   key={env.id}
                   variant="ghost"
                   className="w-full justify-start text-left font-normal"
+                  onClick={() => handleEnvironmentClick(env)}
                 >
                   {env.name}
                 </Button>

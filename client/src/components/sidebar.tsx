@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useToast } from "@/hooks/use-toast";
 import { ApiRequest, createApiRequest } from "@/types/api-request";
+import cn from 'classnames';
 
 export interface Collection {
   id: string;
@@ -37,16 +38,24 @@ export interface CollectionFolder {
   folders?: CollectionFolder[];
 }
 
+interface Environment { // Added interface for Environment
+  id: string;
+  name: string;
+  // ... other environment properties ...
+}
+
 interface SidebarProps {
   onRequestSelect: (request: ApiRequest) => void;
   onCollectionSelect: (collection: Collection) => void;
+  onEnvironmentSelect: (environment: Environment) => void;
 }
 
-export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
+export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSelect }: SidebarProps) {
   const { toast } = useToast();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
   // Load collections from localStorage on component mount
   useEffect(() => {
@@ -78,6 +87,16 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
       newExpanded.add(folderId);
     }
     setExpandedFolders(newExpanded);
+  };
+
+  const handleRequestSelect = (request: ApiRequest) => {
+    setSelectedItem(request.id);
+    onRequestSelect(request);
+  };
+
+  const handleCollectionSelect = (collection: Collection) => {
+    setSelectedItem(collection.id);
+    onCollectionSelect(collection);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -343,7 +362,10 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
       <div key={folder.id} className="text-sm">
         <Button
           variant="ghost"
-          className="w-full justify-start hover:bg-muted/50"
+          className={cn(
+            "w-full justify-start hover:bg-muted/50",
+            selectedItem === folder.id && "bg-muted"
+          )}
           style={{ paddingLeft }}
           onClick={() => toggleFolder(folder.id)}
         >
@@ -390,9 +412,12 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
       <Button
         key={request.id}
         variant="ghost"
-        className="w-full justify-start hover:bg-muted/50 h-auto py-1.5"
+        className={cn(
+          "w-full justify-start hover:bg-muted/50 h-auto py-1.5",
+          selectedItem === request.id && "bg-muted"
+        )}
         style={{ paddingLeft }}
-        onClick={() => onRequestSelect(request)}
+        onClick={() => handleRequestSelect(request)}
       >
         <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
         <div className="flex flex-col items-start">
@@ -406,8 +431,10 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
   };
 
   return (
-    <div className="w-64 border-r bg-background/95 h-screen">
-      <ViewSection />
+    <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen">
+      <ViewSection
+        onEnvironmentSelect={onEnvironmentSelect}
+      />
       <div className="p-4 border-b">
         <div className="cursor-pointer">
           <input
@@ -428,16 +455,19 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           </label>
         </div>
       </div>
-      <ScrollArea className="h-[calc(100vh-5rem)]">
+      <ScrollArea className="h-[calc(100vh-5rem)] flex-grow">
         <div className="p-2">
           {collections.map((collection) => (
             <div key={collection.id} className="mb-4">
               <Button
                 variant="ghost"
-                className="w-full justify-start font-medium hover:bg-muted/50"
+                className={cn(
+                  "w-full justify-start font-medium hover:bg-muted/50",
+                  selectedItem === collection.id && "bg-muted"
+                )}
                 onClick={() => {
                   toggleCollection(collection.id);
-                  onCollectionSelect(collection);
+                  handleCollectionSelect(collection);
                 }}
               >
                 <span className="mr-2">
