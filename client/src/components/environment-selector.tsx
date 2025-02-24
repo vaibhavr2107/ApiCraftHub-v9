@@ -42,6 +42,10 @@ export function EnvironmentSelector({ selectedEnvironment, requestId, onEnvironm
         };
       } catch (e) {
         console.error("Error loading environment store:", e);
+        return {
+          environments: { [requestId]: DEFAULT_ENVIRONMENTS },
+          requestConfigs: { [requestId]: selectedEnvironment }
+        };
       }
     }
     return {
