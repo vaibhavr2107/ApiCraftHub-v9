@@ -124,9 +124,10 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
     return (
       entry.request.method.toLowerCase().includes(searchLower) ||
       entry.request.url.toLowerCase().includes(searchLower) ||
-      entry.response.status.toString().includes(searchLower)
+      entry.response.status.toString().includes(searchLower) ||
+      (entry.request.body?.content || "").toLowerCase().includes(searchLower)
     );
-  });
+  }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
     <SidebarGroup>
