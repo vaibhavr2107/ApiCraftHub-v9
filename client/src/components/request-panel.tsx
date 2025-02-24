@@ -210,11 +210,12 @@ export function RequestPanel({
 
       // Add auth headers
       if (request.auth.type === "basic" && request.auth.basic) {
-        headers["Authorization"] = `Basic ${btoa(
-          `${request.auth.basic.username}:${request.auth.basic.password}`
-        )}`;
+        const { username, password } = request.auth.basic;
+        const base64Credentials = btoa(`${username}:${password}`);
+        headers["Authorization"] = `Basic ${base64Credentials}`;
       } else if (request.auth.type === "bearer" && request.auth.bearer) {
-        headers["Authorization"] = `Bearer ${request.auth.bearer.token}`;
+        const { token } = request.auth.bearer;
+        headers["Authorization"] = `Bearer ${token}`;
       }
 
       // Process URL with path variables
@@ -434,7 +435,13 @@ export function RequestPanel({
             <Select
               value={request.auth.type}
               onValueChange={(value: "none" | "basic" | "bearer") =>
-                onRequestChange({ auth: { ...request.auth, type: value } })
+                onRequestChange({
+                  auth: value === "basic" 
+                    ? { type: "basic", basic: { username: "", password: "" } }
+                    : value === "bearer"
+                    ? { type: "bearer", bearer: { token: "" } }
+                    : { type: "none" }
+                })
               }
             >
               <SelectTrigger>
@@ -447,16 +454,20 @@ export function RequestPanel({
               </SelectContent>
             </Select>
 
-            {request.auth.type === "basic" && request.auth.basic && (
+            {request.auth.type === "basic" && (
               <div className="space-y-2">
                 <Input
                   placeholder="Username"
-                  value={request.auth.basic.username}
+                  value={request.auth.basic?.username || ""}
                   onChange={(e) =>
                     onRequestChange({
                       auth: { 
                         ...request.auth, 
-                        basic: { ...request.auth.basic, username: e.target.value }
+                        basic: { 
+                          ...request.auth.basic,
+                          username: e.target.value,
+                          password: request.auth.basic?.password || ""
+                        }
                       },
                     })
                   }
@@ -464,12 +475,16 @@ export function RequestPanel({
                 <Input
                   type="password"
                   placeholder="Password"
-                  value={request.auth.basic.password}
+                  value={request.auth.basic?.password || ""}
                   onChange={(e) =>
                     onRequestChange({
                       auth: { 
                         ...request.auth, 
-                        basic: { ...request.auth.basic, password: e.target.value }
+                        basic: {
+                          ...request.auth.basic,
+                          username: request.auth.basic?.username || "",
+                          password: e.target.value
+                        }
                       },
                     })
                   }
@@ -477,10 +492,10 @@ export function RequestPanel({
               </div>
             )}
 
-            {request.auth.type === "bearer" && request.auth.bearer && (
+            {request.auth.type === "bearer" && (
               <Input
-                placeholder="Token"
-                value={request.auth.bearer.token}
+                placeholder="Bearer Token"
+                value={request.auth.bearer?.token || ""}
                 onChange={(e) =>
                   onRequestChange({
                     auth: { 
