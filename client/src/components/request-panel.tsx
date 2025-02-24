@@ -20,7 +20,7 @@ import { useLocation } from "wouter";
 
 const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
 const BODY_TYPES: BodyType[] = ["none", "form-data", "x-www-form-urlencoded", "raw"];
-const RAW_FORMATS: RawFormat[] = ["json", "text", "html", "xml"];
+const RAW_FORMATS: RawFormat[] = ["json", "text", "xml", "html"];
 
 interface RequestPanelProps {
   request: ApiRequest;
@@ -56,10 +56,17 @@ export function RequestPanel({
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  // Initialize path variables if not present
+  useEffect(() => {
+    if (!request.pathVariables) {
+      onRequestChange({ pathVariables: [] });
+    }
+  }, []);
+
   // Path Variables Management
   useEffect(() => {
     const pathVars = detectPathVariables(request.url);
-    if (pathVars.length > 0) {
+    if (pathVars.length > 0 && request.pathVariables) {
       const existingKeys = new Set(request.pathVariables.map(v => v.key));
       const newVars = pathVars.filter(v => !existingKeys.has(v.key));
       if (newVars.length > 0) {
@@ -116,7 +123,7 @@ export function RequestPanel({
     onRequestChange({ queryParams: newParams });
 
     // Update URL with query parameters
-    if (field === "enabled" || newParams[index].key && newParams[index].value) {
+    if (field === "enabled" || (newParams[index].key && newParams[index].value)) {
       try {
         const url = new URL(request.url);
         url.search = '';
@@ -133,17 +140,28 @@ export function RequestPanel({
   };
 
   const addPathVariable = () => {
+    if (!request.pathVariables) {
+      onRequestChange({
+        pathVariables: [{ key: "", value: "", enabled: true }],
+      });
+      return;
+    }
+
     onRequestChange({
       pathVariables: [...request.pathVariables, { key: "", value: "", enabled: true }],
     });
   };
 
   const removePathVariable = (index: number) => {
+    if (!request.pathVariables) return;
+
     const newPathVars = request.pathVariables.filter((_, i) => i !== index);
     onRequestChange({ pathVariables: newPathVars });
   };
 
   const updatePathVariable = (index: number, field: keyof RequestParameter, value: string | boolean) => {
+    if (!request.pathVariables) return;
+
     const newPathVars = [...request.pathVariables];
     newPathVars[index] = { ...newPathVars[index], [field]: value };
     onRequestChange({ pathVariables: newPathVars });
@@ -340,7 +358,7 @@ export function RequestPanel({
 
             <div className="space-y-2">
               <h3 className="text-sm font-medium">Path Variables</h3>
-              {request.pathVariables.map((param, index) => (
+              {request.pathVariables?.map((param, index) => (
                 <div key={index} className="flex gap-2">
                   <Checkbox
                     checked={param.enabled}
