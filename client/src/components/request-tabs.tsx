@@ -236,7 +236,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
         {requests.map((request) => (
           <TabsContent key={request.id} value={request.id} className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="flex flex-col gap-6">
               <RequestPanel
                 request={request}
                 onRequestChange={(updates) => handleUpdateRequest(request.id, updates)}
