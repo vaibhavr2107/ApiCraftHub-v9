@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { ApiRequest, createApiRequest } from "@/types/api-request";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 export default function Home() {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
@@ -45,7 +46,7 @@ export default function Home() {
     const requests = savedRequests ? JSON.parse(savedRequests) : [];
     const routeId = generateRouteId(parentCollection, request);
 
-    const existingRequest = requests.find((r: ApiRequest) => 
+    const existingRequest = requests.find((r: ApiRequest) =>
       generateRouteId(parentCollection, r) === routeId
     );
 
@@ -145,10 +146,12 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar
-        onRequestSelect={handleRequestSelect}
-        onCollectionSelect={handleCollectionSelect}
-      />
+      <SidebarProvider>
+        <Sidebar
+          onRequestSelect={handleRequestSelect}
+          onCollectionSelect={handleCollectionSelect}
+        />
+      </SidebarProvider>
       <div className="flex-1">
         <header className="border-b">
           <div className="container flex items-center gap-4 py-4">

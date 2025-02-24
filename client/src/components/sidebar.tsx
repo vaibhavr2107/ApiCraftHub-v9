@@ -1,3 +1,4 @@
+import { ViewSection } from "@/components/view-section";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload, ChevronDown, ChevronRight, FolderClosed, FolderOpen, FileText } from "lucide-react";
@@ -406,6 +407,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
 
   return (
     <div className="w-64 border-r bg-background/95 h-screen">
+      <ViewSection />
       <div className="p-4 border-b">
         <div className="cursor-pointer">
           <input
@@ -433,7 +435,10 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
               <Button
                 variant="ghost"
                 className="w-full justify-start font-medium hover:bg-muted/50"
-                onClick={() => toggleCollection(collection.id)}
+                onClick={() => {
+                  toggleCollection(collection.id);
+                  onCollectionSelect(collection);
+                }}
               >
                 <span className="mr-2">
                   {expandedCollections.has(collection.id) ? (
