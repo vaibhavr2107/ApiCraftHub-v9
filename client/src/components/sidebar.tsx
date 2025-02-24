@@ -144,6 +144,22 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           description: v.description
         })) || [];
 
+        // Also detect path variables from URL segments (e.g. :variableName format)
+        if (urlData.path) {
+          urlData.path.forEach((segment: any) => {
+            if (typeof segment === 'string' && segment.startsWith(':')) {
+              const varName = segment.substring(1);
+              if (!pathVariables.some(v => v.key === varName)) {
+                pathVariables.push({
+                  key: varName,
+                  value: '',
+                  enabled: true
+                });
+              }
+            }
+          });
+        }
+
         // Parse query parameters from both explicit query array and URL string
         let queryParams: Array<{ key: string; value: string; enabled: boolean; description?: string }> = [];
 
@@ -177,14 +193,14 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           }
         }
 
-        // Construct the base URL without query parameters
+        // Construct the base URL properly
         let baseUrl = urlData.raw || '';
         const questionMarkIndex = baseUrl.indexOf('?');
         if (questionMarkIndex !== -1) {
           baseUrl = baseUrl.substring(0, questionMarkIndex);
         }
 
-        // Replace path variable placeholders with the actual format
+        // Replace path variable placeholders with the correct format
         pathVariables.forEach(variable => {
           baseUrl = baseUrl.replace(`:${variable.key}`, `{{${variable.key}}}`);
         });
