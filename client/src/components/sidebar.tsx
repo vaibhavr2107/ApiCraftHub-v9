@@ -88,10 +88,10 @@ const parsePostmanCollection = (json: any): Collection => {
         }
 
         // Handle path variables with proper typing
-        const pathVariables = urlData.variable?.map((v: { 
-          key: string; 
-          value: string; 
-          description?: string 
+        const pathVariables = urlData.variable?.map((v: {
+          key: string;
+          value: string;
+          description?: string
         }) => ({
           key: v.key || '',
           value: v.value || '',
@@ -378,6 +378,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
 
   const handleRequestSelect = (request: ApiRequest) => {
     setSelectedItem(request.id);
+    setView('collections'); // Set view back to collections when selecting a request
     onRequestSelect(request);
   };
 
