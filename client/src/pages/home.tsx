@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { ApiRequest, createApiRequest } from "@/types/api-request";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { EnvironmentEditor } from "@/components/environment-editor";
 
 type View = "request-tabs" | "collection-home" | "environment-editor";
 
@@ -160,6 +161,43 @@ export default function Home() {
     }
   };
 
+  const updateEnvironment = (updatedEnv: Environment) => {
+    setSelectedEnvironment(updatedEnv);
+    const savedEnvs = localStorage.getItem("environments");
+    if (savedEnvs) {
+      const environments = JSON.parse(savedEnvs);
+      const updatedEnvironments = environments.map((env: Environment) =>
+        env.id === updatedEnv.id ? updatedEnv : env
+      );
+      localStorage.setItem("environments", JSON.stringify(updatedEnvironments));
+    }
+  };
+
+  const saveToHistory = (request: ApiRequest, response: any) => {
+    const historyEntry = {
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString(),
+      request: {
+        method: request.method,
+        url: request.url,
+        headers: request.headers,
+        queryParams: request.queryParams,
+        body: request.body
+      },
+      response: {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        headers: response.headers
+      }
+    };
+
+    const savedHistory = localStorage.getItem("request_history");
+    const history = savedHistory ? JSON.parse(savedHistory) : [];
+    const updatedHistory = [historyEntry, ...history].slice(0, 50); // Keep last 50 requests
+    localStorage.setItem("request_history", JSON.stringify(updatedHistory));
+  };
+
   const renderMainContent = () => {
     switch (currentView) {
       case "collection-home":
@@ -171,10 +209,13 @@ export default function Home() {
         ) : null;
       case "environment-editor":
         return selectedEnvironment ? (
-          <div>Environment Editor</div> // We'll implement this component next
+          <EnvironmentEditor
+            environment={selectedEnvironment}
+            onUpdate={updateEnvironment}
+          />
         ) : null;
       default:
-        return <RequestTabs />;
+        return <RequestTabs onRequestComplete={saveToHistory} />;
     }
   };
 
