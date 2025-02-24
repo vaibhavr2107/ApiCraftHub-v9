@@ -60,173 +60,16 @@ interface SearchResult {
   path: string[];
 }
 
-const loadCollectionsFromFiles = async (): Promise<Collection[]> => {
+const parsePostmanCollection = (json: any): Collection => {
   try {
-    const response = await fetch('/collections');
-    if (!response.ok) {
-      throw new Error('Failed to fetch collections');
-    }
-    const files = await response.json();
-    const collections: Collection[] = [];
-    const existingCollections = new Set<string>();
+    console.log('Parsing Postman collection:', json.info?.name);
 
-    // Get existing collections from localStorage to prevent duplicates
-    const savedCollections = localStorage.getItem("collections");
-    if (savedCollections) {
-      const parsed = JSON.parse(savedCollections);
-      parsed.forEach((c: Collection) => existingCollections.add(c.name.toLowerCase()));
-      collections.push(...parsed);
-    }
-
-    for (const file of files) {
-      try {
-        const fileResponse = await fetch(`/collections/${file}`);
-        if (!fileResponse.ok) continue;
-
-        const content = await fileResponse.json();
-        const collection = parsePostmanCollection(content);
-
-        // Skip if collection already exists
-        if (existingCollections.has(collection.name.toLowerCase())) {
-          console.log(`Collection "${collection.name}" already exists, skipping import`);
-          continue;
-        }
-
-        collections.push(collection);
-        existingCollections.add(collection.name.toLowerCase());
-      } catch (error) {
-        console.error(`Error processing file ${file}:`, error);
-      }
-    }
-
-    return collections;
-  } catch (error) {
-    console.error('Error loading collections:', error);
-    return [];
-  }
-};
-
-export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSelect }: SidebarProps) {
-  const { toast } = useToast();
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
-  const [selectedItem, setSelectedItem] = useState<string | null>(null);
-  const [view, setView] = useState<'collections' | 'openapi'>('collections');
-  const [searchQuery, setSearchQuery] = useState("");
-  const [initialized, setInitialized] = useState(false);
-
-  // Load collections from localStorage and files on component mount
-  useEffect(() => {
-    if (!initialized) {
-      const initializeCollections = async () => {
-        const collections = await loadCollectionsFromFiles();
-        if (collections.length > 0) {
-          setCollections(collections);
-          localStorage.setItem("collections", JSON.stringify(collections));
-          toast({
-            title: "Success",
-            description: `Imported ${collections.length} collections from files`,
-          });
-        }
-        setInitialized(true);
-      };
-
-      initializeCollections();
-    }
-  }, [initialized, toast]);
-
-  const toggleCollection = (collectionId: string) => {
-    const newExpanded = new Set(expandedCollections);
-    if (newExpanded.has(collectionId)) {
-      newExpanded.delete(collectionId);
-    } else {
-      newExpanded.add(collectionId);
-    }
-    setExpandedCollections(newExpanded);
-  };
-
-  const toggleFolder = (folderId: string) => {
-    const newExpanded = new Set(expandedFolders);
-    if (newExpanded.has(folderId)) {
-      newExpanded.delete(folderId);
-    } else {
-      newExpanded.add(folderId);
-    }
-    setExpandedFolders(newExpanded);
-  };
-
-  const handleRequestSelect = (request: ApiRequest) => {
-    setSelectedItem(request.id);
-    onRequestSelect(request);
-  };
-
-  const handleCollectionSelect = (collection: Collection) => {
-    setSelectedItem(collection.id);
-    onCollectionSelect(collection);
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    const newCollections: Collection[] = [];
-    const existingCollections = new Set(collections.map(c => c.name.toLowerCase()));
-
-    const filePromises = Array.from(files).map(async (file) => {
-      try {
-        const content = await file.text();
-        if (file.name.endsWith('.json')) {
-          const json = JSON.parse(content);
-          const collection = parsePostmanCollection(json);
-
-          // Check if collection already exists
-          if (existingCollections.has(collection.name.toLowerCase())) {
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: `Collection "${collection.name}" already exists.`,
-            });
-            return;
-          }
-
-          newCollections.push(collection);
-          existingCollections.add(collection.name.toLowerCase());
-
-          toast({
-            title: "Success",
-            description: `Imported collection: ${collection.name}`,
-          });
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: `Unsupported file format: ${file.name}`,
-          });
-        }
-      } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: `Failed to import ${file.name}. Please check the file format.`,
-        });
-      }
-    });
-
-    await Promise.all(filePromises);
-
-    if (newCollections.length > 0) {
-      const updatedCollections = [...collections, ...newCollections];
-      setCollections(updatedCollections);
-      localStorage.setItem("collections", JSON.stringify(updatedCollections));
-    }
-
-    event.target.value = '';
-  };
-
-  const parsePostmanCollection = (json: any): Collection => {
-    const variables: CollectionVariable[] = (json.variable || []).map((v: any) => ({
+    const variables: CollectionVariable[] = (json.variable || []).map((v: {
+      key: string;
+      value: string;
+      type: string;
+      description?: string;
+    }) => ({
       id: nanoid(),
       key: v.key || '',
       value: v.value || '',
@@ -244,17 +87,21 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
           urlData = { raw: urlData };
         }
 
-        // Handle path variables
-        const pathVariables = urlData.variable?.map((v: any) => ({
+        // Handle path variables with proper typing
+        const pathVariables = urlData.variable?.map((v: { 
+          key: string; 
+          value: string; 
+          description?: string 
+        }) => ({
           key: v.key || '',
           value: v.value || '',
           enabled: true,
           description: v.description
         })) || [];
 
-        // Also detect path variables from URL segments (e.g. :variableName format)
+        // Detect path variables from URL segments with proper typing
         if (urlData.path) {
-          urlData.path.forEach((segment: any) => {
+          urlData.path.forEach((segment: string) => {
             if (typeof segment === 'string' && segment.startsWith(':')) {
               const varName = segment.substring(1);
               if (!pathVariables.some(v => v.key === varName)) {
@@ -400,7 +247,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
     };
 
     const { requests, folders } = processItems(json.item);
-    return {
+    const collection: Collection = {
       id: collectionId,
       name: json.info?.name || "Imported Collection",
       description: json.info?.description,
@@ -419,6 +266,183 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
         oauth2: json.auth.type === 'oauth2' ? json.auth.oauth2 : undefined
       } : { type: "none" }
     };
+
+    console.log('Successfully parsed collection:', collection.name);
+    return collection;
+  } catch (error) {
+    console.error('Error parsing Postman collection:', error);
+    throw new Error(`Failed to parse Postman collection: ${error}`);
+  }
+};
+
+const loadCollectionsFromFiles = async (): Promise<Collection[]> => {
+  try {
+    const response = await fetch('/collections');
+    if (!response.ok) {
+      throw new Error('Failed to fetch collections');
+    }
+    const files = await response.json();
+    const collections: Collection[] = [];
+    const existingCollections = new Set<string>();
+
+    // Get existing collections from localStorage to prevent duplicates
+    const savedCollections = localStorage.getItem("collections");
+    if (savedCollections) {
+      const parsed = JSON.parse(savedCollections);
+      parsed.forEach((c: Collection) => existingCollections.add(c.name.toLowerCase()));
+      collections.push(...parsed);
+    }
+
+    for (const file of files) {
+      try {
+        console.log('Processing collection file:', file);
+        const fileResponse = await fetch(`/collections/${file}`);
+        if (!fileResponse.ok) {
+          console.error(`Failed to fetch collection file ${file}:`, fileResponse.statusText);
+          continue;
+        }
+
+        const content = await fileResponse.json();
+        const collection = parsePostmanCollection(content);
+
+        // Skip if collection already exists
+        if (existingCollections.has(collection.name.toLowerCase())) {
+          console.log(`Collection "${collection.name}" already exists, skipping import`);
+          continue;
+        }
+
+        collections.push(collection);
+        existingCollections.add(collection.name.toLowerCase());
+        console.log(`Successfully imported collection: ${collection.name}`);
+      } catch (error) {
+        console.error(`Error processing file ${file}:`, error);
+      }
+    }
+
+    return collections;
+  } catch (error) {
+    console.error('Error loading collections:', error);
+    return [];
+  }
+};
+
+export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSelect }: SidebarProps) {
+  const { toast } = useToast();
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [view, setView] = useState<'collections' | 'openapi' | 'environment'>('collections');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [initialized, setInitialized] = useState(false);
+
+  // Load collections from localStorage and files on component mount
+  useEffect(() => {
+    if (!initialized) {
+      const initializeCollections = async () => {
+        const collections = await loadCollectionsFromFiles();
+        if (collections.length > 0) {
+          setCollections(collections);
+          localStorage.setItem("collections", JSON.stringify(collections));
+          toast({
+            title: "Success",
+            description: `Imported ${collections.length} collections from files`,
+          });
+        }
+        setInitialized(true);
+      };
+
+      initializeCollections();
+    }
+  }, [initialized, toast]);
+
+  const toggleCollection = (collectionId: string) => {
+    const newExpanded = new Set(expandedCollections);
+    if (newExpanded.has(collectionId)) {
+      newExpanded.delete(collectionId);
+    } else {
+      newExpanded.add(collectionId);
+    }
+    setExpandedCollections(newExpanded);
+  };
+
+  const toggleFolder = (folderId: string) => {
+    const newExpanded = new Set(expandedFolders);
+    if (newExpanded.has(folderId)) {
+      newExpanded.delete(folderId);
+    } else {
+      newExpanded.add(folderId);
+    }
+    setExpandedFolders(newExpanded);
+  };
+
+  const handleRequestSelect = (request: ApiRequest) => {
+    setSelectedItem(request.id);
+    onRequestSelect(request);
+  };
+
+  const handleCollectionSelect = (collection: Collection) => {
+    setSelectedItem(collection.id);
+    onCollectionSelect(collection);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const newCollections: Collection[] = [];
+    const existingCollections = new Set(collections.map(c => c.name.toLowerCase()));
+
+    const filePromises = Array.from(files).map(async (file) => {
+      try {
+        const content = await file.text();
+        if (file.name.endsWith('.json')) {
+          const json = JSON.parse(content);
+          const collection = parsePostmanCollection(json);
+
+          // Check if collection already exists
+          if (existingCollections.has(collection.name.toLowerCase())) {
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: `Collection "${collection.name}" already exists.`,
+            });
+            return;
+          }
+
+          newCollections.push(collection);
+          existingCollections.add(collection.name.toLowerCase());
+
+          toast({
+            title: "Success",
+            description: `Imported collection: ${collection.name}`,
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: `Unsupported file format: ${file.name}`,
+          });
+        }
+      } catch (error) {
+        console.error(`Error processing file ${file.name}:`, error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `Failed to import ${file.name}. Please check the file format.`,
+        });
+      }
+    });
+
+    await Promise.all(filePromises);
+
+    if (newCollections.length > 0) {
+      const updatedCollections = [...collections, ...newCollections];
+      setCollections(updatedCollections);
+      localStorage.setItem("collections", JSON.stringify(updatedCollections));
+    }
+
+    event.target.value = '';
   };
 
   const renderFolder = (folder: CollectionFolder, level = 0) => {
@@ -586,7 +610,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
     <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen">
       <ViewSection
         onEnvironmentSelect={onEnvironmentSelect}
-        onViewChange={(v) => setView(v)}
+        onViewChange={(v: 'collections' | 'openapi' | 'environment') => setView(v)}
       />
       <div className="p-4 border-b">
         {view === 'collections' ? (
