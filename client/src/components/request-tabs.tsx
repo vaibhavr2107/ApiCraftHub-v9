@@ -9,7 +9,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { SavedRequest, ResponseData, BodyConfig } from "@/types/request";
+import { ApiRequest } from "@/types/api-request";
 import { RequestPanel } from "./request-panel";
 import { ResponsePanel } from "./response-panel";
 import { useToast } from "@/hooks/use-toast";
@@ -32,54 +32,27 @@ const DEFAULT_HEADERS = [
   { key: "Content-Type", value: "application/json", enabled: true }
 ];
 
-const DEFAULT_BODY: BodyConfig = {
-  type: "none",
-  rawFormat: "json",
-  raw: "",
-  formData: [],
-  urlEncoded: []
-};
-
-const DEFAULT_REQUEST: Omit<SavedRequest, "id" | "name"> = {
-  method: "GET",
-  url: "https://api.restful-api.dev/objects",
-  queryParams: [{ key: "", value: "" }],
-  headers: DEFAULT_HEADERS,
-  auth: { type: "none" },
-  body: DEFAULT_BODY
-};
-
 export function RequestTabs({ onTabChange }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
-  const [requests, setRequests] = useState<SavedRequest[]>(() => {
+  const [requests, setRequests] = useState<ApiRequest[]>(() => {
     const saved = localStorage.getItem("saved_requests");
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return parsed.map((req: any) => ({
-          ...DEFAULT_REQUEST,
-          id: req.id || nanoid(),
-          name: req.name || "New Request",
-          ...req,
-          headers: req.headers || DEFAULT_HEADERS,
-          body: {
-            ...DEFAULT_BODY,
-            ...(req.body || {})
-          }
-        }));
+        return parsed;
       } catch (e) {
         console.error("Error loading saved requests:", e);
-        return [{ ...DEFAULT_REQUEST, id: nanoid(), name: "New Request" }];
+        return [];
       }
     }
-    return [{ ...DEFAULT_REQUEST, id: nanoid(), name: "New Request" }];
+    return [];
   });
 
   // Get active tab from route or first request
   const requestId = location.split('/').pop();
   const activeTab = requests.find(r => r.id === requestId)?.id || requests[0]?.id;
 
-  const [responses, setResponses] = useState<Record<string, ResponseData | null>>({});
+  const [responses, setResponses] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -97,17 +70,7 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
-          setRequests(parsed.map((req: any) => ({
-            ...DEFAULT_REQUEST,
-            id: req.id || nanoid(),
-            name: req.name || "New Request",
-            ...req,
-            headers: req.headers || DEFAULT_HEADERS,
-            body: {
-              ...DEFAULT_BODY,
-              ...(req.body || {})
-            }
-          })));
+          setRequests(parsed);
         } catch (e) {
           console.error("Error loading saved requests:", e);
         }
@@ -118,12 +81,37 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
+  // Listen for tab activation events
+  useEffect(() => {
+    const handleTabActivation = (event: CustomEvent) => {
+      const tabId = event.detail;
+      if (tabId && tabId !== activeTab) {
+        setLocation(`/request/${tabId}`);
+      }
+    };
+
+    window.addEventListener('activateTab', handleTabActivation as EventListener);
+    return () => window.removeEventListener('activateTab', handleTabActivation as EventListener);
+  }, [activeTab, setLocation]);
+
   const handleNewTab = () => {
     const newRequest = {
-      ...DEFAULT_REQUEST,
       id: nanoid(),
       name: "New Request",
-    };
+      method: "GET",
+      url: "https://api.restful-api.dev/objects",
+      queryParams: [{ key: "", value: "", enabled: true }],
+      headers: DEFAULT_HEADERS,
+      auth: { type: "none" },
+      body: {
+        type: "none",
+        rawFormat: "json",
+        content: "",
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as ApiRequest;
+
     setRequests([...requests, newRequest]);
     setLocation(`/request/${newRequest.id}`);
   };
@@ -166,7 +154,7 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
     });
   };
 
-  const handleUpdateRequest = useCallback((requestId: string, updates: Partial<SavedRequest>) => {
+  const handleUpdateRequest = useCallback((requestId: string, updates: Partial<ApiRequest>) => {
     setRequests((prev) =>
       prev.map((req) =>
         req.id === requestId ? { ...req, ...updates } : req

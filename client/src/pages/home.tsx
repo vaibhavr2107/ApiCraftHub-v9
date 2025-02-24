@@ -21,6 +21,12 @@ export default function Home() {
     return null;
   };
 
+  const generateRouteId = (collection: Collection | null, request: ApiRequest): string => {
+    const collectionName = collection ? collection.name.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'request';
+    const requestName = request.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+    return `${collectionName}-${requestName}`;
+  };
+
   const substituteVariables = (str: string, collection: Collection): string => {
     const variablePattern = /\{\{([^}]+)\}\}/g;
     const result = str.replace(variablePattern, (match, variableName) => {
@@ -32,8 +38,22 @@ export default function Home() {
   };
 
   const handleRequestSelect = (request: ApiRequest) => {
-    // Get the parent collection using collectionId
     const parentCollection = request.collectionId ? getCollectionById(request.collectionId) : null;
+
+    // Check if request tab already exists
+    const savedRequests = localStorage.getItem("saved_requests");
+    const requests = savedRequests ? JSON.parse(savedRequests) : [];
+    const routeId = generateRouteId(parentCollection, request);
+
+    const existingRequest = requests.find((r: ApiRequest) => 
+      generateRouteId(parentCollection, r) === routeId
+    );
+
+    if (existingRequest) {
+      // If request exists, just activate its tab
+      window.dispatchEvent(new CustomEvent('activateTab', { detail: existingRequest.id }));
+      return;
+    }
 
     // Process URL and query parameters
     let processedUrl = request.url;
@@ -99,12 +119,11 @@ export default function Home() {
     });
 
     // Add request to local storage
-    const savedRequests = localStorage.getItem("saved_requests");
-    const requests = savedRequests ? JSON.parse(savedRequests) : [];
     localStorage.setItem("saved_requests", JSON.stringify([...requests, newRequest]));
 
-    // Force RequestTabs to reload
+    // Force RequestTabs to reload and activate the new tab
     window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new CustomEvent('activateTab', { detail: newRequest.id }));
   };
 
   const handleCollectionSelect = (collection: Collection) => {
