@@ -1,8 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResponseData } from "@/pages/home";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export interface ResponseData {
+  status: number;
+  statusText: string;
+  data: any;
+  headers: Record<string, string>;
+}
 
 interface ResponsePanelProps {
   response: ResponseData | null;
@@ -66,7 +72,7 @@ export function ResponsePanel({ response, isLoading, error }: ResponsePanelProps
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           Response
-          <Badge variant={getStatusColor(response.status) as any}>
+          <Badge variant={getStatusColor(response.status)}>
             {response.status} {response.statusText}
           </Badge>
         </CardTitle>
@@ -89,7 +95,7 @@ export function ResponsePanel({ response, isLoading, error }: ResponsePanelProps
               {Object.entries(response.headers).map(([key, value]) => (
                 <div key={key} className="grid grid-cols-3 gap-4 text-sm">
                   <div className="font-medium">{key}</div>
-                  <div className="col-span-2 font-mono">{value}</div>
+                  <div className="col-span-2 font-mono">{String(value)}</div>
                 </div>
               ))}
             </div>
