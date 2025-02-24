@@ -31,10 +31,13 @@ export function EnvironmentSelector({ selectedEnvironment, requestId, onEnvironm
       try {
         const parsed = JSON.parse(saved);
         return {
-          ...parsed,
+          environments: {
+            ...parsed.environments,
+            [requestId]: parsed.environments[requestId] || DEFAULT_ENVIRONMENTS
+          },
           requestConfigs: {
             ...parsed.requestConfigs,
-            [requestId]: selectedEnvironment // Set initial environment for this request
+            [requestId]: selectedEnvironment
           }
         };
       } catch (e) {
@@ -42,7 +45,7 @@ export function EnvironmentSelector({ selectedEnvironment, requestId, onEnvironm
       }
     }
     return {
-      environments: DEFAULT_ENVIRONMENTS,
+      environments: { [requestId]: DEFAULT_ENVIRONMENTS },
       requestConfigs: { [requestId]: selectedEnvironment }
     };
   });
@@ -58,9 +61,12 @@ export function EnvironmentSelector({ selectedEnvironment, requestId, onEnvironm
       ...prev,
       environments: {
         ...prev.environments,
-        [env]: {
-          ...prev.environments[env],
-          [field]: value
+        [requestId]: {
+          ...prev.environments[requestId],
+          [env]: {
+            ...prev.environments[requestId][env],
+            [field]: value
+          }
         }
       }
     }));
@@ -73,7 +79,7 @@ export function EnvironmentSelector({ selectedEnvironment, requestId, onEnvironm
           <SelectValue placeholder="Environment" />
         </SelectTrigger>
         <SelectContent>
-          {Object.keys(store.environments).map((env) => (
+          {Object.keys(store.environments[requestId] || DEFAULT_ENVIRONMENTS).map((env) => (
             <SelectItem key={env} value={env}>
               {env.toUpperCase()}
             </SelectItem>
@@ -92,7 +98,7 @@ export function EnvironmentSelector({ selectedEnvironment, requestId, onEnvironm
             <DialogTitle>Environment Settings</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            {Object.entries(store.environments).map(([env, config]) => (
+            {Object.entries(store.environments[requestId] || DEFAULT_ENVIRONMENTS).map(([env, config]) => (
               <div key={env} className="grid gap-2">
                 <h4 className="font-medium">{env.toUpperCase()}</h4>
                 <div className="grid grid-cols-2 gap-2">

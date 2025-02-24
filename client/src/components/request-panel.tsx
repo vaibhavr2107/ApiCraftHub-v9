@@ -69,6 +69,13 @@ interface RequestPanelProps {
   onError: (error: string | null) => void;
 }
 
+const DEFAULT_ENVIRONMENTS = {
+  dev: { baseUrl: "http://localhost:3000", bearerToken: null },
+  prod: { baseUrl: "https://api.example.com", bearerToken: "your_prod_token" },
+  // Add more environments as needed
+};
+
+
 export function RequestPanel({
   request,
   onRequestChange,
@@ -330,7 +337,8 @@ export function RequestPanel({
 
     try {
       const store: EnvironmentStore = JSON.parse(envStore);
-      const config = store.environments[environment];
+      const requestEnvironments = store.requestConfigs[request.id] || DEFAULT_ENVIRONMENTS; // Use request specific configs if available, otherwise defaults
+      const config = requestEnvironments[environment];
 
       // Update URL if it's a relative path or matches any environment's baseUrl
       let newUrl = request.url;
@@ -342,7 +350,7 @@ export function RequestPanel({
           newUrl = request.url;
         } else {
           const isRelative = !request.url.startsWith('http');
-          const matchesEnvUrl = Object.values(store.environments).some(
+          const matchesEnvUrl = Object.values(requestEnvironments).some(
             env => request.url.startsWith(env.baseUrl)
           );
 
@@ -407,10 +415,10 @@ export function RequestPanel({
               <Send className="w-4 h-4 mr-2" />
               Send
             </Button>
-            <EnvironmentSelector 
-              selectedEnvironment={request.selectedEnvironment} 
+            <EnvironmentSelector
+              selectedEnvironment={request.selectedEnvironment}
               requestId={request.id}
-              onEnvironmentChange={handleEnvironmentChange} 
+              onEnvironmentChange={handleEnvironmentChange}
             />
           </div>
         </div>
