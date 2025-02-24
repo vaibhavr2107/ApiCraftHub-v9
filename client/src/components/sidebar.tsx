@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Upload } from "lucide-react";
+import { Upload, ChevronDown, ChevronRight, FolderClosed, FolderOpen, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useToast } from "@/hooks/use-toast";
@@ -328,15 +328,27 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
     const paddingLeft = `${level * 1.5}rem`;
 
     return (
-      <div key={folder.id}>
+      <div key={folder.id} className="text-sm">
         <Button
           variant="ghost"
-          className="w-full justify-start"
+          className="w-full justify-start hover:bg-muted/50"
           style={{ paddingLeft }}
           onClick={() => toggleFolder(folder.id)}
         >
-          <span className="mr-2">{isExpanded ? "📂" : "📁"}</span>
-          {folder.name}
+          <span className="mr-2">
+            {isExpanded ? (
+              <>
+                <ChevronDown className="inline-block w-4 h-4 mr-1" />
+                <FolderOpen className="inline-block w-4 h-4" />
+              </>
+            ) : (
+              <>
+                <ChevronRight className="inline-block w-4 h-4 mr-1" />
+                <FolderClosed className="inline-block w-4 h-4" />
+              </>
+            )}
+          </span>
+          <span className="truncate">{folder.name}</span>
         </Button>
         {isExpanded && (
           <div>
@@ -353,31 +365,36 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
   const renderRequest = (request: ApiRequest, level = 0) => {
     const paddingLeft = `${level * 1.5}rem`;
     const methodColors: Record<string, string> = {
-      GET: "text-green-600",
-      POST: "text-blue-600",
-      PUT: "text-orange-600",
-      DELETE: "text-red-600",
-      PATCH: "text-purple-600"
+      GET: "text-emerald-500",
+      POST: "text-blue-500",
+      PUT: "text-amber-500",
+      DELETE: "text-red-500",
+      PATCH: "text-purple-500",
+      HEAD: "text-gray-500",
+      OPTIONS: "text-gray-500"
     };
 
     return (
       <Button
         key={request.id}
         variant="ghost"
-        className="w-full justify-start"
+        className="w-full justify-start hover:bg-muted/50 h-auto py-1.5"
         style={{ paddingLeft }}
         onClick={() => onRequestSelect(request)}
       >
-        <span className={`mr-2 font-mono font-semibold ${methodColors[request.method] || "text-gray-600"}`}>
-          {request.method}
-        </span>
-        {request.name}
+        <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
+        <div className="flex flex-col items-start">
+          <span className="truncate text-sm">{request.name}</span>
+          <span className={`text-xs font-mono font-medium ${methodColors[request.method]}`}>
+            {request.method}
+          </span>
+        </div>
       </Button>
     );
   };
 
   return (
-    <div className="w-64 border-r bg-muted/40 h-screen">
+    <div className="w-64 border-r bg-background/95 h-screen">
       <div className="p-4 border-b">
         <div className="cursor-pointer">
           <input
@@ -404,9 +421,10 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
             <div key={collection.id} className="mb-4">
               <Button
                 variant="ghost"
-                className="w-full justify-start font-medium px-2 py-1"
+                className="w-full justify-start font-medium hover:bg-muted/50"
                 onClick={() => onCollectionSelect(collection)}
               >
+                <FolderClosed className="w-4 h-4 mr-2" />
                 {collection.name}
               </Button>
               {collection.folders?.map((folder) => renderFolder(folder))}
