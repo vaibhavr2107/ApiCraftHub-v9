@@ -13,6 +13,9 @@ export async function makeRequest({
   body,
   headers = {},
 }: RequestOptions): Promise<ResponseData> {
+  let timeoutId: NodeJS.Timeout;
+  let controller: AbortController;
+
   try {
     // Validate URL
     if (!url) {
@@ -28,12 +31,14 @@ export async function makeRequest({
       throw new Error("Invalid URL format. Please check the URL and try again.");
     }
 
-    // Add timeout to fetch request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    // Setup timeout controller
+    controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
+    // Wrap fetch in a try-catch to handle network errors
+    let response: Response;
     try {
-      const response = await fetch(requestUrl, {
+      response = await fetch(requestUrl, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -41,31 +46,9 @@ export async function makeRequest({
         },
         body: body ? JSON.stringify(body) : undefined,
         signal: controller.signal
+      }).catch((fetchError) => {
+        throw fetchError;
       });
-
-      clearTimeout(timeoutId);
-
-      const responseHeaders: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        responseHeaders[key] = value;
-      });
-
-      let data;
-      const contentType = response.headers.get("content-type");
-      if (contentType?.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = await response.text();
-      }
-
-      return {
-        status: response.status,
-        statusText: response.statusText,
-        headers: responseHeaders,
-        data,
-        time: 0, // Will be calculated by the calling component
-        size: new TextEncoder().encode(JSON.stringify(data)).length
-      };
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
 
@@ -79,14 +62,39 @@ export async function makeRequest({
       }
 
       // Handle DNS resolution failures and other network errors
-      if (fetchError instanceof TypeError || fetchError.name === 'TypeError') {
-        const hostname = new URL(requestUrl).hostname;
-        throw new Error(`Cloud Agent Error: Couldn't resolve host "${hostname}". Make sure the domain is publicly accessible.`);
-      }
-
-      throw new Error(`Failed to connect to the server. Please check if the URL is correct and the server is running.`);
+      const hostname = new URL(requestUrl).hostname;
+      throw new Error(`Cloud Agent Error: Couldn't resolve host "${hostname}". Make sure the domain is publicly accessible.`);
     }
+
+    clearTimeout(timeoutId);
+
+    const responseHeaders: Record<string, string> = {};
+    response.headers.forEach((value, key) => {
+      responseHeaders[key] = value;
+    });
+
+    let data;
+    const contentType = response.headers.get("content-type");
+    try {
+      if (contentType?.includes("application/json")) {
+        data = await response.json();
+      } else {
+        data = await response.text();
+      }
+    } catch (parseError) {
+      throw new Error("Failed to parse response data");
+    }
+
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+      data,
+      time: 0, // Will be calculated by the calling component
+      size: new TextEncoder().encode(JSON.stringify(data)).length
+    };
   } catch (error: any) {
+    if (timeoutId) clearTimeout(timeoutId);
     // Ensure we always return a clean error message
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     throw new Error(errorMessage);
