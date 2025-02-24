@@ -1,7 +1,8 @@
 import { ViewSection } from "@/components/view-section";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Upload, ChevronDown, ChevronRight, FolderClosed, FolderOpen, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Upload, ChevronDown, ChevronRight, FolderClosed, FolderOpen, FileText, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useToast } from "@/hooks/use-toast";
@@ -51,6 +52,14 @@ interface SidebarProps {
   onEnvironmentSelect: (environment: Environment) => void;
 }
 
+interface SearchResult {
+  collectionName: string;
+  itemType: 'request' | 'folder';
+  request?: ApiRequest;
+  folder?: CollectionFolder;
+  path: string[];
+}
+
 export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSelect }: SidebarProps) {
   const { toast } = useToast();
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -58,6 +67,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [view, setView] = useState<'collections' | 'openapi'>('collections');
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Load collections from localStorage on component mount
   useEffect(() => {
@@ -432,6 +442,91 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
     );
   };
 
+  const searchCollections = (query: string): SearchResult[] => {
+    if (!query) return [];
+
+    const results: SearchResult[] = [];
+    const searchLower = query.toLowerCase();
+
+    collections.forEach(collection => {
+      const searchInFolder = (folder: CollectionFolder, parentPath: string[]) => {
+        // Search in folder name
+        if (folder.name.toLowerCase().includes(searchLower)) {
+          results.push({
+            collectionName: collection.name,
+            itemType: 'folder',
+            folder,
+            path: [...parentPath, folder.name]
+          });
+        }
+
+        // Search in folder requests
+        folder.requests.forEach(request => {
+          if (
+            request.name.toLowerCase().includes(searchLower) ||
+            request.url.toLowerCase().includes(searchLower) ||
+            request.method.toLowerCase().includes(searchLower)
+          ) {
+            results.push({
+              collectionName: collection.name,
+              itemType: 'request',
+              request,
+              path: [...parentPath, folder.name]
+            });
+          }
+        });
+
+        // Recursively search in subfolders
+        folder.folders?.forEach(subfolder => {
+          searchInFolder(subfolder, [...parentPath, folder.name]);
+        });
+      };
+
+      // Search in collection name
+      if (collection.name.toLowerCase().includes(searchLower)) {
+        results.push({
+          collectionName: collection.name,
+          itemType: 'folder',
+          folder: { id: collection.id, name: collection.name, requests: [], folders: collection.folders },
+          path: []
+        });
+        collection.requests.forEach(request => {
+          results.push({
+            collectionName: collection.name,
+            itemType: 'request',
+            request,
+            path: []
+          });
+        });
+      }
+
+      // Search in root requests
+      collection.requests.forEach(request => {
+        if (
+          request.name.toLowerCase().includes(searchLower) ||
+          request.url.toLowerCase().includes(searchLower) ||
+          request.method.toLowerCase().includes(searchLower)
+        ) {
+          results.push({
+            collectionName: collection.name,
+            itemType: 'request',
+            request,
+            path: []
+          });
+        }
+      });
+
+      // Search in folders
+      collection.folders?.forEach(folder => {
+        searchInFolder(folder, []);
+      });
+    });
+
+    return results;
+  };
+
+  const searchResults = searchQuery ? searchCollections(searchQuery) : null;
+
   return (
     <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen">
       <ViewSection
@@ -440,23 +535,34 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
       />
       <div className="p-4 border-b">
         {view === 'collections' ? (
-          <div className="cursor-pointer">
-            <input
-              type="file"
-              accept=".json"
-              className="hidden"
-              multiple
-              onChange={handleFileUpload}
-              id="collection-import"
-            />
-            <label htmlFor="collection-import">
-              <Button variant="outline" className="w-full" asChild>
-                <span>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Import Collection
-                </span>
-              </Button>
-            </label>
+          <div className="space-y-2">
+            <div className="cursor-pointer">
+              <input
+                type="file"
+                accept=".json"
+                className="hidden"
+                multiple
+                onChange={handleFileUpload}
+                id="collection-import"
+              />
+              <label htmlFor="collection-import">
+                <Button variant="outline" className="w-full" asChild>
+                  <span>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import Collection
+                  </span>
+                </Button>
+              </label>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search collections..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
         ) : (
           <OpenAPIViewer onRequestSelect={onRequestSelect} />
@@ -465,42 +571,87 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
       {view === 'collections' && (
         <ScrollArea className="h-[calc(100vh-5rem)] flex-grow">
           <div className="p-2">
-            {collections.map((collection) => (
-              <div key={collection.id} className="mb-4">
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start font-medium hover:bg-muted/50",
-                    selectedItem === collection.id && "bg-muted"
-                  )}
-                  onClick={() => {
-                    toggleCollection(collection.id);
-                    handleCollectionSelect(collection);
-                  }}
-                >
-                  <span className="mr-2">
-                    {expandedCollections.has(collection.id) ? (
-                      <>
-                        <ChevronDown className="inline-block w-4 h-4 mr-1" />
-                        <FolderOpen className="inline-block w-4 h-4" />
-                      </>
-                    ) : (
-                      <>
-                        <ChevronRight className="inline-block w-4 h-4 mr-1" />
-                        <FolderClosed className="inline-block w-4 h-4" />
-                      </>
-                    )}
-                  </span>
-                  {collection.name}
-                </Button>
-                {expandedCollections.has(collection.id) && (
-                  <div>
-                    {collection.folders?.map((folder) => renderFolder(folder))}
-                    {collection.requests.map((request) => renderRequest(request))}
+            {searchQuery ? (
+              <div className="space-y-1">
+                {searchResults?.map((result, index) => (
+                  <Button
+                    key={`${result.request?.id || result.folder?.id}-${index}`}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-sm"
+                    onClick={() => {
+                      if (result.itemType === 'request' && result.request) {
+                        handleRequestSelect(result.request);
+                      }
+                    }}
+                  >
+                    <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+                    <div className="flex flex-col items-start">
+                      <span className="text-xs text-muted-foreground">
+                        {result.collectionName}
+                        {result.path.length > 0 && ` › ${result.path.join(' › ')}`}
+                      </span>
+                      {result.itemType === 'request' && result.request && (
+                        <div className="flex items-center">
+                          <span className="font-mono uppercase text-xs mr-2 text-muted-foreground">
+                            {result.request.method}
+                          </span>
+                          <span className="truncate">{result.request.name}</span>
+                        </div>
+                      )}
+                      {result.itemType === 'folder' && result.folder && (
+                        <div className="flex items-center">
+                          <FolderClosed className="h-4 w-4 mr-2" />
+                          <span className="truncate">{result.folder.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </Button>
+                ))}
+                {searchResults?.length === 0 && (
+                  <div className="text-sm text-muted-foreground text-center p-4">
+                    No matching items found
                   </div>
                 )}
               </div>
-            ))}
+            ) : (
+              collections.map((collection) => (
+                <div key={collection.id} className="mb-4">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start font-medium hover:bg-muted/50",
+                      selectedItem === collection.id && "bg-muted"
+                    )}
+                    onClick={() => {
+                      toggleCollection(collection.id);
+                      handleCollectionSelect(collection);
+                    }}
+                  >
+                    <span className="mr-2">
+                      {expandedCollections.has(collection.id) ? (
+                        <>
+                          <ChevronDown className="inline-block w-4 h-4 mr-1" />
+                          <FolderOpen className="inline-block w-4 h-4" />
+                        </>
+                      ) : (
+                        <>
+                          <ChevronRight className="inline-block w-4 h-4 mr-1" />
+                          <FolderClosed className="inline-block w-4 h-4" />
+                        </>
+                      )}
+                    </span>
+                    {collection.name}
+                  </Button>
+                  {expandedCollections.has(collection.id) && (
+                    <div>
+                      {collection.folders?.map((folder) => renderFolder(folder))}
+                      {collection.requests.map((request) => renderRequest(request))}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </ScrollArea>
       )}
