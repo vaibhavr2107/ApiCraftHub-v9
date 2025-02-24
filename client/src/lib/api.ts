@@ -20,7 +20,13 @@ export async function makeRequest({
     }
 
     // Ensure URL is properly formatted
-    const requestUrl = url.startsWith('http') ? url : `https://${url}`;
+    let requestUrl: string;
+    try {
+      requestUrl = url.startsWith('http') ? url : `https://${url}`;
+      new URL(requestUrl); // Validate URL format
+    } catch (urlError) {
+      throw new Error("Invalid URL format. Please check the URL and try again.");
+    }
 
     // Add timeout to fetch request
     const controller = new AbortController();
@@ -61,31 +67,28 @@ export async function makeRequest({
         size: new TextEncoder().encode(JSON.stringify(data)).length
       };
     } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+
       if (fetchError.name === 'AbortError') {
-        throw new Error("Request timed out after 30 seconds. The server took too long to respond.");
+        throw new Error("Request timed out after 30 seconds");
       }
 
+      // Check for network connectivity
       if (!navigator.onLine) {
         throw new Error("No internet connection. Please check your network and try again.");
       }
 
       // Handle DNS resolution failures and other network errors
-      if (fetchError instanceof TypeError) {
-        const errorMessage = fetchError.message.toLowerCase();
-        if (errorMessage.includes('failed to fetch') || errorMessage.includes('network error')) {
-          throw new Error(`Cloud Agent Error: Couldn't resolve host "${new URL(requestUrl).hostname}". Make sure the domain is publicly accessible.`);
-        }
+      if (fetchError instanceof TypeError || fetchError.name === 'TypeError') {
+        const hostname = new URL(requestUrl).hostname;
+        throw new Error(`Cloud Agent Error: Couldn't resolve host "${hostname}". Make sure the domain is publicly accessible.`);
       }
 
-      // Handle other network errors
-      throw new Error(`Network Error: Unable to connect to ${new URL(requestUrl).hostname}. The service might be down or unreachable.`);
+      throw new Error(`Failed to connect to the server. Please check if the URL is correct and the server is running.`);
     }
   } catch (error: any) {
     // Ensure we always return a clean error message
-    if (error instanceof Error) {
-      throw new Error(error.message);
-    } else {
-      throw new Error("An unexpected error occurred while making the request.");
-    }
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+    throw new Error(errorMessage);
   }
 }
