@@ -118,7 +118,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
   };
 
   const parsePostmanCollection = (json: any): Collection => {
-    // Parse collection variables
     const variables: CollectionVariable[] = (json.variable || []).map((v: any) => ({
       id: nanoid(),
       key: v.key || '',
@@ -131,49 +130,72 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
 
     const parseItem = (item: any): ApiRequest | CollectionFolder => {
       if (item.request) {
-        // Parse URL components
-        const url = typeof item.request.url === 'string'
-          ? { raw: item.request.url }
-          : item.request.url;
-
-        // Extract query parameters from URL
-        let queryParams: { key: string; value: string; enabled: boolean; }[] = [];
-
-        // Handle URL query parameters
-        if (url?.query) {
-          queryParams = url.query.map((q: any) => ({
-            key: q.key || '',
-            value: q.value || '',
-            enabled: !q.disabled,
-            description: q.description
-          }));
-        } else if (url?.raw) {
-          // Parse query parameters from raw URL if they exist
-          const urlObj = new URL(url.raw.startsWith('http') ? url.raw : `http://${url.raw}`);
-          const searchParams = new URLSearchParams(urlObj.search);
-          queryParams = Array.from(searchParams.entries()).map(([key, value]) => ({
-            key,
-            value,
-            enabled: true
-          }));
+        // Parse URL structure properly
+        let urlData = item.request.url;
+        if (typeof urlData === 'string') {
+          urlData = { raw: urlData };
         }
 
         // Handle path variables
-        const pathVariables = url?.variable?.map((v: any) => ({
+        const pathVariables = urlData.variable?.map((v: any) => ({
           key: v.key || '',
           value: v.value || '',
           enabled: true,
           description: v.description
         })) || [];
 
-        // Validate and parse request body mode
+        // Parse query parameters from both explicit query array and URL string
+        let queryParams: Array<{ key: string; value: string; enabled: boolean; description?: string }> = [];
+
+        // First, check for explicit query parameters
+        if (urlData.query) {
+          queryParams = urlData.query.map((q: any) => ({
+            key: q.key || '',
+            value: q.value || '',
+            enabled: !q.disabled,
+            description: q.description
+          }));
+        }
+
+        // Then parse query parameters from raw URL if they exist and weren't already captured
+        if (urlData.raw && queryParams.length === 0) {
+          try {
+            const urlString = urlData.raw;
+            const questionMarkIndex = urlString.indexOf('?');
+            if (questionMarkIndex !== -1) {
+              const queryString = urlString.substring(questionMarkIndex + 1);
+              const searchParams = new URLSearchParams(queryString);
+              const urlQueryParams = Array.from(searchParams.entries()).map(([key, value]) => ({
+                key,
+                value,
+                enabled: true
+              }));
+              queryParams = [...queryParams, ...urlQueryParams];
+            }
+          } catch (e) {
+            console.error('Error parsing URL query parameters:', e);
+          }
+        }
+
+        // Construct the base URL without query parameters
+        let baseUrl = urlData.raw || '';
+        const questionMarkIndex = baseUrl.indexOf('?');
+        if (questionMarkIndex !== -1) {
+          baseUrl = baseUrl.substring(0, questionMarkIndex);
+        }
+
+        // Replace path variable placeholders with the actual format
+        pathVariables.forEach(variable => {
+          baseUrl = baseUrl.replace(`:${variable.key}`, `{{${variable.key}}}`);
+        });
+
+
         const validBodyModes = ["none", "form-data", "x-www-form-urlencoded", "raw"] as const;
         const validRawFormats = ["json", "text", "xml", "html"] as const;
 
         const bodyMode = item.request.body?.mode;
         const validatedMode = validBodyModes.find(m => m === bodyMode) || "none";
 
-        // Parse request body with proper type validation
         const body = item.request.body ? {
           type: validatedMode,
           rawFormat: validatedMode === "raw"
@@ -197,7 +219,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           content: ""
         };
 
-        // Parse authentication
         const auth = item.request.auth || json.auth;
         const authData = auth ? {
           type: auth.type as "none" | "basic" | "bearer" | "oauth2",
@@ -211,11 +232,10 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           oauth2: auth.type === 'oauth2' ? auth.oauth2 : undefined
         } : { type: "none" as const };
 
-        // Create the request using the factory function
         return createApiRequest({
           name: item.name,
           method: item.request.method,
-          url: url?.raw || "",
+          url: baseUrl,
           collectionId,
           headers: (item.request.header || []).map((h: any) => ({
             key: h.key,
@@ -229,7 +249,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           auth: authData
         });
       } else {
-        // This is a folder
         const { requests, folders } = processItems(item.item || []);
         return {
           id: nanoid(),

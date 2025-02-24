@@ -18,25 +18,28 @@ export type HttpMethod = z.infer<typeof HttpMethod>;
 export interface RequestParameter {
   key: string;
   value: string;
-  enabled?: boolean;
+  enabled: boolean;
   description?: string;
 }
 
 // Request Body Types
+export type BodyType = "none" | "form-data" | "x-www-form-urlencoded" | "raw";
+export type RawFormat = "json" | "text" | "xml" | "html";
+
 export interface RequestBody {
-  type: "none" | "form-data" | "x-www-form-urlencoded" | "raw";
-  rawFormat?: "json" | "text" | "xml" | "html";
-  content?: string;
+  type: BodyType;
+  rawFormat?: RawFormat;
+  content: string;
   formData?: Array<{
     key: string;
     value: string;
     type: "text" | "file";
-    enabled?: boolean;
+    enabled: boolean;
   }>;
   urlEncoded?: Array<{
     key: string;
     value: string;
-    enabled?: boolean;
+    enabled: boolean;
   }>;
 }
 
@@ -50,7 +53,7 @@ export interface RequestAuth {
   bearer?: {
     token: string;
   };
-  oauth2?: any; // To be implemented later
+  oauth2?: any;
 }
 
 // Response Data Structure
@@ -59,9 +62,9 @@ export interface ApiResponse {
   statusText: string;
   headers: Record<string, string>;
   data: any;
-  time: number; // Response time in milliseconds
-  size: number; // Response size in bytes
-  timestamp: string; // When the response was received
+  time: number;
+  size: number;
+  timestamp: string;
 }
 
 // Main API Request Interface
@@ -71,21 +74,13 @@ export interface ApiRequest {
   method: HttpMethod;
   url: string;
   description?: string;
-
-  // Request Components
   queryParams: RequestParameter[];
   headers: RequestParameter[];
   pathVariables: RequestParameter[];
   body: RequestBody;
   auth: RequestAuth;
-
-  // Collection Reference (if part of a collection)
   collectionId?: string;
-
-  // Response Data (if request has been executed)
   lastResponse?: ApiResponse;
-
-  // Metadata
   createdAt: string;
   updatedAt: string;
   tags?: string[];
@@ -100,13 +95,12 @@ export function generateRequestName(baseName: string): string {
 // Helper function to create a new API request
 export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
   const now = new Date().toISOString();
-
   return {
     id: nanoid(),
     name: params.name || generateRequestName("Request"),
     method: params.method || "GET",
     url: params.url || "",
-    queryParams: params.queryParams || [],
+    queryParams: params.queryParams || [{ key: "", value: "", enabled: true }],
     headers: params.headers || [
       { key: "Accept", value: "*/*", enabled: true },
       { key: "User-Agent", value: "API-Tester/1.0", enabled: true }
@@ -135,35 +129,35 @@ export const apiRequestSchema = z.object({
   queryParams: z.array(z.object({
     key: z.string(),
     value: z.string(),
-    enabled: z.boolean().optional(),
+    enabled: z.boolean(),
     description: z.string().optional()
   })),
   headers: z.array(z.object({
     key: z.string(),
     value: z.string(),
-    enabled: z.boolean().optional(),
+    enabled: z.boolean(),
     description: z.string().optional()
   })),
   pathVariables: z.array(z.object({
     key: z.string(),
     value: z.string(),
-    enabled: z.boolean().optional(),
+    enabled: z.boolean(),
     description: z.string().optional()
   })),
   body: z.object({
     type: z.enum(["none", "form-data", "x-www-form-urlencoded", "raw"]),
     rawFormat: z.enum(["json", "text", "xml", "html"]).optional(),
-    content: z.string().optional(),
+    content: z.string(),
     formData: z.array(z.object({
       key: z.string(),
       value: z.string(),
       type: z.enum(["text", "file"]),
-      enabled: z.boolean().optional()
+      enabled: z.boolean()
     })).optional(),
     urlEncoded: z.array(z.object({
       key: z.string(),
       value: z.string(),
-      enabled: z.boolean().optional()
+      enabled: z.boolean()
     })).optional()
   }),
   auth: z.object({
