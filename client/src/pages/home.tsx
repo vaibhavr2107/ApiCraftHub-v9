@@ -25,11 +25,16 @@ export default function Home() {
   const [, setLocation] = useLocation();
 
   const substituteVariables = (str: string, collection: Collection): string => {
+    console.log('Before substitution:', str); // Debug log
     const variablePattern = /\{\{([^}]+)\}\}/g;
-    return str.replace(variablePattern, (match, variableName) => {
-      const variable = collection.variables?.find(v => v.key === variableName.trim());
+    const result = str.replace(variablePattern, (match, variableName) => {
+      const trimmedName = variableName.trim();
+      const variable = collection.variables?.find(v => v.key === trimmedName);
+      console.log('Variable match:', trimmedName, 'Found:', variable); // Debug log
       return variable ? variable.value : match;
     });
+    console.log('After substitution:', result); // Debug log
+    return result;
   };
 
   const handleRequestSelect = (request: CollectionRequest) => {
@@ -43,23 +48,27 @@ export default function Home() {
     if (parentCollection) {
       try {
         // First, substitute variables in the base URL
-        processedUrl = substituteVariables(request.url, parentCollection);
+        processedUrl = substituteVariables(processedUrl, parentCollection);
 
-        // Split URL and query string before processing
-        const [baseUrl, queryString] = processedUrl.split('?');
-        const existingParams = new URLSearchParams(queryString || '');
+        // Handle query parameters if present in the URL
+        const urlParts = processedUrl.split('?');
+        const baseUrl = urlParts[0];
+        const queryString = urlParts[1];
 
-        // Get existing query parameters from URL
-        const urlQueryParams = Array.from(existingParams.entries()).map(([key, value]) => ({
-          key,
-          value: decodeURIComponent(value)
-        }));
+        // Process existing query parameters from URL
+        if (queryString) {
+          const existingParams = new URLSearchParams(queryString);
+          const urlQueryParams = Array.from(existingParams.entries()).map(([key, value]) => ({
+            key,
+            value: decodeURIComponent(value)
+          }));
 
-        // Combine URL query params with explicit query params and substitute variables
-        processedQueryParams = [...urlQueryParams, ...(request.queryParams || [])].map(param => ({
-          key: substituteVariables(param.key, parentCollection),
-          value: substituteVariables(param.value, parentCollection)
-        }));
+          // Combine URL query params with explicit query params
+          processedQueryParams = [...urlQueryParams, ...(request.queryParams || [])].map(param => ({
+            key: substituteVariables(param.key, parentCollection),
+            value: substituteVariables(param.value, parentCollection)
+          }));
+        }
 
         // Use the base URL without query parameters
         processedUrl = baseUrl;
