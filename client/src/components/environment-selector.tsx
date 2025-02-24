@@ -19,10 +19,11 @@ import {
 import { Input } from "@/components/ui/input";
 
 interface EnvironmentSelectorProps {
+  selectedEnvironment: Environment;
   onEnvironmentChange: (environment: Environment) => void;
 }
 
-export function EnvironmentSelector({ onEnvironmentChange }: EnvironmentSelectorProps) {
+export function EnvironmentSelector({ selectedEnvironment, onEnvironmentChange }: EnvironmentSelectorProps) {
   const [store, setStore] = useState<EnvironmentStore>(() => {
     const saved = localStorage.getItem("environment_store");
     if (saved) {
@@ -34,7 +35,7 @@ export function EnvironmentSelector({ onEnvironmentChange }: EnvironmentSelector
     }
     return {
       environments: DEFAULT_ENVIRONMENTS,
-      selected: "dev"
+      selected: selectedEnvironment
     };
   });
 
@@ -43,11 +44,6 @@ export function EnvironmentSelector({ onEnvironmentChange }: EnvironmentSelector
   useEffect(() => {
     localStorage.setItem("environment_store", JSON.stringify(store));
   }, [store]);
-
-  const handleEnvironmentChange = (value: Environment) => {
-    setStore(prev => ({ ...prev, selected: value }));
-    onEnvironmentChange(value);
-  };
 
   const updateEnvironmentConfig = (env: Environment, field: keyof typeof DEFAULT_ENVIRONMENTS[Environment], value: string) => {
     setStore(prev => ({
@@ -64,7 +60,7 @@ export function EnvironmentSelector({ onEnvironmentChange }: EnvironmentSelector
 
   return (
     <div className="flex items-center gap-2">
-      <Select value={store.selected} onValueChange={handleEnvironmentChange}>
+      <Select value={selectedEnvironment} onValueChange={onEnvironmentChange}>
         <SelectTrigger className="w-[120px]">
           <SelectValue placeholder="Environment" />
         </SelectTrigger>

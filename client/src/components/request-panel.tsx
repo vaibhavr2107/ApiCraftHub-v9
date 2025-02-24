@@ -336,24 +336,33 @@ export function RequestPanel({
       let newUrl = request.url;
       try {
         const currentUrl = new URL(request.url);
-        const isRelative = !request.url.startsWith('http');
-        const matchesEnvUrl = Object.values(store.environments).some(
-          env => request.url.startsWith(env.baseUrl)
-        );
 
-        if (isRelative || matchesEnvUrl) {
-          const path = currentUrl.pathname + currentUrl.search;
-          newUrl = new URL(path, config.baseUrl).toString();
+        // For dev environment, keep the original URL
+        if (environment === 'dev') {
+          newUrl = request.url;
+        } else {
+          const isRelative = !request.url.startsWith('http');
+          const matchesEnvUrl = Object.values(store.environments).some(
+            env => request.url.startsWith(env.baseUrl)
+          );
+
+          if (isRelative || matchesEnvUrl) {
+            const path = currentUrl.pathname + currentUrl.search;
+            newUrl = new URL(path, config.baseUrl).toString();
+          }
         }
       } catch (e) {
-        // If URL parsing fails, treat it as a relative path
-        newUrl = new URL(request.url, config.baseUrl).toString();
+        // If URL parsing fails and it's not dev environment, treat it as a relative path
+        if (environment !== 'dev') {
+          newUrl = new URL(request.url, config.baseUrl).toString();
+        }
       }
 
-      // Update URL and auth in a single change
+      // Update URL, auth, and selected environment in a single change
       onRequestChange({
         url: newUrl,
-        auth: config.bearerToken ? { type: "bearer", bearer: { token: config.bearerToken } } : { type: "none" }
+        auth: config.bearerToken ? { type: "bearer", bearer: { token: config.bearerToken } } : { type: "none" },
+        selectedEnvironment: environment
       });
 
     } catch (e) {
@@ -391,7 +400,7 @@ export function RequestPanel({
               <Send className="w-4 h-4 mr-2" />
               Send
             </Button>
-            <EnvironmentSelector onEnvironmentChange={handleEnvironmentChange} />
+            <EnvironmentSelector selectedEnvironment={request.selectedEnvironment} onEnvironmentChange={handleEnvironmentChange} />
           </div>
         </div>
       </div>

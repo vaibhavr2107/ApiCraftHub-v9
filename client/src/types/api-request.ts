@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import { Environment } from "./environment";
 
 // Request Method Types
 export const HttpMethod = z.enum([
@@ -84,6 +85,7 @@ export interface ApiRequest {
   createdAt: string;
   updatedAt: string;
   tags?: string[];
+  selectedEnvironment: Environment;
 }
 
 // Helper function to generate a unique request name
@@ -115,6 +117,7 @@ export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
     createdAt: now,
     updatedAt: now,
     collectionId: params.collectionId,
+    selectedEnvironment: params.selectedEnvironment || "dev",
     ...params
   };
 }
@@ -183,5 +186,6 @@ export const apiRequestSchema = z.object({
   }).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  tags: z.array(z.string()).optional()
+  tags: z.array(z.string()).optional(),
+  selectedEnvironment: z.enum(["dev", "qa01", "qa02", "qa03", "perf", "prod"])
 });
