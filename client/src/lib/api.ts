@@ -35,44 +35,64 @@ export async function makeRequest({
     controller = new AbortController();
     timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-    // Wrap fetch in a try-catch to handle network errors
+    // Create headers with content type
+    const requestHeaders = {
+      "Content-Type": "application/json",
+      ...headers,
+    };
+
+    // Create request options
+    const requestOptions = {
+      method,
+      headers: requestHeaders,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    };
+
     let response: Response;
+
     try {
-      response = await fetch(requestUrl, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          ...headers,
-        },
-        body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal
-      }).catch((fetchError) => {
-        throw fetchError;
-      });
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
+      // Make the request within a Promise.race to handle timeouts
+      response = await Promise.race([
+        fetch(requestUrl, requestOptions),
+        new Promise<never>((_, reject) => {
+          setTimeout(() => {
+            reject(new Error("Request timed out after 30 seconds"));
+          }, 30000);
+        }),
+      ]) as Response;
 
-      if (fetchError.name === 'AbortError') {
-        throw new Error("Request timed out after 30 seconds");
-      }
+    } catch (error: any) {
+      // Clear timeout if it exists
+      if (timeoutId) clearTimeout(timeoutId);
 
-      // Check for network connectivity
+      // Check online status
       if (!navigator.onLine) {
         throw new Error("No internet connection. Please check your network and try again.");
       }
 
-      // Handle DNS resolution failures and other network errors
+      // Get hostname for error message
       const hostname = new URL(requestUrl).hostname;
+
+      // Handle specific error types
+      if (error.name === 'AbortError') {
+        throw new Error("Request timed out after 30 seconds");
+      }
+
+      // Handle failed to fetch and other network errors
       throw new Error(`Cloud Agent Error: Couldn't resolve host "${hostname}". Make sure the domain is publicly accessible.`);
     }
 
-    clearTimeout(timeoutId);
+    // Clear timeout since request completed
+    if (timeoutId) clearTimeout(timeoutId);
 
+    // Process response headers
     const responseHeaders: Record<string, string> = {};
     response.headers.forEach((value, key) => {
       responseHeaders[key] = value;
     });
 
+    // Process response data
     let data;
     const contentType = response.headers.get("content-type");
     try {
@@ -85,6 +105,7 @@ export async function makeRequest({
       throw new Error("Failed to parse response data");
     }
 
+    // Return formatted response
     return {
       status: response.status,
       statusText: response.statusText,
@@ -93,9 +114,12 @@ export async function makeRequest({
       time: 0, // Will be calculated by the calling component
       size: new TextEncoder().encode(JSON.stringify(data)).length
     };
+
   } catch (error: any) {
+    // Cleanup timeout if it exists
     if (timeoutId) clearTimeout(timeoutId);
-    // Ensure we always return a clean error message
+
+    // Return formatted error
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     throw new Error(errorMessage);
   }
