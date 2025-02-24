@@ -8,7 +8,7 @@ export interface EnvironmentConfig {
 }
 
 export interface EnvironmentStore {
-  environments: Record<Environment, EnvironmentConfig>;
+  environments: Record<string, Record<Environment, EnvironmentConfig>>;  // requestId -> environment -> config
   requestConfigs: Record<string, Environment>; // Store environment selection per request
 }
 
