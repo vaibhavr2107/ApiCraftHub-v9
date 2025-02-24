@@ -91,7 +91,7 @@ export function RequestPanel({
       const existingKeys = new Set(request.pathVariables.map(v => v.key));
       const newVars = pathVars.filter(v => !existingKeys.has(v.key));
       if (newVars.length > 0) {
-        onRequestChange({ 
+        onRequestChange({
           pathVariables: [...request.pathVariables, ...newVars]
         });
       }
@@ -219,8 +219,8 @@ export function RequestPanel({
       }
 
       // Process URL with path variables
-      const processedUrl = request.pathVariables ? 
-        replacePathVariables(request.url, request.pathVariables) : 
+      const processedUrl = request.pathVariables ?
+        replacePathVariables(request.url, request.pathVariables) :
         request.url;
 
       let body: string | FormData | undefined;
@@ -277,11 +277,37 @@ export function RequestPanel({
 
 
   const updateBodyType = (type: BodyType) => {
-    onRequestChange({ body: { ...request.body, type } });
+    const newBody = {
+      type,
+      rawFormat: type === "raw" ? request.body.rawFormat || "json" : undefined,
+      content: type === "raw" ? request.body.content || "" : undefined,
+      formData: type === "form-data" ? [{ key: "", value: "", type: "text" as const, enabled: true }] : undefined,
+      urlEncoded: type === "x-www-form-urlencoded" ? [{ key: "", value: "", enabled: true }] : undefined
+    };
+
+    onRequestChange({ body: newBody });
   };
 
   const formatBody = () => {
-    //Implementation for formatting the body based on rawFormat would go here.  This is omitted as it's not relevant to the provided changes.
+    if (request.body.type !== "raw" || !request.body.content) return;
+
+    try {
+      let formatted = request.body.content;
+      if (request.body.rawFormat === "json") {
+        formatted = JSON.stringify(JSON.parse(request.body.content), null, 2);
+      }
+      // Add XML formatting if needed later
+
+      onRequestChange({
+        body: { ...request.body, content: formatted }
+      });
+    } catch (err) {
+      toast({
+        variant: "destructive",
+        title: "Formatting Error",
+        description: "Invalid content format"
+      });
+    }
   };
 
   return (
@@ -423,7 +449,7 @@ export function RequestPanel({
                 value={request.auth.type}
                 onValueChange={(value: "none" | "basic" | "bearer") =>
                   onRequestChange({
-                    auth: value === "basic" 
+                    auth: value === "basic"
                       ? { type: "basic", basic: { username: "", password: "" } }
                       : value === "bearer"
                       ? { type: "bearer", bearer: { token: "" } }
@@ -448,9 +474,9 @@ export function RequestPanel({
                     value={request.auth.basic?.username || ""}
                     onChange={(e) =>
                       onRequestChange({
-                        auth: { 
-                          ...request.auth, 
-                          basic: { 
+                        auth: {
+                          ...request.auth,
+                          basic: {
                             ...request.auth.basic,
                             username: e.target.value,
                             password: request.auth.basic?.password || ""
@@ -465,8 +491,8 @@ export function RequestPanel({
                     value={request.auth.basic?.password || ""}
                     onChange={(e) =>
                       onRequestChange({
-                        auth: { 
-                          ...request.auth, 
+                        auth: {
+                          ...request.auth,
                           basic: {
                             ...request.auth.basic,
                             username: request.auth.basic?.username || "",
@@ -485,8 +511,8 @@ export function RequestPanel({
                   value={request.auth.bearer?.token || ""}
                   onChange={(e) =>
                     onRequestChange({
-                      auth: { 
-                        ...request.auth, 
+                      auth: {
+                        ...request.auth,
                         bearer: { token: e.target.value }
                       },
                     })
