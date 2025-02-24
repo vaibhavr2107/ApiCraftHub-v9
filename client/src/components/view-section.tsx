@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FolderTree, Settings, History, Search } from "lucide-react";
+import { FolderTree, Settings, History, Search, FileJson } from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -28,10 +28,11 @@ interface Environment {
 
 interface ViewSectionProps {
   onEnvironmentSelect?: (environment: Environment) => void;
+  onViewChange?: (view: 'collections' | 'environment' | 'history' | 'openapi') => void;
 }
 
-export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
-  const [activeView, setActiveView] = useState<"collections" | "environment" | "history">("collections");
+export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionProps) {
+  const [activeView, setActiveView] = useState<"collections" | "environment" | "history" | "openapi">("collections");
   const [environments, setEnvironments] = useState<Environment[]>(() => {
     const saved = localStorage.getItem("environments");
     return saved ? JSON.parse(saved) : [];
@@ -46,6 +47,13 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
   // Add search states
   const [historySearch, setHistorySearch] = useState("");
   const [collectionsSearch, setCollectionsSearch] = useState("");
+
+  const handleViewChange = (view: typeof activeView) => {
+    setActiveView(view);
+    if (onViewChange) {
+      onViewChange(view);
+    }
+  };
 
   // Keep history in sync with localStorage
   useEffect(() => {
@@ -135,7 +143,7 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
       <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton
-            onClick={() => setActiveView("collections")}
+            onClick={() => handleViewChange("collections")}
             isActive={activeView === "collections"}
           >
             <FolderTree className="h-4 w-4" />
@@ -144,7 +152,7 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
-            onClick={() => setActiveView("environment")}
+            onClick={() => handleViewChange("environment")}
             isActive={activeView === "environment"}
           >
             <Settings className="h-4 w-4" />
@@ -153,11 +161,20 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
         </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
-            onClick={() => setActiveView("history")}
+            onClick={() => handleViewChange("history")}
             isActive={activeView === "history"}
           >
             <History className="h-4 w-4" />
             <span>History</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            onClick={() => handleViewChange("openapi")}
+            isActive={activeView === "openapi"}
+          >
+            <FileJson className="h-4 w-4" />
+            <span>OpenAPI</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
@@ -272,6 +289,15 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
                 )}
               </div>
             </ScrollArea>
+          </div>
+        )}
+
+        {activeView === "openapi" && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">OpenAPI</h3>
+            <div className="text-sm text-muted-foreground">
+              Import an OpenAPI specification to get started
+            </div>
           </div>
         )}
       </div>
