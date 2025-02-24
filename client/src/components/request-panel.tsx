@@ -17,6 +17,8 @@ import type { ApiRequest, RequestParameter, BodyType, RawFormat } from "@/types/
 import { useToast } from "@/hooks/use-toast";
 import { X, Send, Play } from "lucide-react";
 import { useLocation } from "wouter";
+import { EnvironmentSelector } from "./environment-selector";
+import { Environment, EnvironmentStore } from "@/types/environment";
 
 // Detect path variables in URL
 const detectPathVariables = (url: string): RequestParameter[] => {
@@ -322,6 +324,42 @@ export function RequestPanel({
     }
   };
 
+  const handleEnvironmentChange = (environment: Environment) => {
+    const envStore = localStorage.getItem("environment_store");
+    if (!envStore) return;
+
+    try {
+      const store: EnvironmentStore = JSON.parse(envStore);
+      const config = store.environments[environment];
+
+      // Update the URL if it's a relative path or matches any environment's baseUrl
+      const currentUrl = new URL(request.url, config.baseUrl);
+      const isRelative = !request.url.startsWith('http');
+      const matchesEnvUrl = Object.values(store.environments).some(
+        env => request.url.startsWith(env.baseUrl)
+      );
+
+      if (isRelative || matchesEnvUrl) {
+        const path = currentUrl.pathname + currentUrl.search;
+        onRequestChange({
+          url: new URL(path, config.baseUrl).toString()
+        });
+      }
+
+      // Update bearer token if present
+      if (config.bearerToken) {
+        onRequestChange({
+          auth: {
+            type: "bearer",
+            bearer: { token: config.bearerToken }
+          }
+        });
+      }
+    } catch (e) {
+      console.error("Error processing environment change:", e);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-background/95">
       <div className="p-4 border-b space-y-4">
@@ -348,6 +386,7 @@ export function RequestPanel({
               placeholder="Enter URL"
               className="flex-1 h-9 font-mono text-sm"
             />
+            <EnvironmentSelector onEnvironmentChange={handleEnvironmentChange} />
             <Button onClick={handleSend} size="sm" className="h-9">
               <Send className="w-4 h-4 mr-2" />
               Send
