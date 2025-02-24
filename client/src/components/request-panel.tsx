@@ -154,9 +154,8 @@ export function RequestPanel({
     const startTime = performance.now();
 
     try {
+      // Process headers
       const headers: Record<string, string> = {};
-
-      // Add enabled headers
       request.headers
         .filter((h) => h.enabled && h.key && h.value)
         .forEach((h) => {
@@ -195,27 +194,25 @@ export function RequestPanel({
         body = params.toString();
       }
 
-      const response = await makeRequest({
-        method: request.method,
-        url: processedUrl,
-        body,
-        headers,
-      }).catch((error: Error) => {
-        throw error;
-      });
+      // Wrap makeRequest in Promise.resolve to ensure all rejections are caught
+      const response = await Promise.resolve().then(() =>
+        makeRequest({
+          method: request.method,
+          url: processedUrl,
+          body,
+          headers,
+        })
+      );
+
 
       const endTime = performance.now();
       const responseTime = endTime - startTime;
 
-      // Calculate response size
-      const responseSize = new TextEncoder().encode(JSON.stringify(response.data)).length;
-
       onResponse({
         ...response,
-        time: responseTime,
-        size: responseSize
+        time: responseTime
       });
-    } catch (err) {
+    } catch (err: any) {
       const message = err instanceof Error ? err.message : "An error occurred";
       onError(message);
       toast({
