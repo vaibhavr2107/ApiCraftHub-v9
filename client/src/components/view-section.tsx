@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FolderTree, Settings, History } from "lucide-react";
+import { FolderTree, Settings, History, Search } from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -42,6 +42,10 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
     const saved = localStorage.getItem("request_history");
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Add search states
+  const [historySearch, setHistorySearch] = useState("");
+  const [collectionsSearch, setCollectionsSearch] = useState("");
 
   // Keep history in sync with localStorage
   useEffect(() => {
@@ -93,7 +97,6 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
   };
 
   const handleHistoryItemClick = (entry: any) => {
-    // Create a new request from history entry
     const historyRequest = {
       id: crypto.randomUUID(),
       name: `History: ${entry.request.method} ${new URL(entry.request.url).pathname}`,
@@ -106,15 +109,24 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
       auth: { type: "none" }
     };
 
-    // Add request to saved_requests
     const savedRequests = localStorage.getItem("saved_requests");
     const requests = savedRequests ? JSON.parse(savedRequests) : [];
     localStorage.setItem("saved_requests", JSON.stringify([...requests, historyRequest]));
 
-    // Trigger events to update UI
     window.dispatchEvent(new Event("storage"));
     window.dispatchEvent(new CustomEvent('activateTab', { detail: historyRequest.id }));
   };
+
+  // Filter history based on search
+  const filteredHistory = requestHistory.filter(entry => {
+    if (!historySearch) return true;
+    const searchLower = historySearch.toLowerCase();
+    return (
+      entry.request.method.toLowerCase().includes(searchLower) ||
+      entry.request.url.toLowerCase().includes(searchLower) ||
+      entry.response.status.toString().includes(searchLower)
+    );
+  });
 
   return (
     <SidebarGroup>
@@ -153,6 +165,15 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
         {activeView === "collections" && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium">Collections</h3>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search collections..."
+                value={collectionsSearch}
+                onChange={(e) => setCollectionsSearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
             <div className="text-sm text-muted-foreground">
               No collections imported yet
             </div>
@@ -210,9 +231,18 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
         {activeView === "history" && (
           <div className="space-y-2">
             <h3 className="text-sm font-medium">History</h3>
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search history..."
+                value={historySearch}
+                onChange={(e) => setHistorySearch(e.target.value)}
+                className="pl-8"
+              />
+            </div>
             <ScrollArea className="h-[calc(100vh-12rem)]">
               <div className="space-y-2">
-                {requestHistory.map((entry) => (
+                {filteredHistory.map((entry) => (
                   <div
                     key={entry.id}
                     className="rounded-md border p-2 text-xs space-y-1 cursor-pointer hover:bg-muted/50"
@@ -234,9 +264,9 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
                     </div>
                   </div>
                 ))}
-                {requestHistory.length === 0 && (
+                {filteredHistory.length === 0 && (
                   <div className="text-sm text-muted-foreground">
-                    No recent requests
+                    {requestHistory.length === 0 ? "No recent requests" : "No matching requests"}
                   </div>
                 )}
               </div>
