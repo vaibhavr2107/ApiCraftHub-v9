@@ -1,4 +1,4 @@
-import { ResponseData } from "@/pages/home";
+import type { ResponseData } from "@/types/api-request";
 
 interface RequestOptions {
   method: string;
@@ -14,7 +14,15 @@ export async function makeRequest({
   headers = {},
 }: RequestOptions): Promise<ResponseData> {
   try {
-    const response = await fetch(url, {
+    // Validate URL
+    if (!url) {
+      throw new Error("URL is required");
+    }
+
+    // Ensure URL is properly formatted
+    const requestUrl = url.startsWith('http') ? url : `https://${url}`;
+
+    const response = await fetch(requestUrl, {
       method,
       headers: {
         "Content-Type": "application/json",
@@ -41,6 +49,8 @@ export async function makeRequest({
       statusText: response.statusText,
       headers: responseHeaders,
       data,
+      time: 0, // Will be calculated by the calling component
+      size: new TextEncoder().encode(JSON.stringify(data)).length
     };
   } catch (error) {
     if (error instanceof Error) {
