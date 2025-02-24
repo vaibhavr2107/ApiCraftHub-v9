@@ -333,28 +333,29 @@ export function RequestPanel({
       const config = store.environments[environment];
 
       // Update the URL if it's a relative path or matches any environment's baseUrl
-      const currentUrl = new URL(request.url, config.baseUrl);
-      const isRelative = !request.url.startsWith('http');
-      const matchesEnvUrl = Object.values(store.environments).some(
-        env => request.url.startsWith(env.baseUrl)
-      );
+      let newUrl = request.url;
+      try {
+        const currentUrl = new URL(request.url);
+        const isRelative = !request.url.startsWith('http');
+        const matchesEnvUrl = Object.values(store.environments).some(
+          env => request.url.startsWith(env.baseUrl)
+        );
 
-      if (isRelative || matchesEnvUrl) {
-        const path = currentUrl.pathname + currentUrl.search;
-        onRequestChange({
-          url: new URL(path, config.baseUrl).toString()
-        });
+        if (isRelative || matchesEnvUrl) {
+          const path = currentUrl.pathname + currentUrl.search;
+          newUrl = new URL(path, config.baseUrl).toString();
+        }
+      } catch (e) {
+        // If URL parsing fails, treat it as a relative path
+        newUrl = new URL(request.url, config.baseUrl).toString();
       }
 
-      // Update bearer token if present
-      if (config.bearerToken) {
-        onRequestChange({
-          auth: {
-            type: "bearer",
-            bearer: { token: config.bearerToken }
-          }
-        });
-      }
+      // Update URL and auth in a single change
+      onRequestChange({
+        url: newUrl,
+        auth: config.bearerToken ? { type: "bearer", bearer: { token: config.bearerToken } } : { type: "none" }
+      });
+
     } catch (e) {
       console.error("Error processing environment change:", e);
     }
@@ -386,11 +387,11 @@ export function RequestPanel({
               placeholder="Enter URL"
               className="flex-1 h-9 font-mono text-sm"
             />
-            <EnvironmentSelector onEnvironmentChange={handleEnvironmentChange} />
             <Button onClick={handleSend} size="sm" className="h-9">
               <Send className="w-4 h-4 mr-2" />
               Send
             </Button>
+            <EnvironmentSelector onEnvironmentChange={handleEnvironmentChange} />
           </div>
         </div>
       </div>
