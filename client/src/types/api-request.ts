@@ -71,20 +71,20 @@ export interface ApiRequest {
   method: HttpMethod;
   url: string;
   description?: string;
-  
+
   // Request Components
   queryParams: RequestParameter[];
   headers: RequestParameter[];
-  pathVariables?: RequestParameter[];
+  pathVariables: RequestParameter[];
   body: RequestBody;
   auth: RequestAuth;
-  
+
   // Collection Reference (if part of a collection)
   collectionId?: string;
-  
+
   // Response Data (if request has been executed)
   lastResponse?: ApiResponse;
-  
+
   // Metadata
   createdAt: string;
   updatedAt: string;
@@ -100,7 +100,7 @@ export function generateRequestName(baseName: string): string {
 // Helper function to create a new API request
 export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
   const now = new Date().toISOString();
-  
+
   return {
     id: nanoid(),
     name: params.name || generateRequestName("Request"),
@@ -111,6 +111,7 @@ export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
       { key: "Accept", value: "*/*", enabled: true },
       { key: "User-Agent", value: "API-Tester/1.0", enabled: true }
     ],
+    pathVariables: params.pathVariables || [],
     body: params.body || {
       type: "none",
       rawFormat: "json",
@@ -138,6 +139,12 @@ export const apiRequestSchema = z.object({
     description: z.string().optional()
   })),
   headers: z.array(z.object({
+    key: z.string(),
+    value: z.string(),
+    enabled: z.boolean().optional(),
+    description: z.string().optional()
+  })),
+  pathVariables: z.array(z.object({
     key: z.string(),
     value: z.string(),
     enabled: z.boolean().optional(),

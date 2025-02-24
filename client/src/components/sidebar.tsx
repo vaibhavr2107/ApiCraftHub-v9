@@ -136,16 +136,34 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           ? { raw: item.request.url }
           : item.request.url;
 
-        const queryParams = url?.query?.map((q: any) => ({
-          key: q.key || '',
-          value: q.value || '',
-          enabled: !q.disabled
-        })) || [];
+        // Extract query parameters from URL
+        let queryParams: { key: string; value: string; enabled: boolean; }[] = [];
 
+        // Handle URL query parameters
+        if (url?.query) {
+          queryParams = url.query.map((q: any) => ({
+            key: q.key || '',
+            value: q.value || '',
+            enabled: !q.disabled,
+            description: q.description
+          }));
+        } else if (url?.raw) {
+          // Parse query parameters from raw URL if they exist
+          const urlObj = new URL(url.raw.startsWith('http') ? url.raw : `http://${url.raw}`);
+          const searchParams = new URLSearchParams(urlObj.search);
+          queryParams = Array.from(searchParams.entries()).map(([key, value]) => ({
+            key,
+            value,
+            enabled: true
+          }));
+        }
+
+        // Handle path variables
         const pathVariables = url?.variable?.map((v: any) => ({
           key: v.key || '',
           value: v.value || '',
-          enabled: true
+          enabled: true,
+          description: v.description
         })) || [];
 
         // Validate and parse request body mode
@@ -193,6 +211,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           oauth2: auth.type === 'oauth2' ? auth.oauth2 : undefined
         } : { type: "none" as const };
 
+        // Create the request using the factory function
         return createApiRequest({
           name: item.name,
           method: item.request.method,
@@ -201,7 +220,8 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           headers: (item.request.header || []).map((h: any) => ({
             key: h.key,
             value: h.value,
-            enabled: !h.disabled
+            enabled: !h.disabled,
+            description: h.description
           })),
           queryParams,
           pathVariables,
