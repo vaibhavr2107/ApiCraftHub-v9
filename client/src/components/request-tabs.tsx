@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 interface RequestTabsProps {
-  onTabChange?: (activeTab: string) => void;
+  onRequestComplete?: (request: ApiRequest, response: any) => void;
 }
 
 const DEFAULT_HEADERS = [
@@ -32,7 +32,7 @@ const DEFAULT_HEADERS = [
   { key: "Content-Type", value: "application/json", enabled: true }
 ];
 
-export function RequestTabs({ onTabChange }: RequestTabsProps) {
+export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
   const [requests, setRequests] = useState<ApiRequest[]>(() => {
     const saved = localStorage.getItem("saved_requests");
@@ -162,6 +162,15 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
     );
   }, []);
 
+  const handleResponse = useCallback((requestId: string, response: any) => {
+    setResponses((prev) => ({ ...prev, [requestId]: response }));
+    // Find the request and pass both request and response to history
+    const request = requests.find(req => req.id === requestId);
+    if (request && onRequestComplete) {
+      onRequestComplete(request, response);
+    }
+  }, [requests, onRequestComplete]);
+
   // Handle tab changes through route updates
   const handleTabChange = (value: string) => {
     if (value !== activeTab) {
@@ -231,9 +240,7 @@ export function RequestTabs({ onTabChange }: RequestTabsProps) {
               <RequestPanel
                 request={request}
                 onRequestChange={(updates) => handleUpdateRequest(request.id, updates)}
-                onResponse={(response) =>
-                  setResponses((prev) => ({ ...prev, [request.id]: response }))
-                }
+                onResponse={(response) => handleResponse(request.id, response)}
                 onLoading={(isLoading) =>
                   setLoading((prev) => ({ ...prev, [request.id]: isLoading }))
                 }
