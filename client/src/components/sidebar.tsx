@@ -44,6 +44,7 @@ interface SidebarProps {
 export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
   const { toast } = useToast();
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   // Load collections from localStorage on component mount
@@ -57,6 +58,26 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
       }
     }
   }, []);
+
+  const toggleCollection = (collectionId: string) => {
+    const newExpanded = new Set(expandedCollections);
+    if (newExpanded.has(collectionId)) {
+      newExpanded.delete(collectionId);
+    } else {
+      newExpanded.add(collectionId);
+    }
+    setExpandedCollections(newExpanded);
+  };
+
+  const toggleFolder = (folderId: string) => {
+    const newExpanded = new Set(expandedFolders);
+    if (newExpanded.has(folderId)) {
+      newExpanded.delete(folderId);
+    } else {
+      newExpanded.add(folderId);
+    }
+    setExpandedFolders(newExpanded);
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -313,16 +334,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
     };
   };
 
-  const toggleFolder = (folderId: string) => {
-    const newExpanded = new Set(expandedFolders);
-    if (newExpanded.has(folderId)) {
-      newExpanded.delete(folderId);
-    } else {
-      newExpanded.add(folderId);
-    }
-    setExpandedFolders(newExpanded);
-  };
-
   const renderFolder = (folder: CollectionFolder, level = 0) => {
     const isExpanded = expandedFolders.has(folder.id);
     const paddingLeft = `${level * 1.5}rem`;
@@ -422,13 +433,29 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
               <Button
                 variant="ghost"
                 className="w-full justify-start font-medium hover:bg-muted/50"
-                onClick={() => onCollectionSelect(collection)}
+                onClick={() => toggleCollection(collection.id)}
               >
-                <FolderClosed className="w-4 h-4 mr-2" />
+                <span className="mr-2">
+                  {expandedCollections.has(collection.id) ? (
+                    <>
+                      <ChevronDown className="inline-block w-4 h-4 mr-1" />
+                      <FolderOpen className="inline-block w-4 h-4" />
+                    </>
+                  ) : (
+                    <>
+                      <ChevronRight className="inline-block w-4 h-4 mr-1" />
+                      <FolderClosed className="inline-block w-4 h-4" />
+                    </>
+                  )}
+                </span>
                 {collection.name}
               </Button>
-              {collection.folders?.map((folder) => renderFolder(folder))}
-              {collection.requests.map((request) => renderRequest(request))}
+              {expandedCollections.has(collection.id) && (
+                <div>
+                  {collection.folders?.map((folder) => renderFolder(folder))}
+                  {collection.requests.map((request) => renderRequest(request))}
+                </div>
+              )}
             </div>
           ))}
         </div>
