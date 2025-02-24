@@ -24,22 +24,28 @@ export default function Home() {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [, setLocation] = useLocation();
 
+  const getCollectionById = (collectionId: string): Collection | null => {
+    const savedCollections = localStorage.getItem("collections");
+    if (savedCollections) {
+      const collections = JSON.parse(savedCollections);
+      return collections.find((c: Collection) => c.id === collectionId) || null;
+    }
+    return null;
+  };
+
   const substituteVariables = (str: string, collection: Collection): string => {
-    console.log('Before substitution:', str); // Debug log
     const variablePattern = /\{\{([^}]+)\}\}/g;
     const result = str.replace(variablePattern, (match, variableName) => {
       const trimmedName = variableName.trim();
       const variable = collection.variables?.find(v => v.key === trimmedName);
-      console.log('Variable match:', trimmedName, 'Found:', variable); // Debug log
       return variable ? variable.value : match;
     });
-    console.log('After substitution:', result); // Debug log
     return result;
   };
 
   const handleRequestSelect = (request: CollectionRequest) => {
-    // Get the parent collection for this request to access its variables
-    const parentCollection = selectedCollection;
+    // Get the parent collection using collectionId
+    const parentCollection = request.collectionId ? getCollectionById(request.collectionId) : null;
 
     // Process URL and query parameters
     let processedUrl = request.url;
@@ -47,10 +53,10 @@ export default function Home() {
 
     if (parentCollection) {
       try {
-        // First, substitute variables in the URL
+        // Substitute variables in the URL
         processedUrl = substituteVariables(processedUrl, parentCollection);
 
-        // Handle query parameters if present in the URL
+        // Handle query parameters
         const urlParts = processedUrl.split('?');
         const baseUrl = urlParts[0];
         const queryString = urlParts[1];
@@ -70,7 +76,7 @@ export default function Home() {
           }));
         }
 
-        // Ensure the URL is properly formatted
+        // Format URL properly
         processedUrl = baseUrl;
         if (!processedUrl.startsWith('{{') && !processedUrl.match(/^https?:\/\//i)) {
           processedUrl = `https://${processedUrl}`;
@@ -85,12 +91,13 @@ export default function Home() {
       }
     }
 
-    // Convert CollectionRequest to SavedRequest format with all parameters
+    // Convert to SavedRequest format
     const newRequest = {
       id: nanoid(),
       name: request.name,
       method: request.method,
       url: processedUrl,
+      collectionId: request.collectionId, // Preserve the collection ID
       queryParams: processedQueryParams.length > 0 ? processedQueryParams : [{ key: "", value: "" }],
       pathVariables: request.pathVariables?.map(param => ({
         key: parentCollection ? substituteVariables(param.key, parentCollection) : param.key,
@@ -130,7 +137,7 @@ export default function Home() {
       }
     };
 
-    // Add request to local storage without navigating
+    // Add request to local storage
     const savedRequests = localStorage.getItem("saved_requests");
     const requests = savedRequests ? JSON.parse(savedRequests) : [];
     localStorage.setItem("saved_requests", JSON.stringify([...requests, newRequest]));
