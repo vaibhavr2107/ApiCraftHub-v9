@@ -24,9 +24,10 @@
 }
 
 .request-method-select {
-  width: 100px;
+  width: 100px !important;
   height: 2.25rem;
   background-color: hsl(var(--background));
+  min-width: unset !important;
 }
 
 .request-url-input {
@@ -34,6 +35,7 @@
   height: 2.25rem;
   font-family: monospace;
   font-size: 0.875rem;
+  min-width: 0; /* Fix for flexbox text overflow */
 }
 
 /* Tabs Layout */
