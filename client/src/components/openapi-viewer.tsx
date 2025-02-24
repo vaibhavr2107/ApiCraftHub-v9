@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { load } from "js-yaml";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ApiRequest } from "@/types/api-request";
 import { createApiRequest } from "@/types/api-request";
-import { Upload } from "lucide-react";
+import { Upload, ChevronDown, ChevronRight, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface OpenAPISpec {
   paths: Record<string, Record<string, any>>;
@@ -18,13 +19,31 @@ interface OpenAPISpec {
   };
 }
 
+interface StoredSpec extends OpenAPISpec {
+  id: string;
+  fileName: string;
+}
+
 interface OpenAPIViewerProps {
   onRequestSelect: (request: ApiRequest) => void;
 }
 
 export function OpenAPIViewer({ onRequestSelect }: OpenAPIViewerProps) {
-  const [spec, setSpec] = useState<OpenAPISpec | null>(null);
+  const [specs, setSpecs] = useState<StoredSpec[]>([]);
+  const [expandedSpecs, setExpandedSpecs] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+
+  // Load saved specs on mount
+  useEffect(() => {
+    const savedSpecs = localStorage.getItem("openapi_specs");
+    if (savedSpecs) {
+      try {
+        setSpecs(JSON.parse(savedSpecs));
+      } catch (error) {
+        console.error("Failed to load saved OpenAPI specs:", error);
+      }
+    }
+  }, []);
 
   const validateOpenAPISpec = (spec: any): spec is OpenAPISpec => {
     return (
@@ -53,10 +72,19 @@ export function OpenAPIViewer({ onRequestSelect }: OpenAPIViewerProps) {
         throw new Error("Invalid OpenAPI specification format");
       }
 
-      setSpec(parsed);
+      const newSpec: StoredSpec = {
+        ...parsed,
+        id: crypto.randomUUID(),
+        fileName: file.name
+      };
+
+      const updatedSpecs = [...specs, newSpec];
+      setSpecs(updatedSpecs);
+      localStorage.setItem("openapi_specs", JSON.stringify(updatedSpecs));
+
       toast({
         title: "Success",
-        description: "OpenAPI specification loaded successfully",
+        description: `OpenAPI specification "${file.name}" loaded successfully`,
       });
     } catch (error: any) {
       console.error('Error parsing OpenAPI spec:', error);
@@ -66,10 +94,13 @@ export function OpenAPIViewer({ onRequestSelect }: OpenAPIViewerProps) {
         description: error.message || "Failed to parse OpenAPI specification",
       });
     }
+
+    // Reset file input
+    event.target.value = '';
   };
 
-  const createRequestFromOperation = (path: string, method: string, operation: any) => {
-    const baseUrl = spec?.servers?.[0]?.url || "https://api.example.com";
+  const createRequestFromOperation = (spec: StoredSpec, path: string, method: string, operation: any) => {
+    const baseUrl = spec.servers?.[0]?.url || "https://api.example.com";
     const url = `${baseUrl}${path}`;
 
     return createApiRequest({
@@ -107,50 +138,86 @@ export function OpenAPIViewer({ onRequestSelect }: OpenAPIViewerProps) {
     });
   };
 
+  const toggleSpec = (specId: string) => {
+    const newExpanded = new Set(expandedSpecs);
+    if (newExpanded.has(specId)) {
+      newExpanded.delete(specId);
+    } else {
+      newExpanded.add(specId);
+    }
+    setExpandedSpecs(newExpanded);
+  };
+
   return (
-    <div className="p-4 space-y-4">
-      <Card className="p-4">
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Import OpenAPI Specification</h2>
-          <Input
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <div className="relative">
+          <input
             type="file"
             accept=".yaml,.yml,.json"
             onChange={handleFileUpload}
-            className="cursor-pointer"
+            className="hidden"
+            id="openapi-import"
           />
-          <p className="text-sm text-muted-foreground">
-            Upload an OpenAPI specification file (YAML or JSON)
-          </p>
+          <label htmlFor="openapi-import">
+            <Button variant="outline" size="sm" className="cursor-pointer" asChild>
+              <span>
+                <Upload className="h-4 w-4 mr-2" />
+                Import
+              </span>
+            </Button>
+          </label>
         </div>
-      </Card>
+      </div>
 
-      {spec && (
-        <div className="space-y-4">
-          <h3 className="font-medium">Available Endpoints</h3>
-          {Object.entries(spec.paths).map(([path, methods]) => (
-            <Card key={path} className="p-4">
-              <h4 className="font-medium mb-2">{path}</h4>
-              <div className="space-y-2">
-                {Object.entries(methods).map(([method, operation]) => (
-                  <Button
-                    key={`${path}-${method}`}
-                    variant="outline"
-                    className="w-full justify-start"
-                    onClick={() =>
-                      onRequestSelect(createRequestFromOperation(path, method, operation))
-                    }
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="uppercase font-mono">{method}</span>
-                      <span className="truncate">{operation.summary || path}</span>
-                    </div>
-                  </Button>
+      <div className="space-y-2">
+        {specs.map((spec) => (
+          <Card key={spec.id} className="p-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start font-medium text-sm"
+              onClick={() => toggleSpec(spec.id)}
+            >
+              {expandedSpecs.has(spec.id) ? (
+                <ChevronDown className="h-4 w-4 mr-2" />
+              ) : (
+                <ChevronRight className="h-4 w-4 mr-2" />
+              )}
+              {spec.fileName}
+            </Button>
+            {expandedSpecs.has(spec.id) && (
+              <div className="mt-2 space-y-1 pl-6">
+                {Object.entries(spec.paths).map(([path, methods]) => (
+                  <div key={path}>
+                    {Object.entries(methods).map(([method, operation]) => (
+                      <Button
+                        key={`${path}-${method}`}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-sm"
+                        onClick={() =>
+                          onRequestSelect(createRequestFromOperation(spec, path, method, operation))
+                        }
+                      >
+                        <FileText className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="font-mono uppercase text-xs mr-2 text-muted-foreground">
+                          {method}
+                        </span>
+                        <span className="truncate">{operation.summary || path}</span>
+                      </Button>
+                    ))}
+                  </div>
                 ))}
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+            )}
+          </Card>
+        ))}
+        {specs.length === 0 && (
+          <div className="text-sm text-muted-foreground text-center p-4">
+            No OpenAPI specifications imported yet
+          </div>
+        )}
+      </div>
     </div>
   );
 }
