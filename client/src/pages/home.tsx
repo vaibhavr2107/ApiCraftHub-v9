@@ -1,24 +1,12 @@
 import { RequestTabs } from "@/components/request-tabs";
-import { Sidebar, type Collection, type CollectionRequest } from "@/components/sidebar";
+import { Sidebar, type Collection, type CollectionFolder } from "@/components/sidebar";
 import { CollectionHome } from "@/components/collection-home";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useState } from "react";
 import { useLocation } from "wouter";
-
-export type RequestData = {
-  method: string;
-  url: string;
-  body?: string;
-};
-
-export type ResponseData = {
-  status: number;
-  statusText: string;
-  headers: Record<string, string>;
-  data: any;
-};
+import { ApiRequest, createApiRequest } from "@/types/api-request";
 
 export default function Home() {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
@@ -43,13 +31,13 @@ export default function Home() {
     return result;
   };
 
-  const handleRequestSelect = (request: CollectionRequest) => {
+  const handleRequestSelect = (request: ApiRequest) => {
     // Get the parent collection using collectionId
     const parentCollection = request.collectionId ? getCollectionById(request.collectionId) : null;
 
     // Process URL and query parameters
     let processedUrl = request.url;
-    let processedQueryParams = request.queryParams || [];
+    let processedQueryParams = [...request.queryParams];
 
     if (parentCollection) {
       try {
@@ -66,13 +54,15 @@ export default function Home() {
           const existingParams = new URLSearchParams(queryString);
           const urlQueryParams = Array.from(existingParams.entries()).map(([key, value]) => ({
             key: substituteVariables(key, parentCollection),
-            value: substituteVariables(decodeURIComponent(value), parentCollection)
+            value: substituteVariables(decodeURIComponent(value), parentCollection),
+            enabled: true
           }));
 
           // Combine URL query params with explicit query params
-          processedQueryParams = [...urlQueryParams, ...(request.queryParams || [])].map(param => ({
+          processedQueryParams = [...urlQueryParams, ...processedQueryParams].map(param => ({
             key: substituteVariables(param.key, parentCollection),
-            value: substituteVariables(param.value, parentCollection)
+            value: substituteVariables(param.value, parentCollection),
+            enabled: param.enabled ?? true
           }));
         }
 
@@ -91,51 +81,22 @@ export default function Home() {
       }
     }
 
-    // Convert to SavedRequest format
-    const newRequest = {
-      id: nanoid(),
+    // Create a new request using the factory function
+    const newRequest = createApiRequest({
       name: request.name,
       method: request.method,
       url: processedUrl,
-      collectionId: request.collectionId, // Preserve the collection ID
-      queryParams: processedQueryParams.length > 0 ? processedQueryParams : [{ key: "", value: "" }],
+      collectionId: request.collectionId,
+      queryParams: processedQueryParams.length > 0 ? processedQueryParams : [{ key: "", value: "", enabled: true }],
       pathVariables: request.pathVariables?.map(param => ({
         key: parentCollection ? substituteVariables(param.key, parentCollection) : param.key,
-        value: parentCollection ? substituteVariables(param.value, parentCollection) : param.value
+        value: parentCollection ? substituteVariables(param.value, parentCollection) : param.value,
+        enabled: param.enabled ?? true
       })) || [],
-      headers: request.headers?.map(header => ({
-        key: parentCollection ? substituteVariables(header.key, parentCollection) : header.key,
-        value: parentCollection ? substituteVariables(header.value, parentCollection) : header.value,
-        enabled: header.enabled
-      })) || [
-        { key: "Accept", value: "*/*", enabled: true },
-        { key: "User-Agent", value: "API-Tester/1.0", enabled: true },
-        { key: "Content-Type", value: "application/json", enabled: true }
-      ],
-      auth: request.auth || parentCollection?.auth || { type: "none" },
-      body: request.body ? {
-        type: request.body.type,
-        rawFormat: request.body.rawFormat || "json",
-        raw: parentCollection && typeof request.body.content === 'string'
-          ? substituteVariables(request.body.content, parentCollection)
-          : request.body.content || "",
-        formData: request.body.formData?.map(field => ({
-          key: parentCollection ? substituteVariables(field.key, parentCollection) : field.key,
-          value: parentCollection ? substituteVariables(field.value, parentCollection) : field.value,
-          type: field.type
-        })) || [],
-        urlEncoded: request.body.urlEncoded?.map(field => ({
-          key: parentCollection ? substituteVariables(field.key, parentCollection) : field.key,
-          value: parentCollection ? substituteVariables(field.value, parentCollection) : field.value
-        })) || []
-      } : {
-        type: "none",
-        rawFormat: "json",
-        raw: "",
-        formData: [],
-        urlEncoded: []
-      }
-    };
+      headers: request.headers,
+      auth: request.auth,
+      body: request.body
+    });
 
     // Add request to local storage
     const savedRequests = localStorage.getItem("saved_requests");
