@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export type Environment = "dev" | "qa01" | "qa02" | "qa03" | "perf" | "prod";
 
 export interface EnvironmentConfig {
@@ -7,12 +9,12 @@ export interface EnvironmentConfig {
 
 export interface EnvironmentStore {
   environments: Record<Environment, EnvironmentConfig>;
-  selected: Environment;
+  requestConfigs: Record<string, Environment>; // Store environment selection per request
 }
 
 export const DEFAULT_ENVIRONMENTS: Record<Environment, EnvironmentConfig> = {
   dev: {
-    baseUrl: "https://api-dev.example.com",
+    baseUrl: "",
     bearerToken: ""
   },
   qa01: {

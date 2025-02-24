@@ -332,7 +332,7 @@ export function RequestPanel({
       const store: EnvironmentStore = JSON.parse(envStore);
       const config = store.environments[environment];
 
-      // Update the URL if it's a relative path or matches any environment's baseUrl
+      // Update URL if it's a relative path or matches any environment's baseUrl
       let newUrl = request.url;
       try {
         const currentUrl = new URL(request.url);
@@ -367,6 +367,10 @@ export function RequestPanel({
         },
         selectedEnvironment: environment
       });
+
+      // Update environment store with the new request-specific configuration
+      store.requestConfigs[request.id] = environment;
+      localStorage.setItem("environment_store", JSON.stringify(store));
 
     } catch (e) {
       console.error("Error processing environment change:", e);
@@ -403,7 +407,11 @@ export function RequestPanel({
               <Send className="w-4 h-4 mr-2" />
               Send
             </Button>
-            <EnvironmentSelector selectedEnvironment={request.selectedEnvironment} onEnvironmentChange={handleEnvironmentChange} />
+            <EnvironmentSelector 
+              selectedEnvironment={request.selectedEnvironment} 
+              requestId={request.id}
+              onEnvironmentChange={handleEnvironmentChange} 
+            />
           </div>
         </div>
       </div>

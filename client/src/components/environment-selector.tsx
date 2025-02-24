@@ -20,22 +20,30 @@ import { Input } from "@/components/ui/input";
 
 interface EnvironmentSelectorProps {
   selectedEnvironment: Environment;
+  requestId: string;
   onEnvironmentChange: (environment: Environment) => void;
 }
 
-export function EnvironmentSelector({ selectedEnvironment, onEnvironmentChange }: EnvironmentSelectorProps) {
+export function EnvironmentSelector({ selectedEnvironment, requestId, onEnvironmentChange }: EnvironmentSelectorProps) {
   const [store, setStore] = useState<EnvironmentStore>(() => {
     const saved = localStorage.getItem("environment_store");
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return {
+          ...parsed,
+          requestConfigs: {
+            ...parsed.requestConfigs,
+            [requestId]: selectedEnvironment // Set initial environment for this request
+          }
+        };
       } catch (e) {
         console.error("Error loading environment store:", e);
       }
     }
     return {
       environments: DEFAULT_ENVIRONMENTS,
-      selected: selectedEnvironment
+      requestConfigs: { [requestId]: selectedEnvironment }
     };
   });
 
