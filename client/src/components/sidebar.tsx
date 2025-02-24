@@ -4,12 +4,13 @@ import { Upload } from "lucide-react";
 import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useToast } from "@/hooks/use-toast";
+import { ApiRequest, createApiRequest } from "@/types/api-request";
 
 export interface Collection {
   id: string;
   name: string;
   description?: string;
-  requests: CollectionRequest[];
+  requests: ApiRequest[];
   folders?: CollectionFolder[];
   variables: CollectionVariable[];
   auth?: {
@@ -31,36 +32,12 @@ export interface CollectionVariable {
 export interface CollectionFolder {
   id: string;
   name: string;
-  requests: CollectionRequest[];
+  requests: ApiRequest[];
   folders?: CollectionFolder[];
 }
 
-export interface CollectionRequest {
-  id: string;
-  collectionId: string; // Added to track which collection the request belongs to
-  name: string;
-  method: string;
-  url: string;
-  headers: { key: string; value: string; enabled: boolean; }[];
-  queryParams?: { key: string; value: string; }[];
-  pathVariables?: { key: string; value: string; }[];
-  body?: {
-    type: "none" | "form-data" | "x-www-form-urlencoded" | "raw";
-    rawFormat?: "json" | "text" | "xml" | "html";
-    content?: any;
-    formData?: { key: string; value: string; type: "text" | "file"; }[];
-    urlEncoded?: { key: string; value: string; }[];
-  };
-  auth?: {
-    type: "none" | "basic" | "bearer" | "oauth2";
-    basic?: { username: string; password: string; };
-    bearer?: { token: string; };
-    oauth2?: any;
-  };
-}
-
 interface SidebarProps {
-  onRequestSelect: (request: CollectionRequest) => void;
+  onRequestSelect: (request: ApiRequest) => void;
   onCollectionSelect: (collection: Collection) => void;
 }
 
@@ -148,7 +125,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
 
     const collectionId = nanoid();
 
-    const parseItem = (item: any): CollectionRequest | CollectionFolder => {
+    const parseItem = (item: any): ApiRequest | CollectionFolder => {
       if (item.request) {
         // Parse URL components
         const url = typeof item.request.url === 'string'
@@ -158,28 +135,45 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
         const queryParams = url?.query?.map((q: any) => ({
           key: q.key || '',
           value: q.value || '',
+          enabled: !q.disabled
         })) || [];
 
         const pathVariables = url?.variable?.map((v: any) => ({
           key: v.key || '',
           value: v.value || '',
+          enabled: true
         })) || [];
 
-        // Parse request body
+        // Validate and parse request body mode
+        const validBodyModes = ["none", "form-data", "x-www-form-urlencoded", "raw"] as const;
+        const validRawFormats = ["json", "text", "xml", "html"] as const;
+
+        const bodyMode = item.request.body?.mode;
+        const validatedMode = validBodyModes.find(m => m === bodyMode) || "none";
+
+        // Parse request body with proper type validation
         const body = item.request.body ? {
-          type: item.request.body.mode || "none",
-          rawFormat: item.request.body.mode === 'raw' ? (item.request.body.options?.raw?.language || 'json') : undefined,
-          content: item.request.body[item.request.body.mode],
-          formData: item.request.body.formdata?.map((f: any) => ({
+          type: validatedMode,
+          rawFormat: validatedMode === "raw" 
+            ? (validRawFormats.find(f => f === item.request.body.options?.raw?.language) || "json")
+            : undefined,
+          content: validatedMode === "raw" ? item.request.body[validatedMode] : undefined,
+          formData: validatedMode === "form-data" ? item.request.body.formdata?.map((f: any) => ({
             key: f.key,
             value: f.value,
-            type: f.type || 'text'
-          })),
-          urlEncoded: item.request.body.urlencoded?.map((u: any) => ({
+            type: f.type === "file" ? "file" : "text",
+            enabled: !f.disabled
+          })) : undefined,
+          urlEncoded: validatedMode === "x-www-form-urlencoded" ? item.request.body.urlencoded?.map((u: any) => ({
             key: u.key,
-            value: u.value
-          }))
-        } : undefined;
+            value: u.value,
+            enabled: !u.disabled
+          })) : undefined
+        } : {
+          type: "none" as const,
+          rawFormat: "json" as const,
+          content: ""
+        };
 
         // Parse authentication
         const auth = item.request.auth || json.auth;
@@ -195,12 +189,11 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           oauth2: auth.type === 'oauth2' ? auth.oauth2 : undefined
         } : { type: "none" as const };
 
-        return {
-          id: nanoid(),
-          collectionId, // Add collectionId to each request
+        return createApiRequest({
           name: item.name,
           method: item.request.method,
           url: url?.raw || "",
+          collectionId,
           headers: (item.request.header || []).map((h: any) => ({
             key: h.key,
             value: h.value,
@@ -210,7 +203,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
           pathVariables,
           body,
           auth: authData
-        };
+        });
       } else {
         // This is a folder
         const { requests, folders } = processItems(item.item || []);
@@ -223,14 +216,14 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
       }
     };
 
-    const processItems = (items: any[] = []): { requests: CollectionRequest[], folders: CollectionFolder[] } => {
-      const requests: CollectionRequest[] = [];
+    const processItems = (items: any[] = []): { requests: ApiRequest[], folders: CollectionFolder[] } => {
+      const requests: ApiRequest[] = [];
       const folders: CollectionFolder[] = [];
 
       items.forEach(item => {
         const parsed = parseItem(item);
         if ('url' in parsed) {
-          requests.push(parsed as CollectionRequest);
+          requests.push(parsed as ApiRequest);
         } else {
           folders.push(parsed as CollectionFolder);
         }
@@ -241,7 +234,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
 
     const { requests, folders } = processItems(json.item);
     return {
-      id: nanoid(),
+      id: collectionId,
       name: json.info?.name || "Imported Collection",
       description: json.info?.description,
       requests,
@@ -298,7 +291,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
     );
   };
 
-  const renderRequest = (request: CollectionRequest, level = 0) => {
+  const renderRequest = (request: ApiRequest, level = 0) => {
     const paddingLeft = `${level * 1.5}rem`;
     const methodColors: Record<string, string> = {
       GET: "text-green-600",

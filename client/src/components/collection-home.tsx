@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Plus, Trash } from "lucide-react";
 import { useState } from "react";
+import { RequestAuth } from "@/types/api-request";
 
 interface CollectionHomeProps {
   collection: Collection;
@@ -28,21 +29,28 @@ export function CollectionHome({ collection, onUpdate }: CollectionHomeProps) {
   const handleAuthChange = (field: string, value: string) => {
     const newCollection = { ...collection };
     if (!newCollection.auth) {
-      newCollection.auth = { type: "none" };
+      newCollection.auth = { type: "none" } as RequestAuth;
     }
 
     if (field === "type") {
-      newCollection.auth.type = value as any;
+      newCollection.auth.type = value as RequestAuth["type"];
       // Reset the auth details when changing type
-      delete newCollection.auth.basic;
-      delete newCollection.auth.bearer;
-      delete newCollection.auth.oauth2;
+      delete (newCollection.auth as any).basic;
+      delete (newCollection.auth as any).bearer;
+      delete (newCollection.auth as any).oauth2;
     } else {
       const [authType, authField] = field.split(".");
-      if (!newCollection.auth[authType]) {
-        newCollection.auth[authType] = {};
+      if (authType === "basic" && !newCollection.auth.basic) {
+        newCollection.auth.basic = { username: "", password: "" };
+      } else if (authType === "bearer" && !newCollection.auth.bearer) {
+        newCollection.auth.bearer = { token: "" };
       }
-      newCollection.auth[authType][authField] = value;
+
+      if (authType === "basic" && newCollection.auth.basic) {
+        newCollection.auth.basic[authField as keyof typeof newCollection.auth.basic] = value;
+      } else if (authType === "bearer" && newCollection.auth.bearer) {
+        newCollection.auth.bearer[authField as keyof typeof newCollection.auth.bearer] = value;
+      }
     }
 
     onUpdate(newCollection);
