@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { useToast } from "@/hooks/use-toast";
 import { ApiRequest, createApiRequest } from "@/types/api-request";
 import cn from 'classnames';
+import { OpenAPIViewer } from "./openapi-viewer";
 
 export interface Collection {
   id: string;
@@ -38,10 +39,10 @@ export interface CollectionFolder {
   folders?: CollectionFolder[];
 }
 
-interface Environment { // Added interface for Environment
+interface Environment {
   id: string;
   name: string;
-  // ... other environment properties ...
+  variables: { key: string; value: string }[];
 }
 
 interface SidebarProps {
@@ -56,6 +57,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
+  const [view, setView] = useState<'collections' | 'openapi'>('collections');
 
   // Load collections from localStorage on component mount
   useEffect(() => {
@@ -434,67 +436,74 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
     <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen">
       <ViewSection
         onEnvironmentSelect={onEnvironmentSelect}
+        onViewChange={(v) => setView(v)}
       />
       <div className="p-4 border-b">
-        <div className="cursor-pointer">
-          <input
-            type="file"
-            accept=".json"
-            className="hidden"
-            multiple
-            onChange={handleFileUpload}
-            id="collection-import"
-          />
-          <label htmlFor="collection-import">
-            <Button variant="outline" className="w-full" asChild>
-              <span>
-                <Upload className="mr-2 h-4 w-4" />
-                Import Collection
-              </span>
-            </Button>
-          </label>
-        </div>
-      </div>
-      <ScrollArea className="h-[calc(100vh-5rem)] flex-grow">
-        <div className="p-2">
-          {collections.map((collection) => (
-            <div key={collection.id} className="mb-4">
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start font-medium hover:bg-muted/50",
-                  selectedItem === collection.id && "bg-muted"
-                )}
-                onClick={() => {
-                  toggleCollection(collection.id);
-                  handleCollectionSelect(collection);
-                }}
-              >
-                <span className="mr-2">
-                  {expandedCollections.has(collection.id) ? (
-                    <>
-                      <ChevronDown className="inline-block w-4 h-4 mr-1" />
-                      <FolderOpen className="inline-block w-4 h-4" />
-                    </>
-                  ) : (
-                    <>
-                      <ChevronRight className="inline-block w-4 h-4 mr-1" />
-                      <FolderClosed className="inline-block w-4 h-4" />
-                    </>
-                  )}
+        {view === 'collections' ? (
+          <div className="cursor-pointer">
+            <input
+              type="file"
+              accept=".json"
+              className="hidden"
+              multiple
+              onChange={handleFileUpload}
+              id="collection-import"
+            />
+            <label htmlFor="collection-import">
+              <Button variant="outline" className="w-full" asChild>
+                <span>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Import Collection
                 </span>
-                {collection.name}
               </Button>
-              {expandedCollections.has(collection.id) && (
-                <div>
-                  {collection.folders?.map((folder) => renderFolder(folder))}
-                  {collection.requests.map((request) => renderRequest(request))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </ScrollArea>
+            </label>
+          </div>
+        ) : (
+          <OpenAPIViewer onRequestSelect={onRequestSelect} />
+        )}
+      </div>
+      {view === 'collections' && (
+        <ScrollArea className="h-[calc(100vh-5rem)] flex-grow">
+          <div className="p-2">
+            {collections.map((collection) => (
+              <div key={collection.id} className="mb-4">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start font-medium hover:bg-muted/50",
+                    selectedItem === collection.id && "bg-muted"
+                  )}
+                  onClick={() => {
+                    toggleCollection(collection.id);
+                    handleCollectionSelect(collection);
+                  }}
+                >
+                  <span className="mr-2">
+                    {expandedCollections.has(collection.id) ? (
+                      <>
+                        <ChevronDown className="inline-block w-4 h-4 mr-1" />
+                        <FolderOpen className="inline-block w-4 h-4" />
+                      </>
+                    ) : (
+                      <>
+                        <ChevronRight className="inline-block w-4 h-4 mr-1" />
+                        <FolderClosed className="inline-block w-4 h-4" />
+                      </>
+                    )}
+                  </span>
+                  {collection.name}
+                </Button>
+                {expandedCollections.has(collection.id) && (
+                  <div>
+                    {collection.folders?.map((folder) => renderFolder(folder))}
+                    {collection.requests.map((request) => renderRequest(request))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
     </div>
   );
 }
