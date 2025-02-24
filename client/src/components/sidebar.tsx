@@ -60,6 +60,52 @@ interface SearchResult {
   path: string[];
 }
 
+const loadCollectionsFromFiles = async (): Promise<Collection[]> => {
+  try {
+    const response = await fetch('/collections');
+    if (!response.ok) {
+      throw new Error('Failed to fetch collections');
+    }
+    const files = await response.json();
+    const collections: Collection[] = [];
+    const existingCollections = new Set<string>();
+
+    // Get existing collections from localStorage to prevent duplicates
+    const savedCollections = localStorage.getItem("collections");
+    if (savedCollections) {
+      const parsed = JSON.parse(savedCollections);
+      parsed.forEach((c: Collection) => existingCollections.add(c.name.toLowerCase()));
+      collections.push(...parsed);
+    }
+
+    for (const file of files) {
+      try {
+        const fileResponse = await fetch(`/collections/${file}`);
+        if (!fileResponse.ok) continue;
+
+        const content = await fileResponse.json();
+        const collection = parsePostmanCollection(content);
+
+        // Skip if collection already exists
+        if (existingCollections.has(collection.name.toLowerCase())) {
+          console.log(`Collection "${collection.name}" already exists, skipping import`);
+          continue;
+        }
+
+        collections.push(collection);
+        existingCollections.add(collection.name.toLowerCase());
+      } catch (error) {
+        console.error(`Error processing file ${file}:`, error);
+      }
+    }
+
+    return collections;
+  } catch (error) {
+    console.error('Error loading collections:', error);
+    return [];
+  }
+};
+
 export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSelect }: SidebarProps) {
   const { toast } = useToast();
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -68,18 +114,27 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
   const [view, setView] = useState<'collections' | 'openapi'>('collections');
   const [searchQuery, setSearchQuery] = useState("");
+  const [initialized, setInitialized] = useState(false);
 
-  // Load collections from localStorage on component mount
+  // Load collections from localStorage and files on component mount
   useEffect(() => {
-    const savedCollections = localStorage.getItem("collections");
-    if (savedCollections) {
-      try {
-        setCollections(JSON.parse(savedCollections));
-      } catch (error) {
-        console.error("Failed to load collections:", error);
-      }
+    if (!initialized) {
+      const initializeCollections = async () => {
+        const collections = await loadCollectionsFromFiles();
+        if (collections.length > 0) {
+          setCollections(collections);
+          localStorage.setItem("collections", JSON.stringify(collections));
+          toast({
+            title: "Success",
+            description: `Imported ${collections.length} collections from files`,
+          });
+        }
+        setInitialized(true);
+      };
+
+      initializeCollections();
     }
-  }, []);
+  }, [initialized, toast]);
 
   const toggleCollection = (collectionId: string) => {
     const newExpanded = new Set(expandedCollections);
