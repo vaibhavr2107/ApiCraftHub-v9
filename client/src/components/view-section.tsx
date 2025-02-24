@@ -139,7 +139,7 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
                 <Button
                   key={env.id}
                   variant="ghost"
-                  className="w-full justify-start text-left font-normal"
+                  className="justify-start text-left font-normal"
                   onClick={() => handleEnvironmentClick(env)}
                 >
                   {env.name}
