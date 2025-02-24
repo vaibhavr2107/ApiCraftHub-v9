@@ -92,6 +92,30 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
     return "text-gray-500";
   };
 
+  const handleHistoryItemClick = (entry: any) => {
+    // Create a new request from history entry
+    const historyRequest = {
+      id: crypto.randomUUID(),
+      name: `History: ${entry.request.method} ${new URL(entry.request.url).pathname}`,
+      method: entry.request.method,
+      url: entry.request.url,
+      headers: entry.request.headers || [],
+      queryParams: entry.request.queryParams || [],
+      body: entry.request.body || { type: "none", content: "", rawFormat: "json" },
+      pathVariables: [],
+      auth: { type: "none" }
+    };
+
+    // Add request to saved_requests
+    const savedRequests = localStorage.getItem("saved_requests");
+    const requests = savedRequests ? JSON.parse(savedRequests) : [];
+    localStorage.setItem("saved_requests", JSON.stringify([...requests, historyRequest]));
+
+    // Trigger events to update UI
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new CustomEvent('activateTab', { detail: historyRequest.id }));
+  };
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Views</SidebarGroupLabel>
@@ -191,7 +215,8 @@ export function ViewSection({ onEnvironmentSelect }: ViewSectionProps) {
                 {requestHistory.map((entry) => (
                   <div
                     key={entry.id}
-                    className="rounded-md border p-2 text-xs space-y-1"
+                    className="rounded-md border p-2 text-xs space-y-1 cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleHistoryItemClick(entry)}
                   >
                     <div className="flex items-center justify-between">
                       <span className={cn(
