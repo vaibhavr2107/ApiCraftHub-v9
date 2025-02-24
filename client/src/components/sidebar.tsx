@@ -59,32 +59,37 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
   }, []);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("File upload triggered");
     const files = event.target.files;
-    if (!files || files.length === 0) {
-      console.log("No files selected");
-      return;
-    }
-
-    console.log(`Selected ${files.length} files`);
+    if (!files || files.length === 0) return;
 
     const newCollections: Collection[] = [];
+    const existingCollections = new Set(collections.map(c => c.name.toLowerCase()));
+
     const filePromises = Array.from(files).map(async (file) => {
-      console.log(`Processing file: ${file.name}`);
       try {
         const content = await file.text();
         if (file.name.endsWith('.json')) {
-          console.log("Parsing JSON file");
           const json = JSON.parse(content);
           const collection = parsePostmanCollection(json);
+
+          // Check if collection already exists
+          if (existingCollections.has(collection.name.toLowerCase())) {
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: `Collection "${collection.name}" already exists.`,
+            });
+            return;
+          }
+
           newCollections.push(collection);
+          existingCollections.add(collection.name.toLowerCase());
+
           toast({
             title: "Success",
             description: `Imported collection: ${collection.name}`,
           });
-          console.log(`Successfully parsed collection: ${collection.name}`);
         } else {
-          console.log(`Unsupported file format: ${file.name}`);
           toast({
             variant: "destructive",
             title: "Error",
@@ -104,7 +109,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
     await Promise.all(filePromises);
 
     if (newCollections.length > 0) {
-      console.log(`Adding ${newCollections.length} new collections`);
       const updatedCollections = [...collections, ...newCollections];
       setCollections(updatedCollections);
       localStorage.setItem("collections", JSON.stringify(updatedCollections));
@@ -154,7 +158,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect }: SidebarProps) {
         // Parse request body with proper type validation
         const body = item.request.body ? {
           type: validatedMode,
-          rawFormat: validatedMode === "raw" 
+          rawFormat: validatedMode === "raw"
             ? (validRawFormats.find(f => f === item.request.body.options?.raw?.language) || "json")
             : undefined,
           content: validatedMode === "raw" ? item.request.body[validatedMode] : undefined,
