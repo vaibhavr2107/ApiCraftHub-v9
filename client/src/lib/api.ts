@@ -60,9 +60,9 @@ export async function makeRequest({
         time: 0, // Will be calculated by the calling component
         size: new TextEncoder().encode(JSON.stringify(data)).length
       };
-    } catch (fetchError) {
+    } catch (fetchError: any) {
       if (fetchError.name === 'AbortError') {
-        throw new Error("Request timed out. The server took too long to respond.");
+        throw new Error("Request timed out after 30 seconds. The server took too long to respond.");
       }
 
       if (!navigator.onLine) {
@@ -71,16 +71,21 @@ export async function makeRequest({
 
       // Handle DNS resolution failures and other network errors
       if (fetchError instanceof TypeError) {
-        throw new Error("Could not connect to the server. The URL might be invalid or the server might be down.");
+        const errorMessage = fetchError.message.toLowerCase();
+        if (errorMessage.includes('failed to fetch') || errorMessage.includes('network error')) {
+          throw new Error(`Cloud Agent Error: Couldn't resolve host "${new URL(requestUrl).hostname}". Make sure the domain is publicly accessible.`);
+        }
       }
 
-      throw fetchError;
+      // Handle other network errors
+      throw new Error(`Network Error: Unable to connect to ${new URL(requestUrl).hostname}. The service might be down or unreachable.`);
     }
-  } catch (error) {
-    throw new Error(
-      error instanceof Error 
-        ? error.message 
-        : "An unexpected error occurred while making the request."
-    );
+  } catch (error: any) {
+    // Ensure we always return a clean error message
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    } else {
+      throw new Error("An unexpected error occurred while making the request.");
+    }
   }
 }
