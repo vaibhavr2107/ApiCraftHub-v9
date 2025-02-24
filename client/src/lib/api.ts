@@ -49,72 +49,58 @@ export async function makeRequest({
       signal: controller.signal,
     };
 
+    // Wrap the fetch call in a try-catch block
     let response: Response;
-
     try {
-      // Make the request within a Promise.race to handle timeouts
-      response = await Promise.race([
-        fetch(requestUrl, requestOptions),
-        new Promise<never>((_, reject) => {
-          setTimeout(() => {
-            reject(new Error("Request timed out after 30 seconds"));
-          }, 30000);
-        }),
-      ]) as Response;
+      // Execute the fetch request and handle network errors
+      response = await fetch(requestUrl, requestOptions).catch((error) => {
+        // Handle network errors here
+        if (!navigator.onLine) {
+          throw new Error("No internet connection. Please check your network and try again.");
+        }
+        const hostname = new URL(requestUrl).hostname;
+        throw new Error(`Cloud Agent Error: Couldn't resolve host "${hostname}". Make sure the domain is publicly accessible.`);
+      });
 
-    } catch (error: any) {
-      // Clear timeout if it exists
-      if (timeoutId) clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
-      // Check online status
-      if (!navigator.onLine) {
-        throw new Error("No internet connection. Please check your network and try again.");
+      // Process response headers
+      const responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+
+      // Process response data
+      let data;
+      const contentType = response.headers.get("content-type");
+      try {
+        if (contentType?.includes("application/json")) {
+          data = await response.json();
+        } else {
+          data = await response.text();
+        }
+      } catch (parseError) {
+        throw new Error("Failed to parse response data");
       }
 
-      // Get hostname for error message
-      const hostname = new URL(requestUrl).hostname;
+      // Return formatted response
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+        data,
+        time: 0, // Will be calculated by the calling component
+        size: new TextEncoder().encode(JSON.stringify(data)).length
+      };
 
-      // Handle specific error types
+    } catch (error: any) {
+      // Handle AbortError (timeout)
       if (error.name === 'AbortError') {
         throw new Error("Request timed out after 30 seconds");
       }
-
-      // Handle failed to fetch and other network errors
-      throw new Error(`Cloud Agent Error: Couldn't resolve host "${hostname}". Make sure the domain is publicly accessible.`);
+      // Re-throw the error with our custom message
+      throw error;
     }
-
-    // Clear timeout since request completed
-    if (timeoutId) clearTimeout(timeoutId);
-
-    // Process response headers
-    const responseHeaders: Record<string, string> = {};
-    response.headers.forEach((value, key) => {
-      responseHeaders[key] = value;
-    });
-
-    // Process response data
-    let data;
-    const contentType = response.headers.get("content-type");
-    try {
-      if (contentType?.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = await response.text();
-      }
-    } catch (parseError) {
-      throw new Error("Failed to parse response data");
-    }
-
-    // Return formatted response
-    return {
-      status: response.status,
-      statusText: response.statusText,
-      headers: responseHeaders,
-      data,
-      time: 0, // Will be calculated by the calling component
-      size: new TextEncoder().encode(JSON.stringify(data)).length
-    };
-
   } catch (error: any) {
     // Cleanup timeout if it exists
     if (timeoutId) clearTimeout(timeoutId);
