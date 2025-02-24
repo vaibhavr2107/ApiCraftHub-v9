@@ -197,6 +197,7 @@ export function RequestPanel({
   const handleSend = async () => {
     onLoading(true);
     onError(null);
+    const startTime = performance.now();
 
     try {
       const headers: Record<string, string> = {};
@@ -246,7 +247,18 @@ export function RequestPanel({
         body,
         headers,
       });
-      onResponse(response);
+
+      const endTime = performance.now();
+      const responseTime = endTime - startTime;
+
+      // Calculate response size
+      const responseSize = new TextEncoder().encode(JSON.stringify(response.data)).length;
+
+      onResponse({
+        ...response,
+        time: responseTime,
+        size: responseSize
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : "An error occurred";
       onError(message);
