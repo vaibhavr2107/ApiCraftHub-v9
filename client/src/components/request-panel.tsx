@@ -13,36 +13,37 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEffect, useState } from "react";
 import { makeRequest } from "@/lib/api";
-import type { ResponseData, SavedRequest, QueryParam, Header, BodyConfig } from "@/types/request";
+import type { ApiRequest, RequestParameter, BodyType, RawFormat } from "@/types/api-request";
 import { useToast } from "@/hooks/use-toast";
 import { X, Plus } from "lucide-react";
 import { useLocation } from "wouter";
 
-const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH"];
-const BODY_TYPES = ["none", "form-data", "x-www-form-urlencoded", "raw"] as const;
-const RAW_FORMATS = ["json", "text", "html", "xml", "javascript"] as const;
+const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
+const BODY_TYPES: BodyType[] = ["none", "form-data", "x-www-form-urlencoded", "raw"];
+const RAW_FORMATS: RawFormat[] = ["json", "text", "html", "xml"];
 
 interface RequestPanelProps {
-  request: SavedRequest;
-  onRequestChange: (updates: Partial<SavedRequest>) => void;
-  onResponse: (response: ResponseData) => void;
+  request: ApiRequest;
+  onRequestChange: (updates: Partial<ApiRequest>) => void;
+  onResponse: (response: any) => void;
   onLoading: (isLoading: boolean) => void;
   onError: (error: string | null) => void;
 }
 
-const validateAndFormatUrl = (url: string): string => {
-  if (!url) return url;
+const detectPathVariables = (url: string): RequestParameter[] => {
+  const regex = /\{\{([^}]+)\}\}/g;
+  const pathVars: RequestParameter[] = [];
+  let match;
 
-  // If URL starts with {{, it might contain variables, return as is
-  if (url.startsWith('{{')) return url;
-
-  // Check if URL starts with http:// or https://
-  if (!url.match(/^https?:\/\//i)) {
-    // Add https:// as default
-    return `https://${url}`;
+  while ((match = regex.exec(url)) !== null) {
+    pathVars.push({
+      key: match[1].trim(),
+      value: "",
+      enabled: true
+    });
   }
 
-  return url;
+  return pathVars;
 };
 
 export function RequestPanel({
@@ -55,53 +56,99 @@ export function RequestPanel({
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // URL and Query Parameters Synchronization
+  // Path Variables Management
   useEffect(() => {
-    try {
-      // Only process URL if it doesn't contain variables
-      if (!request.url.includes('{{')) {
-        const url = new URL(validateAndFormatUrl(request.url));
-        const params: QueryParam[] = Array.from(url.searchParams.entries()).map(
-          ([key, value]) => ({ key, value })
-        );
-
-        if (params.length === 0) {
-          params.push({ key: "", value: "" });
-        }
-
-        onRequestChange({ queryParams: params });
+    const pathVars = detectPathVariables(request.url);
+    if (pathVars.length > 0) {
+      const existingKeys = new Set(request.pathVariables.map(v => v.key));
+      const newVars = pathVars.filter(v => !existingKeys.has(v.key));
+      if (newVars.length > 0) {
+        onRequestChange({ 
+          pathVariables: [...request.pathVariables, ...newVars]
+        });
       }
-    } catch (e) {
-      // Invalid URL or contains variables, keep existing query params
-      console.log('URL processing skipped:', e);
     }
-  }, [request.url, onRequestChange]);
+  }, [request.url]);
 
   const updateUrl = (baseUrl: string) => {
     try {
-      // Don't process URL if it contains variables
       if (baseUrl.includes('{{')) {
         onRequestChange({ url: baseUrl });
         return;
       }
 
-      const formattedUrl = validateAndFormatUrl(baseUrl);
+      const formattedUrl = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
       const url = new URL(formattedUrl);
 
-      // Add query parameters if they exist
-      request.queryParams.forEach(({ key, value }) => {
-        if (key && value) {
-          url.searchParams.set(key, value);
+      // Clear existing query parameters
+      url.search = '';
+
+      // Add enabled query parameters
+      request.queryParams.forEach(({ key, value, enabled }) => {
+        if (key && value && enabled) {
+          url.searchParams.append(key, value);
         }
       });
+
       onRequestChange({ url: url.toString() });
     } catch (e) {
-      // If URL is invalid, store it as is
       onRequestChange({ url: baseUrl });
     }
   };
 
-  // Headers Management
+  const addQueryParam = () => {
+    onRequestChange({
+      queryParams: [...request.queryParams, { key: "", value: "", enabled: true }],
+    });
+  };
+
+  const removeQueryParam = (index: number) => {
+    const newParams = request.queryParams.filter((_, i) => i !== index);
+    if (newParams.length === 0) {
+      newParams.push({ key: "", value: "", enabled: true });
+    }
+    onRequestChange({ queryParams: newParams });
+  };
+
+  const updateQueryParam = (index: number, field: keyof RequestParameter, value: string | boolean) => {
+    const newParams = [...request.queryParams];
+    newParams[index] = { ...newParams[index], [field]: value };
+    onRequestChange({ queryParams: newParams });
+
+    // Update URL with query parameters
+    if (field === "enabled" || newParams[index].key && newParams[index].value) {
+      try {
+        const url = new URL(request.url);
+        url.search = '';
+        newParams.forEach(({ key, value, enabled }) => {
+          if (key && value && enabled) {
+            url.searchParams.append(key, value);
+          }
+        });
+        onRequestChange({ url: url.toString() });
+      } catch (e) {
+        // Invalid URL, skip URL update
+      }
+    }
+  };
+
+  const addPathVariable = () => {
+    onRequestChange({
+      pathVariables: [...request.pathVariables, { key: "", value: "", enabled: true }],
+    });
+  };
+
+  const removePathVariable = (index: number) => {
+    const newPathVars = request.pathVariables.filter((_, i) => i !== index);
+    onRequestChange({ pathVariables: newPathVars });
+  };
+
+  const updatePathVariable = (index: number, field: keyof RequestParameter, value: string | boolean) => {
+    const newPathVars = [...request.pathVariables];
+    newPathVars[index] = { ...newPathVars[index], [field]: value };
+    onRequestChange({ pathVariables: newPathVars });
+  };
+
   const addHeader = () => {
     onRequestChange({
       headers: [...request.headers, { key: "", value: "", enabled: true }],
@@ -114,53 +161,18 @@ export function RequestPanel({
     });
   };
 
-  const updateHeader = (index: number, field: keyof Header, value: string | boolean) => {
+  const updateHeader = (index: number, field: keyof RequestParameter, value: string | boolean) => {
     const newHeaders = [...request.headers];
     newHeaders[index] = { ...newHeaders[index], [field]: value };
     onRequestChange({ headers: newHeaders });
   };
 
-  // Query Parameters Management
-  const addQueryParam = () => {
-    onRequestChange({
-      queryParams: [...request.queryParams, { key: "", value: "" }],
-    });
-  };
-
-  const removeQueryParam = (index: number) => {
-    const newParams = request.queryParams.filter((_, i) => i !== index);
-    if (newParams.length === 0) {
-      newParams.push({ key: "", value: "" });
-    }
-    onRequestChange({ queryParams: newParams });
-  };
-
-  const updateQueryParam = (index: number, field: "key" | "value", value: string) => {
-    const newParams = [...request.queryParams];
-    newParams[index][field] = value;
-    onRequestChange({ queryParams: newParams });
-
-    try {
-      const url = new URL(request.url);
-      url.search = '';
-      newParams.forEach(({ key, value }) => {
-        if (key && value) {
-          url.searchParams.append(key, value);
-        }
-      });
-      onRequestChange({ url: url.toString() });
-    } catch (e) {
-      // Invalid URL, skip URL update
-    }
-  };
-
-  // Body Management
-  const updateBodyType = (type: BodyConfig["type"]) => {
+  const updateBodyType = (type: BodyType) => {
     onRequestChange({
       body: {
         ...request.body,
         type,
-        raw: type === "raw" ? request.body.raw || "" : undefined,
+        content: type === "raw" ? request.body.content : "",
         formData: type === "form-data" ? [] : undefined,
         urlEncoded: type === "x-www-form-urlencoded" ? [] : undefined,
       },
@@ -168,19 +180,18 @@ export function RequestPanel({
   };
 
   const formatBody = () => {
-    if (request.body.type !== "raw" || !request.body.raw) return;
+    if (request.body.type !== "raw" || !request.body.content) return;
 
     try {
-      let formatted = request.body.raw;
+      let formatted = request.body.content;
       if (request.body.rawFormat === "json") {
-        formatted = JSON.stringify(JSON.parse(request.body.raw), null, 2);
+        formatted = JSON.stringify(JSON.parse(request.body.content), null, 2);
       }
-      // Add more formatters for other content types if needed
 
       onRequestChange({
         body: {
           ...request.body,
-          raw: formatted,
+          content: formatted,
         },
       });
     } catch (e) {
@@ -207,17 +218,17 @@ export function RequestPanel({
         });
 
       // Add auth headers
-      if (request.auth.type === "basic" && request.auth.username && request.auth.password) {
+      if (request.auth.type === "basic" && request.auth.basic) {
         headers["Authorization"] = `Basic ${btoa(
-          `${request.auth.username}:${request.auth.password}`
+          `${request.auth.basic.username}:${request.auth.basic.password}`
         )}`;
-      } else if (request.auth.type === "bearer" && request.auth.token) {
-        headers["Authorization"] = `Bearer ${request.auth.token}`;
+      } else if (request.auth.type === "bearer" && request.auth.bearer) {
+        headers["Authorization"] = `Bearer ${request.auth.bearer.token}`;
       }
 
       let body: string | FormData | undefined;
-      if (request.body.type === "raw" && request.body.raw) {
-        body = request.body.raw;
+      if (request.body.type === "raw" && request.body.content) {
+        body = request.body.content;
       } else if (request.body.type === "form-data" && request.body.formData) {
         const formData = new FormData();
         request.body.formData.forEach(({ key, value }) => {
@@ -261,7 +272,7 @@ export function RequestPanel({
         <div className="flex gap-2">
           <Select
             value={request.method}
-            onValueChange={(value) => onRequestChange({ method: value as SavedRequest["method"] })}
+            onValueChange={(value) => onRequestChange({ method: value as ApiRequest["method"] })}
           >
             <SelectTrigger className="w-[120px]">
               <SelectValue />
@@ -291,32 +302,77 @@ export function RequestPanel({
           </TabsList>
 
           <TabsContent value="params" className="space-y-4">
-            {request.queryParams.map((param, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  placeholder="Parameter"
-                  value={param.key}
-                  onChange={(e) => updateQueryParam(index, "key", e.target.value)}
-                  className="flex-1"
-                />
-                <Input
-                  placeholder="Value"
-                  value={param.value}
-                  onChange={(e) => updateQueryParam(index, "value", e.target.value)}
-                  className="flex-1"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeQueryParam(index)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button onClick={addQueryParam} variant="outline" className="w-full">
-              Add Parameter
-            </Button>
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Query Parameters</h3>
+              {request.queryParams.map((param, index) => (
+                <div key={index} className="flex gap-2">
+                  <Checkbox
+                    checked={param.enabled}
+                    onCheckedChange={(checked) =>
+                      updateQueryParam(index, "enabled", checked === true)
+                    }
+                  />
+                  <Input
+                    placeholder="Parameter"
+                    value={param.key}
+                    onChange={(e) => updateQueryParam(index, "key", e.target.value)}
+                    className="flex-1"
+                  />
+                  <Input
+                    placeholder="Value"
+                    value={param.value}
+                    onChange={(e) => updateQueryParam(index, "value", e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeQueryParam(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button onClick={addQueryParam} variant="outline" className="w-full">
+                Add Query Parameter
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium">Path Variables</h3>
+              {request.pathVariables.map((param, index) => (
+                <div key={index} className="flex gap-2">
+                  <Checkbox
+                    checked={param.enabled}
+                    onCheckedChange={(checked) =>
+                      updatePathVariable(index, "enabled", checked === true)
+                    }
+                  />
+                  <Input
+                    placeholder="Variable"
+                    value={param.key}
+                    onChange={(e) => updatePathVariable(index, "key", e.target.value)}
+                    className="flex-1"
+                  />
+                  <Input
+                    placeholder="Value"
+                    value={param.value}
+                    onChange={(e) => updatePathVariable(index, "value", e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removePathVariable(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button onClick={addPathVariable} variant="outline" className="w-full">
+                Add Path Variable
+              </Button>
+            </div>
           </TabsContent>
 
           <TabsContent value="headers" className="space-y-4">
@@ -371,37 +427,46 @@ export function RequestPanel({
               </SelectContent>
             </Select>
 
-            {request.auth.type === "basic" && (
+            {request.auth.type === "basic" && request.auth.basic && (
               <div className="space-y-2">
                 <Input
                   placeholder="Username"
-                  value={request.auth.username}
+                  value={request.auth.basic.username}
                   onChange={(e) =>
                     onRequestChange({
-                      auth: { ...request.auth, username: e.target.value },
+                      auth: { 
+                        ...request.auth, 
+                        basic: { ...request.auth.basic, username: e.target.value }
+                      },
                     })
                   }
                 />
                 <Input
                   type="password"
                   placeholder="Password"
-                  value={request.auth.password}
+                  value={request.auth.basic.password}
                   onChange={(e) =>
                     onRequestChange({
-                      auth: { ...request.auth, password: e.target.value },
+                      auth: { 
+                        ...request.auth, 
+                        basic: { ...request.auth.basic, password: e.target.value }
+                      },
                     })
                   }
                 />
               </div>
             )}
 
-            {request.auth.type === "bearer" && (
+            {request.auth.type === "bearer" && request.auth.bearer && (
               <Input
                 placeholder="Token"
-                value={request.auth.token}
+                value={request.auth.bearer.token}
                 onChange={(e) =>
                   onRequestChange({
-                    auth: { ...request.auth, token: e.target.value },
+                    auth: { 
+                      ...request.auth, 
+                      bearer: { token: e.target.value }
+                    },
                   })
                 }
               />
@@ -411,7 +476,7 @@ export function RequestPanel({
           <TabsContent value="body" className="space-y-4">
             <Select
               value={request.body.type}
-              onValueChange={(value) => updateBodyType(value as BodyConfig["type"])}
+              onValueChange={(value) => updateBodyType(value as BodyType)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Body Type" />
@@ -431,7 +496,7 @@ export function RequestPanel({
                   value={request.body.rawFormat}
                   onValueChange={(format) =>
                     onRequestChange({
-                      body: { ...request.body, rawFormat: format as BodyConfig["rawFormat"] },
+                      body: { ...request.body, rawFormat: format as RawFormat },
                     })
                   }
                 >
@@ -448,17 +513,17 @@ export function RequestPanel({
                 </Select>
                 <div className="relative">
                   <Textarea
-                    value={request.body.raw}
+                    value={request.body.content}
                     onChange={(e) =>
                       onRequestChange({
-                        body: { ...request.body, raw: e.target.value },
+                        body: { ...request.body, content: e.target.value },
                       })
                     }
                     placeholder="Enter request body"
                     className="font-mono min-h-[200px] pl-8"
                   />
                   <div className="absolute left-0 top-0 bottom-0 w-8 bg-muted border-r text-right pr-2 text-sm text-muted-foreground select-none">
-                    {request.body.raw?.split('\n').map((_, i) => (
+                    {request.body.content.split('\n').map((_, i) => (
                       <div key={i}>{i + 1}</div>
                     ))}
                   </div>
@@ -469,15 +534,15 @@ export function RequestPanel({
               </div>
             )}
 
-            {request.body.type === "form-data" && (
+            {request.body.type === "form-data" && request.body.formData && (
               <div className="space-y-2">
-                {(request.body.formData || []).map((item, index) => (
+                {request.body.formData.map((item, index) => (
                   <div key={index} className="flex gap-2">
                     <Input
                       placeholder="Key"
                       value={item.key}
                       onChange={(e) => {
-                        const newFormData = [...(request.body.formData || [])];
+                        const newFormData = [...request.body.formData!];
                         newFormData[index] = { ...item, key: e.target.value };
                         onRequestChange({
                           body: { ...request.body, formData: newFormData },
@@ -489,7 +554,7 @@ export function RequestPanel({
                       placeholder="Value"
                       value={item.value}
                       onChange={(e) => {
-                        const newFormData = [...(request.body.formData || [])];
+                        const newFormData = [...request.body.formData!];
                         newFormData[index] = { ...item, value: e.target.value };
                         onRequestChange({
                           body: { ...request.body, formData: newFormData },
@@ -501,7 +566,7 @@ export function RequestPanel({
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        const newFormData = (request.body.formData || []).filter(
+                        const newFormData = request.body.formData!.filter(
                           (_, i) => i !== index
                         );
                         onRequestChange({
@@ -518,7 +583,7 @@ export function RequestPanel({
                   onClick={() => {
                     const newFormData = [
                       ...(request.body.formData || []),
-                      { key: "", value: "", type: "text" as const },
+                      { key: "", value: "", type: "text" as const, enabled: true },
                     ];
                     onRequestChange({
                       body: { ...request.body, formData: newFormData },
@@ -531,15 +596,15 @@ export function RequestPanel({
               </div>
             )}
 
-            {request.body.type === "x-www-form-urlencoded" && (
+            {request.body.type === "x-www-form-urlencoded" && request.body.urlEncoded && (
               <div className="space-y-2">
-                {(request.body.urlEncoded || []).map((item, index) => (
+                {request.body.urlEncoded.map((item, index) => (
                   <div key={index} className="flex gap-2">
                     <Input
                       placeholder="Key"
                       value={item.key}
                       onChange={(e) => {
-                        const newUrlEncoded = [...(request.body.urlEncoded || [])];
+                        const newUrlEncoded = [...request.body.urlEncoded!];
                         newUrlEncoded[index] = { ...item, key: e.target.value };
                         onRequestChange({
                           body: { ...request.body, urlEncoded: newUrlEncoded },
@@ -551,7 +616,7 @@ export function RequestPanel({
                       placeholder="Value"
                       value={item.value}
                       onChange={(e) => {
-                        const newUrlEncoded = [...(request.body.urlEncoded || [])];
+                        const newUrlEncoded = [...request.body.urlEncoded!];
                         newUrlEncoded[index] = { ...item, value: e.target.value };
                         onRequestChange({
                           body: { ...request.body, urlEncoded: newUrlEncoded },
@@ -563,7 +628,7 @@ export function RequestPanel({
                       variant="ghost"
                       size="icon"
                       onClick={() => {
-                        const newUrlEncoded = (request.body.urlEncoded || []).filter(
+                        const newUrlEncoded = request.body.urlEncoded!.filter(
                           (_, i) => i !== index
                         );
                         onRequestChange({
@@ -580,7 +645,7 @@ export function RequestPanel({
                   onClick={() => {
                     const newUrlEncoded = [
                       ...(request.body.urlEncoded || []),
-                      { key: "", value: "" },
+                      { key: "", value: "", enabled: true },
                     ];
                     onRequestChange({
                       body: { ...request.body, urlEncoded: newUrlEncoded },
@@ -598,13 +663,6 @@ export function RequestPanel({
         <div className="space-y-2">
           <Button onClick={handleSend} className="w-full">
             Send Request
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => setLocation(`/request/${request.id}`)}
-          >
-            Go to Route Page
           </Button>
         </div>
       </CardContent>
