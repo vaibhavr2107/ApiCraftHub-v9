@@ -163,6 +163,7 @@ export default function Home() {
 
   const updateEnvironment = (updatedEnv: Environment) => {
     setSelectedEnvironment(updatedEnv);
+    // Get all environments and update the specific one
     const savedEnvs = localStorage.getItem("environments");
     if (savedEnvs) {
       const environments = JSON.parse(savedEnvs);
@@ -196,6 +197,9 @@ export default function Home() {
     const history = savedHistory ? JSON.parse(savedHistory) : [];
     const updatedHistory = [historyEntry, ...history].slice(0, 50); // Keep last 50 requests
     localStorage.setItem("request_history", JSON.stringify(updatedHistory));
+
+    // Trigger storage event for history updates
+    window.dispatchEvent(new Event("storage"));
   };
 
   const renderMainContent = () => {
