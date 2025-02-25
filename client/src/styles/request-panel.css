@@ -41,21 +41,25 @@
 /* Tabs Layout */
 .request-tabs {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .request-tabs-header {
-  border-bottom: 1px solid hsl(var(--border));
   background-color: hsl(var(--muted) / 0.4);
+  padding: 0;
 }
 
 .tab-trigger {
   background-color: transparent;
   border-bottom: 2px solid transparent;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
 }
 
 .tab-trigger[data-state="active"] {
-  background-color: hsl(var(--background));
+  background-color: hsl(var(--muted));
   border-bottom-color: hsl(var(--primary));
 }
 
@@ -97,4 +101,16 @@
   font-size: 0.875rem;
   color: hsl(var(--muted-foreground));
   user-select: none;
+}
+
+/* Override default tab styles */
+[role="tablist"] {
+  margin: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* Fix active tab close button background */
+.tab-trigger[data-state="active"] button {
+  background-color: hsl(var(--muted)) !important;
 }
