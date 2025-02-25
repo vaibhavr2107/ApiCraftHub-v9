@@ -44,9 +44,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Add search states
   const [historySearch, setHistorySearch] = useState("");
-  const [collectionsSearch, setCollectionsSearch] = useState("");
 
   const handleViewChange = (view: typeof activeView) => {
     setActiveView(view);
@@ -55,7 +53,6 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     }
   };
 
-  // Keep history in sync with localStorage
   useEffect(() => {
     const handleStorageChange = () => {
       const saved = localStorage.getItem("request_history");
@@ -125,7 +122,6 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     window.dispatchEvent(new CustomEvent('activateTab', { detail: historyRequest.id }));
   };
 
-  // Filter history based on search
   const filteredHistory = requestHistory.filter(entry => {
     if (!historySearch) return true;
     const searchLower = historySearch.toLowerCase();
@@ -180,24 +176,6 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       </SidebarMenu>
 
       <div className="mt-4 px-2">
-        {activeView === "collections" && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium">Collections</h3>
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search collections..."
-                value={collectionsSearch}
-                onChange={(e) => setCollectionsSearch(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              No collections imported yet
-            </div>
-          </div>
-        )}
-
         {activeView === "environment" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
