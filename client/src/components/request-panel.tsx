@@ -43,6 +43,18 @@ const customScrollbarStyle = {
   },
 };
 
+// Add method color mapping
+const METHOD_COLORS = {
+  GET: "text-green-500",
+  POST: "text-orange-500",
+  PUT: "text-blue-500",
+  DELETE: "text-red-500",
+  PATCH: "text-purple-500",
+  HEAD: "text-gray-500",
+  OPTIONS: "text-gray-400"
+} as const;
+
+
 /**
  * RequestPanel Component
  * Handles the main API request interface including:
@@ -754,17 +766,18 @@ export function RequestPanel({
   return (
     <div className="request-panel">
       <div className="request-header">
+        <h1 className="text-xl font-semibold ml-5 mb-4">API Catalog</h1>
         <div className="request-header-content">
           <Select
             value={request.method}
             onValueChange={(value) => onRequestChange({ method: value as ApiRequest["method"] })}
           >
-            <SelectTrigger className="request-method-select">
+            <SelectTrigger className={`request-method-select ${METHOD_COLORS[request.method as keyof typeof METHOD_COLORS]}`}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               {HTTP_METHODS.map((m) => (
-                <SelectItem key={m} value={m}>
+                <SelectItem key={m} value={m} className={METHOD_COLORS[m as keyof typeof METHOD_COLORS]}>
                   {m}
                 </SelectItem>
               ))}
@@ -792,26 +805,25 @@ export function RequestPanel({
 
       {/* Request Configuration Tabs */}
       <Tabs defaultValue="params" className="request-tabs">
-        <div className="request-tabs-header">
+        <div className="request-tabs-header border-b">
           <TabsList className="p-0 h-auto bg-transparent border-b-0">
-            <TabsTrigger value="params" className="tab-trigger">
+            <TabsTrigger value="params" className="tab-trigger data-[state=active]:bg-muted">
               Params
             </TabsTrigger>
-            <TabsTrigger value="auth" className="tab-trigger">
+            <TabsTrigger value="auth" className="tab-trigger data-[state=active]:bg-muted">
               Authorization
             </TabsTrigger>
-            <TabsTrigger value="headers" className="tab-trigger">
+            <TabsTrigger value="headers" className="tab-trigger data-[state=active]:bg-muted">
               Headers
             </TabsTrigger>
-            <TabsTrigger value="body" className="tab-trigger">
+            <TabsTrigger value="body" className="tab-trigger data-[state=active]:bg-muted">
               Body
             </TabsTrigger>
           </TabsList>
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-auto" style={customScrollbarStyle}> {/* Added customScrollbarStyle here */}
-          {/* Parameters Tab */}
+        <div className="flex-1 overflow-auto" style={customScrollbarStyle}>
           <TabsContent value="params" className="p-4 space-y-6">
             {/* Query Parameters Section */}
             <ParametersSection
