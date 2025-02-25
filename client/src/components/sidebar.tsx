@@ -81,13 +81,11 @@ const parsePostmanCollection = (json: any): Collection => {
 
     const parseItem = (item: any): ApiRequest | CollectionFolder => {
       if (item.request) {
-        // Parse URL structure properly
         let urlData = item.request.url;
         if (typeof urlData === 'string') {
           urlData = { raw: urlData };
         }
 
-        // Handle path variables with proper typing
         const pathVariables = urlData.variable?.map((v: {
           key: string;
           value: string;
@@ -99,7 +97,6 @@ const parsePostmanCollection = (json: any): Collection => {
           description: v.description
         })) || [];
 
-        // Detect path variables from URL segments with proper typing
         if (urlData.path) {
           urlData.path.forEach((segment: string) => {
             if (typeof segment === 'string' && segment.startsWith(':')) {
@@ -115,10 +112,8 @@ const parsePostmanCollection = (json: any): Collection => {
           });
         }
 
-        // Parse query parameters from both explicit query array and URL string
         let queryParams: Array<{ key: string; value: string; enabled: boolean; description?: string }> = [];
 
-        // First, check for explicit query parameters
         if (urlData.query) {
           queryParams = urlData.query.map((q: any) => ({
             key: q.key || '',
@@ -128,7 +123,6 @@ const parsePostmanCollection = (json: any): Collection => {
           }));
         }
 
-        // Then parse query parameters from raw URL if they exist and weren't already captured
         if (urlData.raw && queryParams.length === 0) {
           try {
             const urlString = urlData.raw;
@@ -148,14 +142,12 @@ const parsePostmanCollection = (json: any): Collection => {
           }
         }
 
-        // Construct the base URL properly
         let baseUrl = urlData.raw || '';
         const questionMarkIndex = baseUrl.indexOf('?');
         if (questionMarkIndex !== -1) {
           baseUrl = baseUrl.substring(0, questionMarkIndex);
         }
 
-        // Replace path variable placeholders with the correct format
         pathVariables.forEach(variable => {
           baseUrl = baseUrl.replace(`:${variable.key}`, `{{${variable.key}}}`);
         });
@@ -285,7 +277,6 @@ const loadCollectionsFromFiles = async (): Promise<Collection[]> => {
     const collections: Collection[] = [];
     const existingCollections = new Set<string>();
 
-    // Get existing collections from localStorage to prevent duplicates
     const savedCollections = localStorage.getItem("collections");
     if (savedCollections) {
       const parsed = JSON.parse(savedCollections);
@@ -295,25 +286,16 @@ const loadCollectionsFromFiles = async (): Promise<Collection[]> => {
 
     for (const file of files) {
       try {
-        console.log('Processing collection file:', file);
         const fileResponse = await fetch(`/collections/${file}`);
-        if (!fileResponse.ok) {
-          console.error(`Failed to fetch collection file ${file}:`, fileResponse.statusText);
-          continue;
-        }
+        if (!fileResponse.ok) continue;
 
         const content = await fileResponse.json();
         const collection = parsePostmanCollection(content);
 
-        // Skip if collection already exists
-        if (existingCollections.has(collection.name.toLowerCase())) {
-          console.log(`Collection "${collection.name}" already exists, skipping import`);
-          continue;
-        }
+        if (existingCollections.has(collection.name.toLowerCase())) continue;
 
         collections.push(collection);
         existingCollections.add(collection.name.toLowerCase());
-        console.log(`Successfully imported collection: ${collection.name}`);
       } catch (error) {
         console.error(`Error processing file ${file}:`, error);
       }
@@ -336,7 +318,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
   const [searchQuery, setSearchQuery] = useState("");
   const [initialized, setInitialized] = useState(false);
 
-  // Load collections from localStorage and files on component mount
   useEffect(() => {
     if (!initialized) {
       const initializeCollections = async () => {
@@ -344,17 +325,13 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
         if (collections.length > 0) {
           setCollections(collections);
           localStorage.setItem("collections", JSON.stringify(collections));
-          toast({
-            title: "Success",
-            description: `Imported ${collections.length} collections from files`,
-          });
         }
         setInitialized(true);
       };
 
       initializeCollections();
     }
-  }, [initialized, toast]);
+  }, [initialized]);
 
   const toggleCollection = (collectionId: string) => {
     const newExpanded = new Set(expandedCollections);
@@ -378,7 +355,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
 
   const handleRequestSelect = (request: ApiRequest) => {
     setSelectedItem(request.id);
-    setView('collections'); // Set view back to collections when selecting a request
+    setView('collections');
     onRequestSelect(request);
   };
 
@@ -401,7 +378,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
           const json = JSON.parse(content);
           const collection = parsePostmanCollection(json);
 
-          // Check if collection already exists
           if (existingCollections.has(collection.name.toLowerCase())) {
             toast({
               variant: "destructive",
@@ -530,7 +506,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
 
     collections.forEach(collection => {
       const searchInFolder = (folder: CollectionFolder, parentPath: string[]) => {
-        // Search in folder name
         if (folder.name.toLowerCase().includes(searchLower)) {
           results.push({
             collectionName: collection.name,
@@ -540,7 +515,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
           });
         }
 
-        // Search in folder requests
         folder.requests.forEach(request => {
           if (
             request.name.toLowerCase().includes(searchLower) ||
@@ -556,13 +530,11 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
           }
         });
 
-        // Recursively search in subfolders
         folder.folders?.forEach(subfolder => {
           searchInFolder(subfolder, [...parentPath, folder.name]);
         });
       };
 
-      // Search in collection name
       if (collection.name.toLowerCase().includes(searchLower)) {
         results.push({
           collectionName: collection.name,
@@ -580,7 +552,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
         });
       }
 
-      // Search in root requests
       collection.requests.forEach(request => {
         if (
           request.name.toLowerCase().includes(searchLower) ||
@@ -596,7 +567,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
         }
       });
 
-      // Search in folders
       collection.folders?.forEach(folder => {
         searchInFolder(folder, []);
       });
