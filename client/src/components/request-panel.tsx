@@ -527,190 +527,208 @@ export function RequestPanel({
     </div>
   );
 
-  const RequestBodySection = ({ body, onChange, onFormat }: any) => (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4 py-2 border-b">
-        <RadioGroup
-          value={body.type}
-          onValueChange={(value) => handleUpdateBodyType(value as BodyType)}
-          className="flex items-center gap-4"
-        >
-          {BODY_TYPES.map((type) => (
-            <div key={type} className="flex items-center space-x-2">
-              <RadioGroupItem value={type} id={`body-type-${type}`} />
-              <Label htmlFor={`body-type-${type}`}>{type}</Label>
-            </div>
-          ))}
-        </RadioGroup>
-      </div>
+  const RequestBodySection = ({ body, onChange, onFormat }: any) => {
+    // Add debounced update for better performance
+    const [localContent, setLocalContent] = useState(body.content);
 
-      {body.type === "raw" && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Select
-              value={body.rawFormat}
-              onValueChange={(format) => onChange({ ...body, rawFormat: format as RawFormat })}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Format" />
-              </SelectTrigger>
-              <SelectContent>
-                {RAW_FORMATS.map((format) => (
-                  <SelectItem key={format} value={format}>
-                    {format.toUpperCase()}
-                  </SelectItem>
+    // Update local content when body content changes from props
+    useEffect(() => {
+      setLocalContent(body.content);
+    }, [body.content]);
+
+    // Debounced handler for propagating changes up
+    useEffect(() => {
+      const timeoutId = setTimeout(() => {
+        if (localContent !== body.content) {
+          onChange({ ...body, content: localContent });
+        }
+      }, 300); // 300ms debounce
+
+      return () => clearTimeout(timeoutId);
+    }, [localContent]);
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center gap-4 py-2 border-b">
+          <RadioGroup
+            value={body.type}
+            onValueChange={(value) => handleUpdateBodyType(value as BodyType)}
+            className="flex items-center gap-4"
+          >
+            {BODY_TYPES.map((type) => (
+              <div key={type} className="flex items-center space-x-2">
+                <RadioGroupItem value={type} id={`body-type-${type}`} />
+                <Label htmlFor={`body-type-${type}`}>{type}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+        </div>
+
+        {body.type === "raw" && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Select
+                value={body.rawFormat}
+                onValueChange={(format) => onChange({ ...body, rawFormat: format as RawFormat })}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Format" />
+                </SelectTrigger>
+                <SelectContent>
+                  {RAW_FORMATS.map((format) => (
+                    <SelectItem key={format} value={format}>
+                      {format.toUpperCase()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                onClick={onFormat} 
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+              >
+                Beautify
+              </Button>
+            </div>
+            <div className="relative border rounded-md">
+              <Textarea
+                value={localContent}
+                onChange={(e) => setLocalContent(e.target.value)}
+                placeholder="Enter request body"
+                className="font-['Courier_New'] min-h-[200px] pl-12 pt-2 resize-y"
+                style={{
+                  tabSize: 2,
+                  fontFamily: "Courier New, monospace"
+                }}
+              />
+              <div className="absolute left-0 top-0 bottom-0 w-10 bg-muted/50 border-r select-none">
+                {localContent.split('\n').map((_, i) => (
+                  <div 
+                    key={i}
+                    className="text-right pr-2 text-sm text-muted-foreground leading-6"
+                    style={{ height: "24px" }}
+                  >
+                    {i + 1}
+                  </div>
                 ))}
-              </SelectContent>
-            </Select>
-            <Button 
-              onClick={onFormat} 
+              </div>
+            </div>
+          </div>
+        )}
+
+        {body.type === "form-data" && body.formData && (
+          <div className="space-y-2">
+            {body.formData.map((item, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  placeholder="Key"
+                  value={item.key}
+                  onChange={(e) => {
+                    const newFormData = [...body.formData!];
+                    newFormData[index] = { ...item, key: e.target.value };
+                    onChange({ ...body, formData: newFormData });
+                  }}
+                  className="flex-1"
+                />
+                <Input
+                  placeholder="Value"
+                  value={item.value}
+                  onChange={(e) => {
+                    const newFormData = [...body.formData!];
+                    newFormData[index] = { ...item, value: e.target.value };
+                    onChange({ ...body, formData: newFormData });
+                  }}
+                  className="flex-1"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    const newFormData = body.formData!.filter(
+                      (_, i) => i !== index
+                    );
+                    onChange({ ...body, formData: newFormData });
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              onClick={() => {
+                const newFormData = [
+                  ...(body.formData || []),
+                  { key: "", value: "", type: "text" as const, enabled: true },
+                ];
+                onChange({ ...body, formData: newFormData });
+              }}
               variant="outline"
               size="sm"
-              className="ml-auto"
+              className="w-full"
             >
-              Beautify
+              Add Form Field
             </Button>
           </div>
-          <div className="relative border rounded-md">
-            <Textarea
-              value={body.content}
-              onChange={(e) => {
-                e.persist();
-                onChange({ ...body, content: e.target.value });
-              }}
-              placeholder="Enter request body"
-              className="font-['Courier_New'] min-h-[200px] pl-12 pt-2 resize-y"
-              style={{
-                tabSize: 2,
-                fontFamily: "Courier New, monospace"
-              }}
-            />
-            <div className="absolute left-0 top-0 bottom-0 w-10 bg-muted/50 border-r select-none">
-              {body.content.split('\n').map((_, i) => (
-                <div 
-                  key={i}
-                  className="text-right pr-2 text-sm text-muted-foreground leading-6"
-                  style={{ height: "24px" }}
+        )}
+
+        {body.type === "x-www-form-urlencoded" && body.urlEncoded && (
+          <div className="space-y-2">
+            {body.urlEncoded.map((item, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  placeholder="Key"
+                  value={item.key}
+                  onChange={(e) => {
+                    const newUrlEncoded = [...body.urlEncoded!];
+                    newUrlEncoded[index] = { ...item, key: e.target.value };
+                    onChange({ ...body, urlEncoded: newUrlEncoded });
+                  }}
+                  className="flex-1"
+                />
+                <Input
+                  placeholder="Value"
+                  value={item.value}
+                  onChange={(e) => {
+                    const newUrlEncoded = [...body.urlEncoded!];
+                    newUrlEncoded[index] = { ...item, value: e.target.value };
+                    onChange({ ...body, urlEncoded: newUrlEncoded });
+                  }}
+                  className="flex-1"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    const newUrlEncoded = body.urlEncoded!.filter(
+                      (_, i) => i !== index
+                    );
+                    onChange({ ...body, urlEncoded: newUrlEncoded });
+                  }}
                 >
-                  {i + 1}
-                </div>
-              ))}
-            </div>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              onClick={() => {
+                const newUrlEncoded = [
+                  ...(body.urlEncoded || []),
+                  { key: "", value: "", enabled: true },
+                ];
+                onChange({ ...body, urlEncoded: newUrlEncoded });
+              }}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              Add URL Encoded Field
+            </Button>
           </div>
-        </div>
-      )}
-
-      {body.type === "form-data" && body.formData && (
-        <div className="space-y-2">
-          {body.formData.map((item, index) => (
-            <div key={index} className="flex gap-2">
-              <Input
-                placeholder="Key"
-                value={item.key}
-                onChange={(e) => {
-                  const newFormData = [...body.formData!];
-                  newFormData[index] = { ...item, key: e.target.value };
-                  onChange({ ...body, formData: newFormData });
-                }}
-                className="flex-1"
-              />
-              <Input
-                placeholder="Value"
-                value={item.value}
-                onChange={(e) => {
-                  const newFormData = [...body.formData!];
-                  newFormData[index] = { ...item, value: e.target.value };
-                  onChange({ ...body, formData: newFormData });
-                }}
-                className="flex-1"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  const newFormData = body.formData!.filter(
-                    (_, i) => i !== index
-                  );
-                  onChange({ ...body, formData: newFormData });
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-          <Button
-            onClick={() => {
-              const newFormData = [
-                ...(body.formData || []),
-                { key: "", value: "", type: "text" as const, enabled: true },
-              ];
-              onChange({ ...body, formData: newFormData });
-            }}
-            variant="outline"
-            size="sm"
-            className="w-full"
-          >
-            Add Form Field
-          </Button>
-        </div>
-      )}
-
-      {body.type === "x-www-form-urlencoded" && body.urlEncoded && (
-        <div className="space-y-2">
-          {body.urlEncoded.map((item, index) => (
-            <div key={index} className="flex gap-2">
-              <Input
-                placeholder="Key"
-                value={item.key}
-                onChange={(e) => {
-                  const newUrlEncoded = [...body.urlEncoded!];
-                  newUrlEncoded[index] = { ...item, key: e.target.value };
-                  onChange({ ...body, urlEncoded: newUrlEncoded });
-                }}
-                className="flex-1"
-              />
-              <Input
-                placeholder="Value"
-                value={item.value}
-                onChange={(e) => {
-                  const newUrlEncoded = [...body.urlEncoded!];
-                  newUrlEncoded[index] = { ...item, value: e.target.value };
-                  onChange({ ...body, urlEncoded: newUrlEncoded });
-                }}
-                className="flex-1"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  const newUrlEncoded = body.urlEncoded!.filter(
-                    (_, i) => i !== index
-                  );
-                  onChange({ ...body, urlEncoded: newUrlEncoded });
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-          <Button
-            onClick={() => {
-              const newUrlEncoded = [
-                ...(body.urlEncoded || []),
-                { key: "", value: "", enabled: true },
-              ];
-              onChange({ ...body, urlEncoded: newUrlEncoded });
-            }}
-            variant="outline"
-            size="sm"
-            className="w-full"
-          >
-            Add URL Encoded Field
-          </Button>
-        </div>
-      )}
-    </div>
-  );
+        )}
+      </div>
+    );
+  };
 
   // Render Component
   return (
