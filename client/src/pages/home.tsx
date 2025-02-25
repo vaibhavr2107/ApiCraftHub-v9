@@ -50,6 +50,8 @@ export default function Home() {
   };
 
   const handleRequestSelect = (request: ApiRequest) => {
+    setCurrentView("request-tabs");  // Force view to request-tabs when selecting a request
+    setSelectedCollection(null);     // Clear selected collection to ensure proper view
     const parentCollection = request.collectionId ? getCollectionById(request.collectionId) : null;
 
     // Check if request tab already exists
