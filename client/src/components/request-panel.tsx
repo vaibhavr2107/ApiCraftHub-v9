@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { makeRequest } from "@/lib/api";
 import type { ApiRequest, RequestParameter, BodyType, RawFormat } from "@/types/api-request";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,24 @@ import { Environment, EnvironmentStore, DEFAULT_ENVIRONMENTS } from "@/types/env
 
 // Import component styles
 import "@/styles/request-panel.css";
+
+// Add custom scrollbar styles
+const customScrollbarStyle = {
+  '&::-webkit-scrollbar': {
+    width: '8px',
+    height: '8px',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: 'transparent',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: 'hsl(var(--muted-foreground) / 0.3)',
+    borderRadius: '4px',
+  },
+  '&::-webkit-scrollbar-thumb:hover': {
+    background: 'hsl(var(--muted-foreground) / 0.5)',
+  },
+};
 
 /**
  * RequestPanel Component
@@ -528,27 +546,33 @@ export function RequestPanel({
   );
 
   const RequestBodySection = ({ body, onChange, onFormat }: any) => {
-    // Add debounced update for better performance
     const [localContent, setLocalContent] = useState(body.content);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    // Update local content when body content changes from props
+    // Update local content only when body content prop changes
     useEffect(() => {
-      setLocalContent(body.content);
+      if (body.content !== localContent) {
+        setLocalContent(body.content);
+      }
     }, [body.content]);
 
-    // Debounced handler for propagating changes up
-    useEffect(() => {
-      const timeoutId = setTimeout(() => {
-        if (localContent !== body.content) {
-          onChange({ ...body, content: localContent });
-        }
-      }, 300); // 300ms debounce
+    // Optimized debounced handler
+    const debouncedOnChange = useCallback(
+      debounce((value: string) => {
+        onChange({ ...body, content: value });
+      }, 300),
+      [body]
+    );
 
-      return () => clearTimeout(timeoutId);
-    }, [localContent]);
+    // Handle local state updates
+    const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newValue = e.target.value;
+      setLocalContent(newValue);
+      debouncedOnChange(newValue);
+    };
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 text-sm">
         <div className="flex items-center gap-4 py-2 border-b">
           <RadioGroup
             value={body.type}
@@ -558,7 +582,7 @@ export function RequestPanel({
             {BODY_TYPES.map((type) => (
               <div key={type} className="flex items-center space-x-2">
                 <RadioGroupItem value={type} id={`body-type-${type}`} />
-                <Label htmlFor={`body-type-${type}`}>{type}</Label>
+                <Label htmlFor={`body-type-${type}`} className="text-sm">{type}</Label>
               </div>
             ))}
           </RadioGroup>
@@ -571,12 +595,12 @@ export function RequestPanel({
                 value={body.rawFormat}
                 onValueChange={(format) => onChange({ ...body, rawFormat: format as RawFormat })}
               >
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-32 text-sm">
                   <SelectValue placeholder="Format" />
                 </SelectTrigger>
                 <SelectContent>
                   {RAW_FORMATS.map((format) => (
-                    <SelectItem key={format} value={format}>
+                    <SelectItem key={format} value={format} className="text-sm">
                       {format.toUpperCase()}
                     </SelectItem>
                   ))}
@@ -586,28 +610,32 @@ export function RequestPanel({
                 onClick={onFormat} 
                 variant="outline"
                 size="sm"
-                className="ml-auto"
+                className="ml-auto text-sm"
               >
                 Beautify
               </Button>
             </div>
-            <div className="relative border rounded-md">
+            <div className="relative border rounded-md" style={{ maxHeight: 'calc(100vh - 400px)' }}>
               <Textarea
+                ref={textareaRef}
                 value={localContent}
-                onChange={(e) => setLocalContent(e.target.value)}
+                onChange={handleTextareaChange}
                 placeholder="Enter request body"
-                className="font-['Courier_New'] min-h-[200px] pl-12 pt-2 resize-y"
+                className="font-['Courier_New'] min-h-[200px] pl-12 pt-2 resize-y text-sm overflow-auto"
                 style={{
                   tabSize: 2,
-                  fontFamily: "Courier New, monospace"
+                  fontFamily: "Courier New, monospace",
+                  fontSize: '12px',
+                  lineHeight: '20px',
+                  ...customScrollbarStyle
                 }}
               />
               <div className="absolute left-0 top-0 bottom-0 w-10 bg-muted/50 border-r select-none">
                 {localContent.split('\n').map((_, i) => (
                   <div 
                     key={i}
-                    className="text-right pr-2 text-sm text-muted-foreground leading-6"
-                    style={{ height: "24px" }}
+                    className="text-right pr-2 text-xs text-muted-foreground"
+                    style={{ height: "20px", lineHeight: "20px" }}
                   >
                     {i + 1}
                   </div>
@@ -618,7 +646,7 @@ export function RequestPanel({
         )}
 
         {body.type === "form-data" && body.formData && (
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-[calc(100vh-400px)] overflow-auto" style={customScrollbarStyle}>
             {body.formData.map((item, index) => (
               <div key={index} className="flex gap-2">
                 <Input
@@ -629,7 +657,7 @@ export function RequestPanel({
                     newFormData[index] = { ...item, key: e.target.value };
                     onChange({ ...body, formData: newFormData });
                   }}
-                  className="flex-1"
+                  className="flex-1 text-sm h-8"
                 />
                 <Input
                   placeholder="Value"
@@ -639,17 +667,16 @@ export function RequestPanel({
                     newFormData[index] = { ...item, value: e.target.value };
                     onChange({ ...body, formData: newFormData });
                   }}
-                  className="flex-1"
+                  className="flex-1 text-sm h-8"
                 />
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => {
-                    const newFormData = body.formData!.filter(
-                      (_, i) => i !== index
-                    );
+                    const newFormData = body.formData!.filter((_, i) => i !== index);
                     onChange({ ...body, formData: newFormData });
                   }}
+                  className="h-8 w-8"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -657,15 +684,12 @@ export function RequestPanel({
             ))}
             <Button
               onClick={() => {
-                const newFormData = [
-                  ...(body.formData || []),
-                  { key: "", value: "", type: "text" as const, enabled: true },
-                ];
+                const newFormData = [...(body.formData || []), { key: "", value: "", type: "text" as const, enabled: true }];
                 onChange({ ...body, formData: newFormData });
               }}
               variant="outline"
               size="sm"
-              className="w-full"
+              className="w-full text-sm"
             >
               Add Form Field
             </Button>
@@ -673,7 +697,7 @@ export function RequestPanel({
         )}
 
         {body.type === "x-www-form-urlencoded" && body.urlEncoded && (
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-[calc(100vh-400px)] overflow-auto" style={customScrollbarStyle}>
             {body.urlEncoded.map((item, index) => (
               <div key={index} className="flex gap-2">
                 <Input
@@ -684,7 +708,7 @@ export function RequestPanel({
                     newUrlEncoded[index] = { ...item, key: e.target.value };
                     onChange({ ...body, urlEncoded: newUrlEncoded });
                   }}
-                  className="flex-1"
+                  className="flex-1 text-sm h-8"
                 />
                 <Input
                   placeholder="Value"
@@ -694,17 +718,16 @@ export function RequestPanel({
                     newUrlEncoded[index] = { ...item, value: e.target.value };
                     onChange({ ...body, urlEncoded: newUrlEncoded });
                   }}
-                  className="flex-1"
+                  className="flex-1 text-sm h-8"
                 />
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => {
-                    const newUrlEncoded = body.urlEncoded!.filter(
-                      (_, i) => i !== index
-                    );
+                    const newUrlEncoded = body.urlEncoded!.filter((_, i) => i !== index);
                     onChange({ ...body, urlEncoded: newUrlEncoded });
                   }}
+                  className="h-8 w-8"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -712,15 +735,12 @@ export function RequestPanel({
             ))}
             <Button
               onClick={() => {
-                const newUrlEncoded = [
-                  ...(body.urlEncoded || []),
-                  { key: "", value: "", enabled: true },
-                ];
+                const newUrlEncoded = [...(body.urlEncoded || []), { key: "", value: "", enabled: true }];
                 onChange({ ...body, urlEncoded: newUrlEncoded });
               }}
               variant="outline"
               size="sm"
-              className="w-full"
+              className="w-full text-sm"
             >
               Add URL Encoded Field
             </Button>
@@ -790,7 +810,7 @@ export function RequestPanel({
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-auto">
+        <div className="flex-1 overflow-auto" style={customScrollbarStyle}> {/* Added customScrollbarStyle here */}
           {/* Parameters Tab */}
           <TabsContent value="params" className="p-4 space-y-6">
             {/* Query Parameters Section */}
@@ -855,3 +875,12 @@ interface RequestPanelProps {
 const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
 const BODY_TYPES: BodyType[] = ["none", "form-data", "x-www-form-urlencoded", "raw"];
 const RAW_FORMATS: RawFormat[] = ["json", "text", "xml", "html"];
+
+//Debounce function (needed for RequestBodySection)
+const debounce = (func: any, wait: number) => {
+  let timeoutId: NodeJS.Timeout;
+  return (...args: any[]) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func.apply(this, args), wait);
+  };
+};
