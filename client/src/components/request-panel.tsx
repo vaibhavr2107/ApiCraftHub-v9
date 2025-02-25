@@ -547,20 +547,21 @@ export function RequestPanel({
       {body.type === "raw" && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <RadioGroup
+            <Select
               value={body.rawFormat}
-              onValueChange={(format) =>
-                onChange({ ...body, rawFormat: format as RawFormat })
-              }
-              className="flex items-center gap-4"
+              onValueChange={(format) => onChange({ ...body, rawFormat: format as RawFormat })}
             >
-              {RAW_FORMATS.map((format) => (
-                <div key={format} className="flex items-center space-x-2">
-                  <RadioGroupItem value={format} id={`format-${format}`} />
-                  <Label htmlFor={`format-${format}`}>{format.toUpperCase()}</Label>
-                </div>
-              ))}
-            </RadioGroup>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Format" />
+              </SelectTrigger>
+              <SelectContent>
+                {RAW_FORMATS.map((format) => (
+                  <SelectItem key={format} value={format}>
+                    {format.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Button 
               onClick={onFormat} 
               variant="outline"
@@ -573,9 +574,10 @@ export function RequestPanel({
           <div className="relative border rounded-md">
             <Textarea
               value={body.content}
-              onChange={(e) =>
-                onChange({ ...body, content: e.target.value })
-              }
+              onChange={(e) => {
+                e.persist();
+                onChange({ ...body, content: e.target.value });
+              }}
               placeholder="Enter request body"
               className="font-['Courier_New'] min-h-[200px] pl-12 pt-2 resize-y"
               style={{
