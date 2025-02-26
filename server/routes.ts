@@ -3,7 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import fs from 'fs';
 import path from 'path';
-import fetch from 'node-fetch';
+import axios from 'axios';
+import https from 'https';
+
+// Create an HTTPS agent that accepts self-signed certificates
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes prefix with /api
@@ -21,51 +27,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create request options
       const requestOptions: any = {
         method,
+        url: requestUrl,
         headers: {
           'Content-Type': 'application/json',
           ...headers
-        }
+        },
+        httpsAgent, // Use the HTTPS agent that accepts self-signed certificates
+        validateStatus: null, // Don't throw on any status code
       };
 
-      // Add body only for non-GET/HEAD requests
+      // Add body for non-GET/HEAD requests
       if (body && !['GET', 'HEAD'].includes(method.toUpperCase())) {
         if (body instanceof FormData) {
-          requestOptions.body = body;
+          requestOptions.data = body;
         } else if (typeof body === 'string') {
-          requestOptions.body = body;
+          requestOptions.data = body;
         } else {
-          requestOptions.body = JSON.stringify(body);
+          requestOptions.data = body;
         }
       }
 
-      // Make the request
+      // Make the request using axios
       const startTime = Date.now();
-      const response = await fetch(requestUrl, requestOptions);
+      const response = await axios(requestOptions);
       const endTime = Date.now();
 
-      // Get response headers
+      // Format headers for response
       const responseHeaders: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        responseHeaders[key] = value;
+      Object.entries(response.headers).forEach(([key, value]) => {
+        if (typeof value === 'string') {
+          responseHeaders[key] = value;
+        } else if (Array.isArray(value)) {
+          responseHeaders[key] = value.join(', ');
+        }
       });
-
-      // Get response data
-      let data;
-      const contentType = response.headers.get('content-type');
-      if (contentType?.includes('application/json')) {
-        data = await response.json();
-      } else {
-        data = await response.text();
-      }
 
       // Send response
       res.json({
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
-        data,
+        data: response.data,
         time: endTime - startTime,
-        size: new TextEncoder().encode(JSON.stringify(data)).length
+        size: JSON.stringify(response.data).length
       });
 
     } catch (error: any) {
