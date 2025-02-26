@@ -775,7 +775,7 @@ export function RequestPanel({
   return (
     <div className="request-panel">
       <div className="request-header">
-        <h1 className="text-xl font-semibold ml-5 mb-4">API Catalog</h1>
+        <h1 className="text-xl font-semibold ml-4 mb-4">Api Hub</h1>
         <div className="request-header-content">
           <Select
             value={request.method}
