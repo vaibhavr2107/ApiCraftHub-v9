@@ -19,6 +19,18 @@ import { cn } from "@/lib/utils";
 // Keep track of version numbers for new requests
 let newRequestVersion = 1;
 
+// Moved outside component to prevent recreation
+const substituteVariables = (str: string, collection: any): string => {
+  if (!collection || !str) return str;
+
+  const variablePattern = /\{\{([^}]+)\}\}/g;
+  return str.replace(variablePattern, (match, variableName) => {
+    const trimmedName = variableName.trim();
+    const variable = collection.variables?.find((v: any) => v.key === trimmedName);
+    return variable ? variable.value : match;
+  });
+};
+
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
   const [requests, setRequests] = useState<ApiRequest[]>(() => {
@@ -42,8 +54,125 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   // Memoize active request lookup
   const activeRequest = useMemo(() => {
+    // First try to find in current requests
     let active = requests.find(r => r.routeId === routeId);
     if (active) return active;
+
+    // Try OpenAPI specs
+    if (routeId) {
+      try {
+        const savedSpecs = localStorage.getItem("openapi_specs");
+        if (savedSpecs) {
+          const specs = JSON.parse(savedSpecs);
+          for (const spec of specs) {
+            for (const [path, methods] of Object.entries(spec.paths)) {
+              for (const [method, operation] of Object.entries(methods as any)) {
+                const cleanPath = path.replace(/[{}]/g, '').replace(/\//g, '-');
+                const expectedRouteId = generateRouteId(`${method.toLowerCase()}-${cleanPath}`, spec.fileName);
+
+                if (expectedRouteId === routeId) {
+                  active = {
+                    id: nanoid(),
+                    routeId,
+                    name: operation.summary || `${method.toUpperCase()} ${path}`,
+                    method: method.toUpperCase() as ApiRequest["method"],
+                    url: `${spec.servers?.[0]?.url || 'https://api.example.com'}${path}`,
+                    collectionName: spec.fileName,
+                    queryParams: operation.parameters
+                      ?.filter((p: any) => p.in === "query")
+                      .map((p: any) => ({
+                        key: p.name,
+                        value: "",
+                        enabled: true,
+                      })) || [],
+                    headers: DEFAULT_HEADERS,
+                    pathVariables: [],
+                    auth: { type: "none" },
+                    body: {
+                      type: "none",
+                      rawFormat: "json",
+                      content: "",
+                    },
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    selectedEnvironment: "dev"
+                  };
+                  setRequests(prev => [...prev, active!]);
+                  return active;
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Error processing OpenAPI specs:", e);
+      }
+    }
+
+    // Try collections
+    try {
+      const savedCollections = localStorage.getItem("collections");
+      if (savedCollections) {
+        const collections = JSON.parse(savedCollections);
+        for (const collection of collections) {
+          // Check root requests
+          let request = collection.requests?.find((r: ApiRequest) => r.routeId === routeId);
+          if (request) {
+            request = {
+              ...request,
+              id: nanoid(),
+              url: substituteVariables(request.url, collection)
+            };
+            setRequests(prev => {
+              if (!prev.some(r => r.routeId === request.routeId)) {
+                return [...prev, request];
+              }
+              return prev;
+            });
+            return request;
+          }
+
+          // Search in folders
+          if (collection.folders) {
+            const findRequestInFolder = (folder: any): ApiRequest | null => {
+              const found = folder.requests?.find((r: ApiRequest) => r.routeId === routeId);
+              if (found) {
+                return {
+                  ...found,
+                  id: nanoid(),
+                  url: substituteVariables(found.url, collection)
+                };
+              }
+
+              if (folder.folders) {
+                for (const subfolder of folder.folders) {
+                  const result = findRequestInFolder(subfolder);
+                  if (result) return result;
+                }
+              }
+              return null;
+            };
+
+            for (const folder of collection.folders) {
+              const found = findRequestInFolder(folder);
+              if (found) {
+                setRequests(prev => {
+                  if (!prev.some(r => r.routeId === found.routeId)) {
+                    return [...prev, found];
+                  }
+                  return prev;
+                });
+                return found;
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error processing collections:", e);
+    }
+
+    // Fallback to first request
     return requests[0];
   }, [routeId, requests]);
 
