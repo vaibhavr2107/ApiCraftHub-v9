@@ -4,11 +4,12 @@ import { CollectionHome } from "@/components/collection-home";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { nanoid } from "nanoid";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { ApiRequest, createApiRequest } from "@/types/api-request";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { EnvironmentEditor } from "@/components/environment-editor";
+import { useToast } from "@/hooks/use-toast";
 
 type View = "request-tabs" | "collection-home" | "environment-editor";
 
@@ -22,7 +23,8 @@ export default function Home() {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [selectedEnvironment, setSelectedEnvironment] = useState<Environment | null>(null);
   const [currentView, setCurrentView] = useState<View>("request-tabs");
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const getCollectionById = (collectionId: string): Collection | null => {
     const savedCollections = localStorage.getItem("collections");
@@ -50,11 +52,10 @@ export default function Home() {
   };
 
   const handleRequestSelect = (request: ApiRequest) => {
-    setCurrentView("request-tabs");  // Force view to request-tabs when selecting a request
-    setSelectedCollection(null);     // Clear selected collection to ensure proper view
+    setCurrentView("request-tabs");
+    setSelectedCollection(null);
     const parentCollection = request.collectionId ? getCollectionById(request.collectionId) : null;
 
-    // Check if request tab already exists
     const savedRequests = localStorage.getItem("saved_requests");
     const requests = savedRequests ? JSON.parse(savedRequests) : [];
     const routeId = generateRouteId(parentCollection, request);
@@ -64,26 +65,20 @@ export default function Home() {
     );
 
     if (existingRequest) {
-      // If request exists, just activate its tab
       window.dispatchEvent(new CustomEvent('activateTab', { detail: existingRequest.id }));
       return;
     }
 
-    // Process URL and query parameters
     let processedUrl = request.url;
     let processedQueryParams = [...request.queryParams];
 
     if (parentCollection) {
       try {
-        // Substitute variables in the URL
         processedUrl = substituteVariables(processedUrl, parentCollection);
-
-        // Handle query parameters
         const urlParts = processedUrl.split('?');
         const baseUrl = urlParts[0];
         const queryString = urlParts[1];
 
-        // Process existing query parameters from URL
         if (queryString) {
           const existingParams = new URLSearchParams(queryString);
           const urlQueryParams = Array.from(existingParams.entries()).map(([key, value]) => ({
@@ -92,7 +87,6 @@ export default function Home() {
             enabled: true
           }));
 
-          // Combine URL query params with explicit query params
           processedQueryParams = [...urlQueryParams, ...processedQueryParams].map(param => ({
             key: substituteVariables(param.key, parentCollection),
             value: substituteVariables(param.value, parentCollection),
@@ -100,13 +94,11 @@ export default function Home() {
           }));
         }
 
-        // Format URL properly
         processedUrl = baseUrl;
         if (!processedUrl.startsWith('{{') && !processedUrl.match(/^https?:\/\//i)) {
           processedUrl = `https://${processedUrl}`;
         }
 
-        // Remove trailing slash if present
         if (processedUrl.endsWith('/')) {
           processedUrl = processedUrl.slice(0, -1);
         }
@@ -115,7 +107,6 @@ export default function Home() {
       }
     }
 
-    // Create a new request using the factory function
     const newRequest = createApiRequest({
       name: request.name,
       method: request.method,
@@ -132,10 +123,7 @@ export default function Home() {
       body: request.body
     });
 
-    // Add request to local storage
     localStorage.setItem("saved_requests", JSON.stringify([...requests, newRequest]));
-
-    // Force RequestTabs to reload and activate the new tab
     window.dispatchEvent(new Event("storage"));
     window.dispatchEvent(new CustomEvent('activateTab', { detail: newRequest.id }));
   };
@@ -151,7 +139,6 @@ export default function Home() {
   };
 
   const handleCollectionUpdate = (updatedCollection: Collection) => {
-    // Update the collection in localStorage
     const savedCollections = localStorage.getItem("collections");
     if (savedCollections) {
       const collections = JSON.parse(savedCollections);
@@ -165,7 +152,6 @@ export default function Home() {
 
   const updateEnvironment = (updatedEnv: Environment) => {
     setSelectedEnvironment(updatedEnv);
-    // Get all environments and update the specific one
     const savedEnvs = localStorage.getItem("environments");
     if (savedEnvs) {
       const environments = JSON.parse(savedEnvs);
@@ -197,12 +183,85 @@ export default function Home() {
 
     const savedHistory = localStorage.getItem("request_history");
     const history = savedHistory ? JSON.parse(savedHistory) : [];
-    const updatedHistory = [historyEntry, ...history].slice(0, 50); // Keep last 50 requests
+    const updatedHistory = [historyEntry, ...history].slice(0, 50);
     localStorage.setItem("request_history", JSON.stringify(updatedHistory));
-
-    // Trigger storage event for history updates
     window.dispatchEvent(new Event("storage"));
   };
+
+  const findCollectionRequest = (path: string): ApiRequest | null => {
+    const parts = path.split('/');
+    if (parts.length < 4) return null;
+
+    const collectionName = parts[2];
+    const requestName = parts[3];
+
+    const savedCollections = localStorage.getItem("collections");
+    if (!savedCollections) return null;
+
+    const collections = JSON.parse(savedCollections);
+
+    const collection = collections.find((c: Collection) =>
+      c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === collectionName
+    );
+
+    if (!collection) return null;
+
+    const searchInFolder = (folder: CollectionFolder): ApiRequest | null => {
+      const request = folder.requests.find(r =>
+        r.id.includes(requestName) ||
+        r.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === requestName
+      );
+      if (request) return request;
+
+      if (folder.folders) {
+        for (const subfolder of folder.folders) {
+          const found = searchInFolder(subfolder);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    let request = collection.requests.find(r =>
+      r.id.includes(requestName) ||
+      r.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === requestName
+    );
+
+    if (!request && collection.folders) {
+      for (const folder of collection.folders) {
+        request = searchInFolder(folder);
+        if (request) break;
+      }
+    }
+
+    return request;
+  };
+
+  useEffect(() => {
+    if (location.startsWith('/request/')) {
+      const request = findCollectionRequest(location);
+
+      if (request) {
+        const savedRequestsStr = localStorage.getItem("saved_requests");
+        const savedRequests = savedRequestsStr ? JSON.parse(savedRequestsStr) : [];
+        const exists = savedRequests.some((r: ApiRequest) => r.id === request.id);
+
+        if (!exists) {
+          savedRequests.push(request);
+          localStorage.setItem("saved_requests", JSON.stringify(savedRequests));
+        }
+
+        window.dispatchEvent(new CustomEvent('activateTab', { detail: request.id }));
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Request Not Found",
+          description: "The requested collection or request could not be found.",
+        });
+        setLocation('/');
+      }
+    }
+  }, [location, toast, setLocation]);
 
   const renderMainContent = () => {
     switch (currentView) {

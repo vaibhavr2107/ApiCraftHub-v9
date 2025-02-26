@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { Environment } from "./environment";
+import { generateRequestId } from "@/lib/utils";
 
 // Request Method Types
 export const HttpMethod = z.enum([
@@ -81,7 +82,7 @@ export interface ApiRequest {
   body: RequestBody;
   auth: RequestAuth;
   collectionId?: string;
-  collectionName?: string; // Added collectionName property
+  collectionName?: string;
   lastResponse?: ApiResponse;
   createdAt: string;
   updatedAt: string;
@@ -100,13 +101,9 @@ export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
   const now = new Date().toISOString();
 
   // Generate ID based on collection name if available
-  const id = params.name && params.collectionName 
-    ? `${params.collectionName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
-    : params.name 
-      ? params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-      : nanoid();
+  const id = generateRequestId(params.name || "New Request", params.collectionName);
 
-  return {
+  const request: ApiRequest = {
     id,
     name: params.name || "New Request",
     method: params.method || "GET",
@@ -126,11 +123,12 @@ export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
     createdAt: now,
     updatedAt: now,
     collectionId: params.collectionId,
-    collectionName: params.collectionName, // Added collectionName
+    collectionName: params.collectionName,
     selectedEnvironment: params.selectedEnvironment || "dev",
     ...params,
-    id // Ensure the generated ID is used even if one was provided in params
   };
+
+  return request;
 }
 
 // Validation schema for API request
@@ -199,5 +197,5 @@ export const apiRequestSchema = z.object({
   updatedAt: z.string(),
   tags: z.array(z.string()).optional(),
   selectedEnvironment: z.enum(["dev", "qa01", "qa02", "qa03", "perf", "prod"]),
-  collectionName: z.string().optional() //Added collectionName to schema
+  collectionName: z.string().optional()
 });
