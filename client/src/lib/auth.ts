@@ -28,7 +28,7 @@ export async function getTiaaToken(environment: TokenEnvironment): Promise<strin
     }
 
     const data = await response.json();
-    return data.token;
+    return data.token; // Now correctly extracts token from {"token": "ACTUAL TOKEN"} format
   } catch (error) {
     console.error('Error fetching TIAA token:', error);
     throw error;

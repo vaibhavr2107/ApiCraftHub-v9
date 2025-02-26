@@ -18,12 +18,14 @@ export function AuthorizationSection({ auth, onChange }: AuthorizationSectionPro
     <div className="space-y-4">
       <Select
         value={auth.type}
-        onValueChange={(value: "none" | "basic" | "bearer") =>
+        onValueChange={(value: "none" | "basic" | "bearer" | "bearer-tiaa" | "oauth2") =>
           onChange({
             type: value,
             ...(value === "basic"
               ? { basic: { username: "", password: "" } }
               : value === "bearer"
+              ? { bearer: { token: "" } }
+              : value === "bearer-tiaa"
               ? { bearer: { token: "" } }
               : {})
           })
@@ -36,6 +38,8 @@ export function AuthorizationSection({ auth, onChange }: AuthorizationSectionPro
           <SelectItem value="none">No Auth</SelectItem>
           <SelectItem value="basic">Basic Auth</SelectItem>
           <SelectItem value="bearer">Bearer Token</SelectItem>
+          <SelectItem value="bearer-tiaa">Bearer Token with TIAA</SelectItem>
+          <SelectItem value="oauth2">OAuth 2.0</SelectItem>
         </SelectContent>
       </Select>
 
@@ -73,9 +77,9 @@ export function AuthorizationSection({ auth, onChange }: AuthorizationSectionPro
         </div>
       )}
 
-      {auth.type === "bearer" && (
+      {(auth.type === "bearer" || auth.type === "bearer-tiaa") && (
         <Input
-          placeholder="Bearer Token"
+          placeholder={auth.type === "bearer-tiaa" ? "Token will be fetched automatically" : "Bearer Token"}
           value={auth.bearer?.token || ""}
           onChange={(e) =>
             onChange({
@@ -83,7 +87,14 @@ export function AuthorizationSection({ auth, onChange }: AuthorizationSectionPro
               bearer: { token: e.target.value }
             })
           }
+          disabled={auth.type === "bearer-tiaa"}
         />
+      )}
+
+      {auth.type === "oauth2" && (
+        <div className="text-sm text-muted-foreground">
+          OAuth 2.0 configuration will be implemented soon
+        </div>
       )}
     </div>
   );
