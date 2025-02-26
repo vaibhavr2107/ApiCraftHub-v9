@@ -13,11 +13,14 @@ function slugify(text: string): string {
 }
 
 export function generateRequestId(name: string, collectionName?: string): string {
+  if (!name) return Date.now().toString();
+
   const sanitizedName = slugify(name);
 
+  // For collection requests: always use collectionName-requestName format
   if (collectionName) {
-    // For collection requests: collectionName-requestName
-    return `${slugify(collectionName)}-${sanitizedName}`;
+    const sanitizedCollectionName = slugify(collectionName);
+    return `${sanitizedCollectionName}-${sanitizedName}`;
   }
 
   // For new requests: Check localStorage for existing requests

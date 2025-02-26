@@ -376,6 +376,10 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
     const newCollections: Collection[] = [];
     const existingCollections = new Set(collections.map(c => c.name.toLowerCase()));
 
+    // Get existing saved requests
+    const savedRequestsStr = localStorage.getItem("saved_requests");
+    let savedRequests = savedRequestsStr ? JSON.parse(savedRequestsStr) : [];
+
     const filePromises = Array.from(files).map(async (file) => {
       try {
         const content = await file.text();
@@ -391,6 +395,22 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
             });
             return;
           }
+
+          // Save all requests from the collection to localStorage
+          const allRequests = [...collection.requests];
+          collection.folders?.forEach(folder => {
+            const getFolderRequests = (f: CollectionFolder): ApiRequest[] => {
+              const requests = [...f.requests];
+              f.folders?.forEach(subFolder => {
+                requests.push(...getFolderRequests(subFolder));
+              });
+              return requests;
+            };
+            allRequests.push(...getFolderRequests(folder));
+          });
+
+          // Add all collection requests to saved requests
+          savedRequests = [...savedRequests, ...allRequests];
 
           newCollections.push(collection);
           existingCollections.add(collection.name.toLowerCase());
@@ -422,6 +442,8 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
       const updatedCollections = [...collections, ...newCollections];
       setCollections(updatedCollections);
       localStorage.setItem("collections", JSON.stringify(updatedCollections));
+      // Save all requests to localStorage
+      localStorage.setItem("saved_requests", JSON.stringify(savedRequests));
     }
 
     event.target.value = '';
