@@ -294,12 +294,12 @@ export default function Home() {
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             )}
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold ml-4">
               {currentView === "collection-home" && selectedCollection
                 ? selectedCollection.name
                 : currentView === "environment-editor" && selectedEnvironment
                 ? `Environment: ${selectedEnvironment.name}`
-                : "API Request Tester"}
+                : "API Hub"}
             </h1>
           </div>
         </header>

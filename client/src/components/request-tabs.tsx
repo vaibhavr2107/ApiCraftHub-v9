@@ -269,12 +269,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   }
 
   return (
-    <div className="container py-6">
+    <div className="container py-6 max-w-[1400px]">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center gap-2 mb-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="shrink-0"
             onClick={() => {
               if (tabsContainerRef.current) {
@@ -285,22 +285,25 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             <ChevronLeft className="h-4 w-4" />
           </Button>
 
-          <div 
+          <div
             ref={tabsContainerRef}
             className="flex-1 overflow-x-auto relative"
           >
             <TabsList className="flex w-max space-x-1">
               {requests.map((request) => (
-                <div 
-                  key={request.id} 
+                <div
+                  key={request.id}
                   className={cn(
                     "flex items-center mx-1 rounded-md transition-colors",
                     activeTab === request.id ? "bg-muted" : "bg-transparent"
                   )}
                 >
-                  <TabsTrigger 
-                    value={request.id} 
-                    className="w-[160px] justify-start text-left truncate"
+                  <TabsTrigger
+                    value={request.id}
+                    className={cn(
+                      "w-[160px] justify-start text-left truncate",
+                      activeTab === request.id ? "bg-muted" : ""
+                    )}
                   >
                     {request.name}
                   </TabsTrigger>
@@ -310,7 +313,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                       size="icon"
                       className={cn(
                         "h-8 w-8",
-                        activeTab === request.id ? "hover:bg-muted/80" : ""
+                        activeTab === request.id ? "bg-muted hover:bg-muted/80" : ""
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -325,8 +328,8 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             </TabsList>
           </div>
 
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             className="shrink-0"
             onClick={() => {
@@ -342,8 +345,8 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             <Plus className="h-4 w-4" />
           </Button>
 
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => setRequests([])}
             className="ml-2"
