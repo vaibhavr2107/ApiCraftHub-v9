@@ -33,6 +33,18 @@ const DEFAULT_HEADERS = [
   { key: "Content-Type", value: "application/json", enabled: true }
 ];
 
+// Add substituteVariables helper at the top of the file
+const substituteVariables = (str: string, collection: any): string => {
+  if (!collection || !str) return str;
+
+  const variablePattern = /\{\{([^}]+)\}\}/g;
+  return str.replace(variablePattern, (match, variableName) => {
+    const trimmedName = variableName.trim();
+    const variable = collection.variables?.find((v: any) => v.key === trimmedName);
+    return variable ? variable.value : match;
+  });
+};
+
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
   const [requests, setRequests] = useState<ApiRequest[]>(() => {
@@ -65,13 +77,20 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     if (savedCollections) {
       const collections = JSON.parse(savedCollections);
 
-      const findRequestInFolder = (folder: any): ApiRequest | null => {
+      const findRequestInFolder = (folder: any, collection: any): ApiRequest | null => {
         const request = folder.requests.find((r: ApiRequest) => r.routeId === routeId);
-        if (request) return { ...request, id: request.id || nanoid() };
+        if (request) {
+          // Process variables before returning
+          return {
+            ...request,
+            id: request.id || nanoid(),
+            url: substituteVariables(request.url, collection)
+          };
+        }
 
         if (folder.folders) {
           for (const subfolder of folder.folders) {
-            const found = findRequestInFolder(subfolder);
+            const found = findRequestInFolder(subfolder, collection);
             if (found) return found;
           }
         }
@@ -82,7 +101,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
         // Check root requests
         let request = collection.requests.find((r: ApiRequest) => r.routeId === routeId);
         if (request) {
-          request = { ...request, id: request.id || nanoid() };
+          // Process variables before setting
+          request = {
+            ...request,
+            id: request.id || nanoid(),
+            url: substituteVariables(request.url, collection)
+          };
           setRequests(prev => [...prev, request]);
           activeRequest = request;
           break;
@@ -91,7 +115,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
         // Check folders
         if (collection.folders) {
           for (const folder of collection.folders) {
-            const found = findRequestInFolder(folder);
+            const found = findRequestInFolder(folder, collection);
             if (found) {
               setRequests(prev => [...prev, found]);
               activeRequest = found;

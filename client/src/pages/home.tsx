@@ -69,11 +69,17 @@ export default function Home() {
       const request = folder.requests.find(r => r.routeId === routeId);
       if (request) {
         console.log('Found request in collection folder:', { collection, request });
-        return {
+
+        // Replace variables in URL
+        const processedRequest = {
           ...request,
+          url: substituteVariables(request.url, collection),
           collectionId: collection.id,
           collectionName: collection.name
         };
+
+        console.log('Processed request with variables:', processedRequest);
+        return processedRequest;
       }
 
       if (folder.folders) {
@@ -94,11 +100,17 @@ export default function Home() {
 
       if (rootRequest) {
         console.log('Found request in collection root:', { collection, rootRequest });
-        return {
+
+        // Replace variables in URL
+        const processedRequest = {
           ...rootRequest,
+          url: substituteVariables(rootRequest.url, collection),
           collectionId: collection.id,
           collectionName: collection.name
         };
+
+        console.log('Processed request with variables:', processedRequest);
+        return processedRequest;
       }
 
       // Check in folders
@@ -135,14 +147,15 @@ export default function Home() {
     return findRequestByRouteId(routeId);
   };
 
-  const substituteVariables = (str: string, collection: Collection): string => {
+  const substituteVariables = (str: string, collection: Collection | null): string => {
+    if (!collection || !str) return str;
+
     const variablePattern = /\{\{([^}]+)\}\}/g;
-    const result = str.replace(variablePattern, (match, variableName) => {
+    return str.replace(variablePattern, (match, variableName) => {
       const trimmedName = variableName.trim();
       const variable = collection.variables?.find(v => v.key === trimmedName);
       return variable ? variable.value : match;
     });
-    return result;
   };
 
   const handleEnvironmentSelect = (environment: Environment) => {
