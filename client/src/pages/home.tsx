@@ -19,8 +19,11 @@ interface Environment {
   variables: { key: string; value: string }[];
 }
 
-const generateRequestId = (requestName: string, collectionName: string): string => {
-  return `${collectionName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${requestName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+const generateRequestId = (requestName: string, collectionName?: string): string => {
+  const cleanName = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  return collectionName 
+    ? `${cleanName(collectionName)}-${cleanName(requestName)}`
+    : cleanName(requestName);
 };
 
 export default function Home() {
@@ -39,6 +42,99 @@ export default function Home() {
     return null;
   };
 
+  const handleRequestSelect = (request: ApiRequest) => {
+    setCurrentView("request-tabs");
+    setSelectedCollection(null);
+
+    // Find parent collection if this is a collection request
+    const parentCollection = request.collectionId ? getCollectionById(request.collectionId) : null;
+
+    // Generate the route ID based on collection name if available
+    const routeId = parentCollection 
+      ? generateRequestId(request.name, parentCollection.name)
+      : request.id;
+
+    // Update the URL to reflect the collection structure if applicable
+    const newPath = parentCollection
+      ? `/request/${generateRequestId(parentCollection.name)}/${generateRequestId(request.name)}`
+      : `/request/${routeId}`;
+
+    setLocation(newPath);
+    window.dispatchEvent(new CustomEvent('activateTab', { detail: routeId }));
+  };
+
+  const findCollectionRequest = (path: string): ApiRequest | null => {
+    const parts = path.split('/');
+    if (parts.length < 3) return null;
+
+    // Check if this is a direct request ID path
+    if (parts.length === 3) {
+      const savedRequests = localStorage.getItem("saved_requests");
+      if (savedRequests) {
+        const requests = JSON.parse(savedRequests);
+        return requests.find((r: ApiRequest) => r.id === parts[2]) || null;
+      }
+      return null;
+    }
+
+    // Handle collection request path: /request/collection-name/request-name
+    const collectionName = parts[2];
+    const requestPath = parts.slice(3).join('-');
+
+    const savedCollections = localStorage.getItem("collections");
+    if (!savedCollections) return null;
+
+    const collections = JSON.parse(savedCollections);
+    const collection = collections.find((c: Collection) =>
+      generateRequestId(c.name) === collectionName
+    );
+
+    if (!collection) return null;
+
+    const searchInFolder = (folder: CollectionFolder): ApiRequest | null => {
+      const request = folder.requests.find(r => generateRequestId(r.name, collection.name) === requestPath);
+
+      if (request) {
+        return {
+          ...request,
+          collectionId: collection.id,
+          collectionName: collection.name,
+          id: generateRequestId(request.name, collection.name)
+        };
+      }
+
+      if (folder.folders) {
+        for (const subfolder of folder.folders) {
+          const found = searchInFolder(subfolder);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    // Search in root requests
+    let request = collection.requests.find(r => generateRequestId(r.name, collection.name) === requestPath);
+
+    if (request) {
+      request = {
+        ...request,
+        collectionId: collection.id,
+        collectionName: collection.name,
+        id: generateRequestId(request.name, collection.name)
+      };
+    }
+
+    // If not found in root, search in folders
+    if (!request && collection.folders) {
+      for (const folder of collection.folders) {
+        request = searchInFolder(folder);
+        if (request) break;
+      }
+    }
+
+    return request;
+  };
+
   const generateRouteId = (collection: Collection | null, request: ApiRequest): string => {
     const collectionName = collection ? collection.name.toLowerCase().replace(/[^a-z0-9]/g, '-') : 'request';
     const requestName = request.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -55,82 +151,6 @@ export default function Home() {
     return result;
   };
 
-  const handleRequestSelect = (request: ApiRequest) => {
-    setCurrentView("request-tabs");
-    setSelectedCollection(null);
-    const parentCollection = request.collectionId ? getCollectionById(request.collectionId) : null;
-
-    const savedRequests = localStorage.getItem("saved_requests");
-    const requests = savedRequests ? JSON.parse(savedRequests) : [];
-    const routeId = generateRouteId(parentCollection, request);
-
-    const existingRequest = requests.find((r: ApiRequest) =>
-      generateRouteId(parentCollection, r) === routeId
-    );
-
-    if (existingRequest) {
-      window.dispatchEvent(new CustomEvent('activateTab', { detail: existingRequest.id }));
-      return;
-    }
-
-    let processedUrl = request.url;
-    let processedQueryParams = [...request.queryParams];
-
-    if (parentCollection) {
-      try {
-        processedUrl = substituteVariables(processedUrl, parentCollection);
-        const urlParts = processedUrl.split('?');
-        const baseUrl = urlParts[0];
-        const queryString = urlParts[1];
-
-        if (queryString) {
-          const existingParams = new URLSearchParams(queryString);
-          const urlQueryParams = Array.from(existingParams.entries()).map(([key, value]) => ({
-            key: substituteVariables(key, parentCollection),
-            value: substituteVariables(decodeURIComponent(value), parentCollection),
-            enabled: true
-          }));
-
-          processedQueryParams = [...urlQueryParams, ...processedQueryParams].map(param => ({
-            key: substituteVariables(param.key, parentCollection),
-            value: substituteVariables(param.value, parentCollection),
-            enabled: param.enabled ?? true
-          }));
-        }
-
-        processedUrl = baseUrl;
-        if (!processedUrl.startsWith('{{') && !processedUrl.match(/^https?:\/\//i)) {
-          processedUrl = `https://${processedUrl}`;
-        }
-
-        if (processedUrl.endsWith('/')) {
-          processedUrl = processedUrl.slice(0, -1);
-        }
-      } catch (e) {
-        console.error('Error processing URL:', e);
-      }
-    }
-
-    const newRequest = createApiRequest({
-      name: request.name,
-      method: request.method,
-      url: processedUrl,
-      collectionId: request.collectionId,
-      queryParams: processedQueryParams.length > 0 ? processedQueryParams : [{ key: "", value: "", enabled: true }],
-      pathVariables: request.pathVariables?.map(param => ({
-        key: parentCollection ? substituteVariables(param.key, parentCollection) : param.key,
-        value: parentCollection ? substituteVariables(param.value, parentCollection) : param.value,
-        enabled: param.enabled ?? true
-      })) || [],
-      headers: request.headers,
-      auth: request.auth,
-      body: request.body
-    });
-
-    localStorage.setItem("saved_requests", JSON.stringify([...requests, newRequest]));
-    window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new CustomEvent('activateTab', { detail: newRequest.id }));
-  };
 
   const handleEnvironmentSelect = (environment: Environment) => {
     setSelectedEnvironment(environment);
@@ -192,71 +212,6 @@ export default function Home() {
     window.dispatchEvent(new Event("storage"));
   };
 
-  const findCollectionRequest = (path: string): ApiRequest | null => {
-    const parts = path.split('/');
-    if (parts.length < 4) return null;
-
-    const collectionName = parts[2];
-    const requestPath = parts.slice(3).join('-');
-
-    const savedCollections = localStorage.getItem("collections");
-    if (!savedCollections) return null;
-
-    const collections = JSON.parse(savedCollections);
-    const collection = collections.find((c: Collection) =>
-      c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === collectionName
-    );
-
-    if (!collection) return null;
-
-    const searchInFolder = (folder: CollectionFolder): ApiRequest | null => {
-      const request = folder.requests.find(r => {
-        const requestId = generateRequestId(r.name, collection.name);
-        return requestId === requestPath || r.id === requestPath;
-      });
-
-      if (request) {
-        return {
-          ...request,
-          collectionId: collection.id,
-          collectionName: collection.name,
-          id: generateRequestId(request.name, collection.name)
-        };
-      }
-
-      if (folder.folders) {
-        for (const subfolder of folder.folders) {
-          const found = searchInFolder(subfolder);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    let request = collection.requests.find(r => {
-      const requestId = generateRequestId(r.name, collection.name);
-      return requestId === requestPath || r.id === requestPath;
-    });
-
-    if (request) {
-      request = {
-        ...request,
-        collectionId: collection.id,
-        collectionName: collection.name,
-        id: generateRequestId(request.name, collection.name)
-      };
-    }
-
-    if (!request && collection.folders) {
-      for (const folder of collection.folders) {
-        request = searchInFolder(folder);
-        if (request) break;
-      }
-    }
-
-    return request;
-  };
-
   useEffect(() => {
     if (location.startsWith('/request/')) {
       const request = findCollectionRequest(location);
@@ -264,11 +219,14 @@ export default function Home() {
       if (request) {
         const savedRequestsStr = localStorage.getItem("saved_requests");
         const savedRequests = savedRequestsStr ? JSON.parse(savedRequestsStr) : [];
-        const exists = savedRequests.some((r: ApiRequest) => r.id === request.id);
 
-        if (!exists) {
-          savedRequests.push(request);
-          localStorage.setItem("saved_requests", JSON.stringify(savedRequests));
+        // Only save if it's not a collection request (has no collectionId)
+        if (!request.collectionId) {
+          const exists = savedRequests.some((r: ApiRequest) => r.id === request.id);
+          if (!exists) {
+            savedRequests.push(request);
+            localStorage.setItem("saved_requests", JSON.stringify(savedRequests));
+          }
         }
 
         window.dispatchEvent(new CustomEvent('activateTab', { detail: request.id }));
