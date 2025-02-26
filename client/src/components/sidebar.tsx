@@ -64,23 +64,8 @@ interface SearchResult {
 
 const parsePostmanCollection = (json: any): Collection => {
   try {
-    console.log('Parsing Postman collection:', json.info?.name);
-
-    const variables: CollectionVariable[] = (json.variable || []).map((v: {
-      key: string;
-      value: string;
-      type: string;
-      description?: string;
-    }) => ({
-      id: nanoid(),
-      key: v.key || '',
-      value: v.value || '',
-      type: v.type === 'secret' ? 'secret' : 'default',
-      description: v.description
-    }));
-
-    const collectionId = nanoid();
     const collectionName = json.info?.name || "Imported Collection";
+    const collectionId = nanoid();
 
     const parseItem = (item: any): ApiRequest | CollectionFolder => {
       if (item.request) {
@@ -250,7 +235,18 @@ const parsePostmanCollection = (json: any): Collection => {
       description: json.info?.description,
       requests,
       folders,
-      variables,
+      variables: (json.variable || []).map((v: {
+        key: string;
+        value: string;
+        type: string;
+        description?: string;
+      }) => ({
+        id: nanoid(),
+        key: v.key || '',
+        value: v.value || '',
+        type: v.type === 'secret' ? 'secret' : 'default',
+        description: v.description
+      })),
       auth: json.auth ? {
         type: json.auth.type as "none" | "basic" | "bearer" | "oauth2",
         basic: json.auth.type === 'basic' ? {
@@ -264,7 +260,6 @@ const parsePostmanCollection = (json: any): Collection => {
       } : { type: "none" }
     };
 
-    console.log('Successfully parsed collection:', collection.name);
     return collection;
   } catch (error) {
     console.error('Error parsing Postman collection:', error);
@@ -275,9 +270,8 @@ const parsePostmanCollection = (json: any): Collection => {
 const loadCollectionsFromFiles = async (): Promise<Collection[]> => {
   try {
     const response = await fetch('/collections');
-    if (!response.ok) {
-      throw new Error('Failed to fetch collections');
-    }
+    if (!response.ok) throw new Error('Failed to fetch collections');
+
     const files = await response.json();
     const collections: Collection[] = [];
     const existingCollections = new Set<string>();
@@ -296,6 +290,24 @@ const loadCollectionsFromFiles = async (): Promise<Collection[]> => {
 
         const content = await fileResponse.json();
         const collection = parsePostmanCollection(content);
+
+        const allRequests = [...collection.requests];
+        collection.folders?.forEach(folder => {
+          const getFolderRequests = (f: CollectionFolder): ApiRequest[] => {
+            const requests = [...f.requests];
+            f.folders?.forEach(subFolder => {
+              requests.push(...getFolderRequests(subFolder));
+            });
+            return requests;
+          };
+          allRequests.push(...getFolderRequests(folder));
+        });
+
+        const savedRequests = localStorage.getItem("saved_requests");
+        const existingRequests = savedRequests ? JSON.parse(savedRequests) : [];
+        const updatedRequests = [...existingRequests, ...allRequests];
+        localStorage.setItem("saved_requests", JSON.stringify(updatedRequests));
+
 
         if (existingCollections.has(collection.name.toLowerCase())) continue;
 
@@ -376,10 +388,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
     const newCollections: Collection[] = [];
     const existingCollections = new Set(collections.map(c => c.name.toLowerCase()));
 
-    // Get existing saved requests
-    const savedRequestsStr = localStorage.getItem("saved_requests");
-    let savedRequests = savedRequestsStr ? JSON.parse(savedRequestsStr) : [];
-
     const filePromises = Array.from(files).map(async (file) => {
       try {
         const content = await file.text();
@@ -396,7 +404,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
             return;
           }
 
-          // Save all requests from the collection to localStorage
           const allRequests = [...collection.requests];
           collection.folders?.forEach(folder => {
             const getFolderRequests = (f: CollectionFolder): ApiRequest[] => {
@@ -409,8 +416,10 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
             allRequests.push(...getFolderRequests(folder));
           });
 
-          // Add all collection requests to saved requests
-          savedRequests = [...savedRequests, ...allRequests];
+          const savedRequests = localStorage.getItem("saved_requests");
+          const existingRequests = savedRequests ? JSON.parse(savedRequests) : [];
+          const updatedRequests = [...existingRequests, ...allRequests];
+          localStorage.setItem("saved_requests", JSON.stringify(updatedRequests));
 
           newCollections.push(collection);
           existingCollections.add(collection.name.toLowerCase());
@@ -442,8 +451,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
       const updatedCollections = [...collections, ...newCollections];
       setCollections(updatedCollections);
       localStorage.setItem("collections", JSON.stringify(updatedCollections));
-      // Save all requests to localStorage
-      localStorage.setItem("saved_requests", JSON.stringify(savedRequests));
     }
 
     event.target.value = '';
