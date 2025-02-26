@@ -1,5 +1,5 @@
 import { Plus, Save, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { nanoid } from "nanoid";
 import { useLocation } from "wouter";
 import { generateRequestId, generateRouteId } from "@/lib/utils";
@@ -33,6 +33,7 @@ const DEFAULT_HEADERS = [
   { key: "Content-Type", value: "application/json", enabled: true }
 ];
 
+// Moved outside component to prevent recreation
 const substituteVariables = (str: string, collection: any): string => {
   if (!collection || !str) return str;
 
@@ -44,145 +45,85 @@ const substituteVariables = (str: string, collection: any): string => {
   });
 };
 
-const createApiRequest = ({
-  name,
-  method,
-  url,
-  routeId,
-  collectionName,
-  queryParams,
-  headers,
-}: {
-  name: string;
-  method: ApiRequest["method"];
-  url: string;
-  routeId: string;
-  collectionName?: string;
-  queryParams?: { key: string; value: string; enabled: boolean }[];
-  headers?: { key: string; value: string; enabled: boolean }[];
-}): ApiRequest => ({
-  id: nanoid(),
-  routeId,
-  name,
-  method,
-  url,
-  queryParams: queryParams || [],
-  headers: headers || [],
-  auth: { type: "none" },
-  body: {
-    type: "none",
-    rawFormat: "json",
-    content: "",
-  },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  selectedEnvironment: "dev",
-  pathVariables: [],
-  collectionName,
-});
-
-
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
   const [requests, setRequests] = useState<ApiRequest[]>(() => {
-    const saved = localStorage.getItem("saved_requests");
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return parsed;
-      } catch (e) {
-        console.error("Error loading saved requests:", e);
-        return [];
-      }
+    try {
+      const saved = localStorage.getItem("saved_requests");
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Error loading saved requests:", e);
+      return [];
     }
-    return [];
   });
 
-  // Get active tab from route or first request
-  const routeId = location.split('/').pop();
-  console.log('Current routeId from URL:', routeId);
+  const [responses, setResponses] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const { toast } = useToast();
 
-  // First try to find request in current requests
-  let activeRequest = requests.find(r => {
-    console.log('Checking request:', { requestRouteId: r.routeId, urlRouteId: routeId });
-    return r.routeId === routeId;
-  });
+  // Get route ID once
+  const routeId = useMemo(() => location.split('/').pop(), [location]);
 
-  // If not found, try to find in collections or OpenAPI specs
-  if (!activeRequest && routeId) {
-    // Check OpenAPI specs first
-    const savedSpecs = localStorage.getItem("openapi_specs");
-    if (savedSpecs) {
-      const specs = JSON.parse(savedSpecs);
-      console.log('Checking OpenAPI specs for routeId:', routeId);
+  // Memoize active request lookup
+  const activeRequest = useMemo(() => {
+    // First try to find in current requests
+    let active = requests.find(r => r.routeId === routeId);
+    if (active) return active;
 
-      for (const spec of specs) {
-        for (const [path, methods] of Object.entries(spec.paths)) {
-          for (const [method, operation] of Object.entries(methods as any)) {
-            const cleanPath = path.replace(/[{}]/g, '').replace(/\//g, '-');
-            const expectedRouteId = generateRouteId(`${method.toLowerCase()}-${cleanPath}`, spec.fileName);
-            console.log('Comparing OpenAPI route IDs:', { expectedRouteId, routeId });
+    // Try OpenAPI specs
+    if (routeId) {
+      try {
+        const savedSpecs = localStorage.getItem("openapi_specs");
+        if (savedSpecs) {
+          const specs = JSON.parse(savedSpecs);
+          for (const spec of specs) {
+            for (const [path, methods] of Object.entries(spec.paths)) {
+              for (const [method, operation] of Object.entries(methods as any)) {
+                const cleanPath = path.replace(/[{}]/g, '').replace(/\//g, '-');
+                const expectedRouteId = generateRouteId(`${method.toLowerCase()}-${cleanPath}`, spec.fileName);
 
-            if (expectedRouteId === routeId) {
-              const request = createApiRequest({
-                name: operation.summary || `${method.toUpperCase()} ${path}`,
-                method: method.toUpperCase() as ApiRequest["method"],
-                url: `${spec.servers?.[0]?.url || 'https://api.example.com'}${path}`,
-                routeId,
-                collectionName: spec.fileName,
-                queryParams: operation.parameters
-                  ?.filter((p: any) => p.in === "query")
-                  .map((p: any) => ({
-                    key: p.name,
-                    value: "",
-                    enabled: true,
-                  })) || [],
-                headers: operation.parameters
-                  ?.filter((p: any) => p.in === "header")
-                  .map((p: any) => ({
-                    key: p.name,
-                    value: "",
-                    enabled: true,
-                  })) || [],
-              });
-              console.log('Found matching OpenAPI request:', request);
-              setRequests(prev => [...prev, request]);
-              activeRequest = request;
-              break;
+                if (expectedRouteId === routeId) {
+                  active = createApiRequest({
+                    name: operation.summary || `${method.toUpperCase()} ${path}`,
+                    method: method.toUpperCase() as ApiRequest["method"],
+                    url: `${spec.servers?.[0]?.url || 'https://api.example.com'}${path}`,
+                    routeId,
+                    collectionName: spec.fileName,
+                    queryParams: operation.parameters
+                      ?.filter((p: any) => p.in === "query")
+                      .map((p: any) => ({
+                        key: p.name,
+                        value: "",
+                        enabled: true,
+                      })) || [],
+                    headers: operation.parameters
+                      ?.filter((p: any) => p.in === "header")
+                      .map((p: any) => ({
+                        key: p.name,
+                        value: "",
+                        enabled: true,
+                      })) || [],
+                  });
+                  setRequests(prev => [...prev, active!]);
+                  return active;
+                }
+              }
             }
           }
-          if (activeRequest) break;
         }
-        if (activeRequest) break;
+      } catch (e) {
+        console.error("Error processing OpenAPI specs:", e);
       }
     }
 
-    // If still not found, check collections
-    if (!activeRequest) {
+    // Try collections
+    try {
       const savedCollections = localStorage.getItem("collections");
       if (savedCollections) {
         const collections = JSON.parse(savedCollections);
-        console.log('Checking collections for routeId:', routeId);
-
-        const findRequestInFolder = (folder: any, collection: any): ApiRequest | null => {
-          const request = folder.requests.find((r: ApiRequest) => r.routeId === routeId);
-          if (request) {
-            return {
-              ...request,
-              id: request.id || nanoid(),
-              url: substituteVariables(request.url, collection)
-            };
-          }
-
-          if (folder.folders) {
-            for (const subfolder of folder.folders) {
-              const found = findRequestInFolder(subfolder, collection);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-
         for (const collection of collections) {
           // Check root requests
           let request = collection.requests.find((r: ApiRequest) => r.routeId === routeId);
@@ -193,66 +134,75 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
               url: substituteVariables(request.url, collection)
             };
             setRequests(prev => {
-              // Check if we already have this request
               if (!prev.some(r => r.routeId === request.routeId)) {
                 return [...prev, request];
               }
               return prev;
             });
-            activeRequest = request;
-            break;
+            return request;
           }
 
-          // Check folders
+          // Search in folders
           if (collection.folders) {
+            const findRequestInFolder = (folder: any): ApiRequest | null => {
+              const found = folder.requests.find((r: ApiRequest) => r.routeId === routeId);
+              if (found) {
+                return {
+                  ...found,
+                  id: found.id || nanoid(),
+                  url: substituteVariables(found.url, collection)
+                };
+              }
+
+              if (folder.folders) {
+                for (const subfolder of folder.folders) {
+                  const result = findRequestInFolder(subfolder);
+                  if (result) return result;
+                }
+              }
+              return null;
+            };
+
             for (const folder of collection.folders) {
-              const found = findRequestInFolder(folder, collection);
+              const found = findRequestInFolder(folder);
               if (found) {
                 setRequests(prev => {
-                  // Check if we already have this request
                   if (!prev.some(r => r.routeId === found.routeId)) {
                     return [...prev, found];
                   }
                   return prev;
                 });
-                activeRequest = found;
-                break;
+                return found;
               }
             }
-            if (activeRequest) break;
           }
         }
       }
+    } catch (e) {
+      console.error("Error processing collections:", e);
     }
-  }
 
-  // Fallback to first request if still not found
-  activeRequest = activeRequest || requests[0];
-  console.log('Active request:', activeRequest);
+    // Fallback to first request
+    return requests[0];
+  }, [routeId, requests]);
+
   const activeTab = activeRequest?.id;
 
-  const [responses, setResponses] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState<Record<string, boolean>>({});
-  const [errors, setErrors] = useState<Record<string, string | null>>({});
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [saveName, setSaveName] = useState("");
-  const { toast } = useToast();
-
+  // Persist requests to localStorage
   useEffect(() => {
     localStorage.setItem("saved_requests", JSON.stringify(requests));
   }, [requests]);
 
-  // Listen for storage events to update tabs when a new request is added
+  // Storage event listener
   useEffect(() => {
     const handleStorageChange = () => {
-      const saved = localStorage.getItem("saved_requests");
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          setRequests(parsed);
-        } catch (e) {
-          console.error("Error loading saved requests:", e);
+      try {
+        const saved = localStorage.getItem("saved_requests");
+        if (saved) {
+          setRequests(JSON.parse(saved));
         }
+      } catch (e) {
+        console.error("Error loading saved requests:", e);
       }
     };
 
@@ -260,14 +210,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Listen for tab activation events
+  // Tab activation handler
   useEffect(() => {
     const handleTabActivation = (event: CustomEvent) => {
       const tabId = event.detail;
-      console.log('Tab activation event:', { tabId, activeTab });
       if (tabId && tabId !== activeTab) {
         const request = requests.find(r => r.id === tabId);
-        console.log('Found request for tab:', request);
         if (request) {
           setLocation(`/request/${request.routeId}`);
         }
@@ -278,6 +226,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     return () => window.removeEventListener('activateTab', handleTabActivation as EventListener);
   }, [activeTab, setLocation, requests]);
 
+  // Memoized handlers
   const handleNewTab = useCallback(() => {
     const name = "New Request";
     const id = nanoid();
@@ -307,23 +256,26 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     setLocation(`/request/${routeId}`);
   }, [setLocation]);
 
-  const handleCloseTab = (requestId: string) => {
-    const updatedRequests = requests.filter(req => req.id !== requestId);
-    setRequests(updatedRequests);
+  const handleCloseTab = useCallback((requestId: string) => {
+    setRequests(prev => {
+      const updatedRequests = prev.filter(req => req.id !== requestId);
 
-    // If we're closing the active tab, navigate to another tab
-    if (requestId === activeTab) {
-      const nextTab = updatedRequests[0];
-      if (nextTab) {
-        setLocation(`/request/${nextTab.routeId}`);
-      } else {
-        setLocation('/');
-        handleNewTab();
+      // If we're closing the active tab, navigate to another tab
+      if (requestId === activeTab) {
+        const nextTab = updatedRequests[0];
+        if (nextTab) {
+          setLocation(`/request/${nextTab.routeId}`);
+        } else {
+          setLocation('/');
+          handleNewTab();
+        }
       }
-    }
-  };
 
-  const handleSaveRequest = (requestId: string) => {
+      return updatedRequests;
+    });
+  }, [activeTab, setLocation, handleNewTab]);
+
+  const handleSaveRequest = useCallback((requestId: string) => {
     if (!saveName.trim()) {
       toast({
         variant: "destructive",
@@ -338,55 +290,60 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
     const newRouteId = generateRouteId(saveName, currentRequest.collectionName);
 
-    const updatedRequests = requests.map((req) =>
-      req.id === requestId
-        ? {
-            ...req,
-            name: saveName,
-            routeId: newRouteId
-          }
-        : req
+    setRequests(prev =>
+      prev.map(req =>
+        req.id === requestId
+          ? {
+              ...req,
+              name: saveName,
+              routeId: newRouteId
+            }
+          : req
+      )
     );
-    setRequests(updatedRequests);
     setSaveDialogOpen(false);
     setSaveName("");
-
-    // Update location to new route ID
     setLocation(`/request/${newRouteId}`);
 
     toast({
       title: "Success",
       description: "Request saved successfully",
     });
-  };
+  }, [saveName, requests, setLocation, toast]);
 
   const handleUpdateRequest = useCallback((requestId: string, updates: Partial<ApiRequest>) => {
-    setRequests((prev) =>
-      prev.map((req) =>
+    setRequests(prev =>
+      prev.map(req =>
         req.id === requestId ? { ...req, ...updates } : req
       )
     );
   }, []);
 
   const handleResponse = useCallback((requestId: string, response: any) => {
-    setResponses((prev) => ({ ...prev, [requestId]: response }));
-    // Find the request and pass both request and response to history
-    const request = requests.find(req => req.id === requestId);
-    if (request && onRequestComplete) {
-      onRequestComplete(request, response);
+    setResponses(prev => ({ ...prev, [requestId]: response }));
+    if (onRequestComplete) {
+      const request = requests.find(req => req.id === requestId);
+      if (request) {
+        onRequestComplete(request, response);
+      }
     }
   }, [requests, onRequestComplete]);
 
-  // Handle tab changes through route updates
-  const handleTabChange = (value: string) => {
+  const handleTabChange = useCallback((value: string) => {
     const request = requests.find(r => r.id === value);
     if (request && request.routeId !== routeId) {
       setLocation(`/request/${request.routeId}`);
     }
-  };
+  }, [requests, routeId, setLocation]);
+
+  // Create initial tab if needed
+  useEffect(() => {
+    if (requests.length === 0) {
+      handleNewTab();
+    }
+  }, [requests.length, handleNewTab]);
 
   if (requests.length === 0) {
-    handleNewTab();
     return null;
   }
 
@@ -449,10 +406,10 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                 onRequestChange={(updates) => handleUpdateRequest(request.id, updates)}
                 onResponse={(response) => handleResponse(request.id, response)}
                 onLoading={(isLoading) =>
-                  setLoading((prev) => ({ ...prev, [request.id]: isLoading }))
+                  setLoading(prev => ({ ...prev, [request.id]: isLoading }))
                 }
                 onError={(error) =>
-                  setErrors((prev) => ({ ...prev, [request.id]: error }))
+                  setErrors(prev => ({ ...prev, [request.id]: error }))
                 }
               />
               <ResponsePanel
@@ -467,3 +424,48 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     </div>
   );
 }
+
+interface RequestPanelProps {
+  request: ApiRequest;
+  onRequestChange: (updates: Partial<ApiRequest>) => void;
+  onResponse: (response: any) => void;
+  onLoading: (isLoading: boolean) => void;
+  onError: (error: string | null) => void;
+}
+
+const createApiRequest = ({
+  name,
+  method,
+  url,
+  routeId,
+  collectionName,
+  queryParams,
+  headers,
+}: {
+  name: string;
+  method: ApiRequest["method"];
+  url: string;
+  routeId: string;
+  collectionName?: string;
+  queryParams?: { key: string; value: string; enabled: boolean }[];
+  headers?: { key: string; value: string; enabled: boolean }[];
+}): ApiRequest => ({
+  id: nanoid(),
+  routeId,
+  name,
+  method,
+  url,
+  queryParams: queryParams || [],
+  headers: headers || DEFAULT_HEADERS,
+  auth: { type: "none" },
+  body: {
+    type: "none",
+    rawFormat: "json",
+    content: "",
+  },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  selectedEnvironment: "dev",
+  pathVariables: [],
+  collectionName,
+});
