@@ -14,27 +14,10 @@ import { ApiRequest } from "@/types/api-request";
 import { RequestPanel } from "./request-panel";
 import { ResponsePanel } from "./response-panel";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-// Moved outside component to prevent recreation
-const substituteVariables = (str: string, collection: any): string => {
-  if (!collection || !str) return str;
-
-  const variablePattern = /\{\{([^}]+)\}\}/g;
-  return str.replace(variablePattern, (match, variableName) => {
-    const trimmedName = variableName.trim();
-    const variable = collection.variables?.find((v: any) => v.key === trimmedName);
-    return variable ? variable.value : match;
-  });
-};
+// Keep track of version numbers for new requests
+let newRequestVersion = 1;
 
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
@@ -51,8 +34,6 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string | null>>({});
-  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
-  const [saveName, setSaveName] = useState("");
   const { toast } = useToast();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +42,9 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   // Memoize active request lookup
   const activeRequest = useMemo(() => {
-    return requests.find(r => r.routeId === routeId) || requests[0];
+    let active = requests.find(r => r.routeId === routeId);
+    if (active) return active;
+    return requests[0];
   }, [routeId, requests]);
 
   const activeTab = activeRequest?.id;
@@ -73,9 +56,9 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   // Memoized handlers
   const handleNewTab = useCallback(() => {
-    const timestamp = Date.now();
     const id = nanoid();
-    const routeId = generateRouteId(`new-request-${timestamp}`);
+    const routeId = generateRouteId(`new-request-v${newRequestVersion}`);
+    newRequestVersion++; // Increment version for next new request
 
     const newRequest: ApiRequest = {
       id,
