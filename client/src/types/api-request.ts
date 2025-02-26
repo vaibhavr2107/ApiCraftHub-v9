@@ -47,7 +47,7 @@ export interface RequestBody {
 
 // Authentication Types
 export interface RequestAuth {
-  type: "none" | "basic" | "bearer" | "oauth2";
+  type: "none" | "basic" | "bearer" | "bearer-tiaa" | "oauth2";
   basic?: {
     username: string;
     password: string;
@@ -72,7 +72,7 @@ export interface ApiResponse {
 // Main API Request Interface
 export interface ApiRequest {
   id: string;
-  routeId: string; // Added routeId field
+  routeId: string;
   name: string;
   method: HttpMethod;
   url: string;
@@ -96,7 +96,6 @@ export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
   const now = new Date().toISOString();
   const id = nanoid();
 
-  // Generate route ID based on name and collection
   const routeId = params.routeId || generateRouteId(params.name || "New Request", params.collectionName);
 
   const request: ApiRequest = {
@@ -131,7 +130,7 @@ export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
 // Validation schema for API request
 export const apiRequestSchema = z.object({
   id: z.string(),
-  routeId: z.string(), // Added validation for routeId
+  routeId: z.string(),
   name: z.string().min(1),
   method: HttpMethod,
   url: z.string().min(1),
@@ -171,7 +170,7 @@ export const apiRequestSchema = z.object({
     })).optional()
   }),
   auth: z.object({
-    type: z.enum(["none", "basic", "bearer", "oauth2"]),
+    type: z.enum(["none", "basic", "bearer", "bearer-tiaa", "oauth2"]),
     basic: z.object({
       username: z.string(),
       password: z.string()

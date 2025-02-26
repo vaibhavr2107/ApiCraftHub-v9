@@ -323,6 +323,57 @@ const loadCollectionsFromFiles = async (): Promise<Collection[]> => {
   }
 };
 
+interface HistoryEntry {
+  id: string;
+  timestamp: number;
+  request: ApiRequest;
+  response: {
+    status: number;
+    body?: string;
+  };
+}
+
+const formatDate = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleString();
+};
+
+const getStatusColor = (status: number): string => {
+  if (status >= 200 && status < 300) {
+    return "text-green-500";
+  } else if (status >= 300 && status < 400) {
+    return "text-blue-500";
+  } else if (status >= 400 && status < 500) {
+    return "text-yellow-500";
+  } else {
+    return "text-red-500";
+  }
+};
+
+
+const RequestHistoryItem = ({ entry }: { entry: HistoryEntry }) => (
+  <div key={entry.id}
+    className="rounded-md border p-2 text-xs space-y-1 cursor-pointer hover:bg-muted/50"
+    onClick={() => {/* handleHistoryItemClick(entry) */}} // Placeholder for click handler
+  >
+    <div className="flex items-center justify-between">
+      <span className={cn(
+        "font-mono font-medium",
+        getStatusColor(entry.response.status)
+      )}>
+        {entry.request.method} ({entry.response.status})
+      </span>
+      <span className="text-muted-foreground">
+        {formatDate(entry.timestamp)}
+      </span>
+    </div>
+    <div className="truncate font-mono text-muted-foreground text-[0.8rem]">
+      {entry.request.url}
+    </div>
+  </div>
+);
+
+
 export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSelect }: SidebarProps) {
   const { toast } = useToast();
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -620,7 +671,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
       />
       <div className="p-4 border-b">
         {view === 'catalog' ? (
-          <ApiCatalog 
+          <ApiCatalog
             onRequestSelect={onRequestSelect}
             onCollectionSelect={onCollectionSelect}
           />
