@@ -52,10 +52,60 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   // Get active tab from route or first request
   const routeId = location.split('/').pop();
   console.log('Current routeId from URL:', routeId);
-  const activeRequest = requests.find(r => {
+
+  // First try to find request in current requests
+  let activeRequest = requests.find(r => {
     console.log('Checking request:', { requestRouteId: r.routeId, urlRouteId: routeId });
     return r.routeId === routeId;
-  }) || requests[0];
+  });
+
+  // If not found, try to find in saved collections
+  if (!activeRequest && routeId) {
+    const savedCollections = localStorage.getItem("collections");
+    if (savedCollections) {
+      const collections = JSON.parse(savedCollections);
+
+      const findRequestInFolder = (folder: any): ApiRequest | null => {
+        const request = folder.requests.find((r: ApiRequest) => r.routeId === routeId);
+        if (request) return { ...request, id: request.id || nanoid() };
+
+        if (folder.folders) {
+          for (const subfolder of folder.folders) {
+            const found = findRequestInFolder(subfolder);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      for (const collection of collections) {
+        // Check root requests
+        let request = collection.requests.find((r: ApiRequest) => r.routeId === routeId);
+        if (request) {
+          request = { ...request, id: request.id || nanoid() };
+          setRequests(prev => [...prev, request]);
+          activeRequest = request;
+          break;
+        }
+
+        // Check folders
+        if (collection.folders) {
+          for (const folder of collection.folders) {
+            const found = findRequestInFolder(folder);
+            if (found) {
+              setRequests(prev => [...prev, found]);
+              activeRequest = found;
+              break;
+            }
+          }
+          if (activeRequest) break;
+        }
+      }
+    }
+  }
+
+  // Fallback to first request if still not found
+  activeRequest = activeRequest || requests[0];
   console.log('Active request:', activeRequest);
   const activeTab = activeRequest?.id;
 
