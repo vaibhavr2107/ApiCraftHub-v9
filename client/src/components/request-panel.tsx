@@ -202,6 +202,10 @@ export function RequestPanel({
       } else if (request.auth.type === "bearer" && request.auth.bearer) {
         const { token } = request.auth.bearer;
         headers["Authorization"] = `Bearer ${token}`;
+      } else if (request.auth.type === "bearer-tiaa") {
+        // Get token based on environment
+        const token = await getTiaaToken(request.selectedEnvironment);
+        headers["Authorization"] = `Bearer ${token}`;
       }
 
       // Process URL with path variables
@@ -455,11 +459,12 @@ export function RequestPanel({
     <div className="space-y-4">
       <Select
         value={auth.type}
-        onValueChange={(value: "none" | "basic" | "bearer") =>
+        onValueChange={(value: "none" | "basic" | "bearer" | "bearer-tiaa") =>
           onChange({
             type: value,
             basic: value === "basic" ? { username: "", password: "" } : undefined,
             bearer: value === "bearer" ? { token: "" } : undefined,
+            "bearer-tiaa": value === "bearer-tiaa" ? {} : undefined,
           })
         }
       >
@@ -470,6 +475,7 @@ export function RequestPanel({
           <SelectItem value="none">No Auth</SelectItem>
           <SelectItem value="basic">Basic Auth</SelectItem>
           <SelectItem value="bearer">Bearer Token</SelectItem>
+          <SelectItem value="bearer-tiaa">Bearer Token (TIAA)</SelectItem>
         </SelectContent>
       </Select>
 
@@ -516,6 +522,9 @@ export function RequestPanel({
             })
           }
         />
+      )}
+      {auth.type === "bearer-tiaa" && (
+        <p>TIAA token will be retrieved automatically based on environment.</p>
       )}
     </div>
   );
@@ -896,3 +905,19 @@ const debounce = (func: any, wait: number) => {
     timeoutId = setTimeout(() => func.apply(this, args), wait);
   };
 };
+
+// Added function to retrieve TIAA token.  Implementation needs to be added based on your specific needs.
+async function getTiaaToken(environment: string): Promise<string> {
+  // Replace this with your actual token retrieval logic
+  // This is a placeholder and will need to be implemented based on your TIAA authentication system.
+  //  It should fetch the token based on the provided environment.  Consider using a different approach 
+  //  to handle environment-specific configuration, such as environment variables or a configuration file.
+
+  if (environment === 'prod') {
+    return 'your-production-tiaa-token';
+  } else if (environment === 'staging'){
+    return 'your-staging-tiaa-token';
+  } else {
+    return 'your-dev-tiaa-token';
+  }
+}
