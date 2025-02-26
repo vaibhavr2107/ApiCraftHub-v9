@@ -627,8 +627,8 @@ export function RequestPanel({
                   ))}
                 </SelectContent>
               </Select>
-              <Button 
-                onClick={onFormat} 
+              <Button
+                onClick={onFormat}
                 variant="outline"
                 size="sm"
                 className="ml-auto text-sm"
@@ -653,7 +653,7 @@ export function RequestPanel({
               />
               <div className="absolute left-0 top-0 bottom-0 w-10 bg-muted/50 border-r select-none">
                 {localContent.split('\n').map((_, i) => (
-                  <div 
+                  <div
                     key={i}
                     className="text-right pr-2 text-xs text-muted-foreground"
                     style={{ height: "20px", lineHeight: "20px" }}
@@ -775,7 +775,6 @@ export function RequestPanel({
   return (
     <div className="request-panel">
       <div className="request-header">
-        <h1 className="text-xl font-semibold ml-4 mb-4">Api Hub</h1>
         <div className="request-header-content">
           <Select
             value={request.method}
@@ -813,7 +812,7 @@ export function RequestPanel({
       </div>
 
       {/* Request Configuration Tabs */}
-      <Tabs defaultValue="params" className="request-tabs">
+      <Tabs defaultValue="params" className="request-tabs" style={{ maxWidth: '800px' }}>
         <div className="request-tabs-header border-b">
           <TabsList className="p-0 h-auto bg-transparent border-b-0">
             <TabsTrigger value="params" className="tab-trigger data-[state=active]:bg-muted">
@@ -910,7 +909,7 @@ const debounce = (func: any, wait: number) => {
 async function getTiaaToken(environment: string): Promise<string> {
   // Replace this with your actual token retrieval logic
   // This is a placeholder and will need to be implemented based on your TIAA authentication system.
-  //  It should fetch the token based on the provided environment.  Consider using a different approach 
+  //  It should fetch the token based on the provided environment.  Consider using a different approach
   //  to handle environment-specific configuration, such as environment variables or a configuration file.
 
   if (environment === 'prod') {
