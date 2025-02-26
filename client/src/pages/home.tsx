@@ -45,23 +45,30 @@ export default function Home() {
   };
 
   const findRequestByRouteId = (routeId: string): ApiRequest | null => {
+    console.log('Searching for request with routeId:', routeId);
+
     // First check saved requests
     const savedRequests = localStorage.getItem("saved_requests");
     if (savedRequests) {
       const requests = JSON.parse(savedRequests);
       const request = requests.find((r: ApiRequest) => r.routeId === routeId);
-      if (request) return request;
+      if (request) {
+        console.log('Found request in saved requests:', request);
+        return request;
+      }
     }
 
     // Then check collections
     const savedCollections = localStorage.getItem("collections");
     if (!savedCollections) return null;
 
+    console.log('Searching in collections');
     const collections = JSON.parse(savedCollections);
 
     const searchInFolder = (folder: CollectionFolder, collection: Collection): ApiRequest | null => {
       const request = folder.requests.find(r => r.routeId === routeId);
       if (request) {
+        console.log('Found request in collection folder:', { collection, request });
         return {
           ...request,
           collectionId: collection.id,
@@ -80,8 +87,13 @@ export default function Home() {
 
     for (const collection of collections) {
       // Check root requests
-      const rootRequest = collection.requests.find(r => r.routeId === routeId);
+      const rootRequest = collection.requests.find(r => {
+        console.log('Checking collection request:', { routeId: r.routeId, requestRouteId: routeId });
+        return r.routeId === routeId;
+      });
+
       if (rootRequest) {
+        console.log('Found request in collection root:', { collection, rootRequest });
         return {
           ...rootRequest,
           collectionId: collection.id,
@@ -98,20 +110,24 @@ export default function Home() {
       }
     }
 
+    console.log('No request found with routeId:', routeId);
     return null;
   };
 
   const handleRequestSelect = (request: ApiRequest) => {
+    console.log('Request selected:', request);
     setCurrentView("request-tabs");
     setSelectedCollection(null);
 
     // Update the URL to use the route ID
     const newPath = `/request/${request.routeId}`;
+    console.log('Setting new path:', newPath);
     setLocation(newPath);
     window.dispatchEvent(new CustomEvent('activateTab', { detail: request.id }));
   };
 
   const findCollectionRequest = (path: string): ApiRequest | null => {
+    console.log('Finding collection request for path:', path);
     const parts = path.split('/');
     if (parts.length !== 3) return null;
 
@@ -173,7 +189,7 @@ export default function Home() {
         headers: request.headers,
         queryParams: request.queryParams,
         body: request.body,
-        routeId: request.routeId // Add routeId to history entry
+        routeId: request.routeId 
       },
       response: {
         status: response.status,

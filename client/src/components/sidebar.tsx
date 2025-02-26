@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useToast } from "@/hooks/use-toast";
 import { ApiRequest, createApiRequest } from "@/types/api-request";
-import { generateRequestId, generateRouteId } from "@/lib/utils"; // Assuming generateRouteId is here
+import { generateRequestId, generateRouteId } from "@/lib/utils";
 import cn from 'classnames';
 import { OpenAPIViewer } from "./openapi-viewer";
 
@@ -66,6 +66,7 @@ const parsePostmanCollection = (json: any): Collection => {
   try {
     const collectionName = json.info?.name || "Imported Collection";
     const collectionId = nanoid();
+    console.log('Parsing collection:', collectionName);
 
     const parseItem = (item: any): ApiRequest | CollectionFolder => {
       if (item.request) {
@@ -186,26 +187,35 @@ const parsePostmanCollection = (json: any): Collection => {
 
         // Generate route ID for the request
         const routeId = generateRouteId(item.name, collectionName);
+        console.log('Generated route ID for collection request:', { name: item.name, routeId });
 
-        return createApiRequest({
+        const request = createApiRequest({
           name: item.name,
           method: item.request.method,
           url: baseUrl,
           collectionId,
           collectionName: collectionName,
           routeId,
-          id: nanoid(), // Keep unique ID for internal use
-          headers: (item.request.header || []).map((h: any) => ({
+          id: nanoid(),
+          headers: item.request.header?.map((h: any) => ({
             key: h.key,
             value: h.value,
             enabled: !h.disabled,
             description: h.description
-          })),
+          })) || [],
           queryParams,
           pathVariables,
           body,
           auth: authData
         });
+
+        console.log('Created collection request:', {
+          name: request.name,
+          routeId: request.routeId,
+          collectionName: request.collectionName
+        });
+
+        return request;
       } else {
         const { requests, folders } = processItems(item.item || []);
         return {
@@ -358,9 +368,24 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
   };
 
   const handleRequestSelect = (request: ApiRequest) => {
+    console.log('Sidebar - Request selected:', {
+      id: request.id,
+      name: request.name,
+      routeId: request.routeId,
+      collectionName: request.collectionName
+    });
+
     setSelectedItem(request.id);
     setView('collections');
-    onRequestSelect({ ...request, routeId: request.routeId || generateRouteId(request.name, request.collectionName) });
+
+    // Ensure the request has a routeId
+    const finalRequest = {
+      ...request,
+      routeId: request.routeId || generateRouteId(request.name, request.collectionName)
+    };
+
+    console.log('Sidebar - Forwarding request to parent:', finalRequest);
+    onRequestSelect(finalRequest);
   };
 
   const handleCollectionSelect = (collection: Collection) => {
@@ -469,6 +494,11 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
   };
 
   const renderRequest = (request: ApiRequest, level = 0) => {
+    console.log('Rendering request:', {
+      name: request.name,
+      routeId: request.routeId,
+      collectionName: request.collectionName
+    });
     const paddingLeft = `${level * 1.5}rem`;
     const methodColors: Record<string, string> = {
       GET: "text-emerald-500",
