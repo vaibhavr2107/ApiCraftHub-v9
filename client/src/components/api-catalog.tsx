@@ -26,13 +26,14 @@ export function ApiCatalog({ onRequestSelect, onCollectionSelect }: ApiCatalogPr
     const newCollections: Collection[] = [];
     const existingCollections = new Set(collections.map(c => c.name.toLowerCase()));
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       try {
         const content = await file.text();
         if (file.name.endsWith('.json')) {
           const json = JSON.parse(content);
           const collection = json; // You'll need to parse this based on your collection structure
-          
+
           if (existingCollections.has(collection.name.toLowerCase())) {
             toast({
               variant: "destructive",
@@ -83,7 +84,7 @@ export function ApiCatalog({ onRequestSelect, onCollectionSelect }: ApiCatalogPr
           <TabsTrigger value="openapi" className="flex-1">OpenAPI</TabsTrigger>
           <TabsTrigger value="saved" className="flex-1">Saved</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="collections" className="space-y-4">
           <div className="cursor-pointer">
             <input
@@ -103,7 +104,7 @@ export function ApiCatalog({ onRequestSelect, onCollectionSelect }: ApiCatalogPr
               </Button>
             </label>
           </div>
-          
+
           <ScrollArea className="h-[calc(100vh-12rem)]">
             {collections.map((collection) => (
               <div key={collection.id} className="mb-2">
@@ -112,7 +113,7 @@ export function ApiCatalog({ onRequestSelect, onCollectionSelect }: ApiCatalogPr
                   className="w-full justify-start text-left font-normal"
                   onClick={() => onCollectionSelect(collection)}
                 >
-                  {collection.name}
+                  <span className="font-mono text-sm truncate">{collection.name}</span>
                 </Button>
               </div>
             ))}
