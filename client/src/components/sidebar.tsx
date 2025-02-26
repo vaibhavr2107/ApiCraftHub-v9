@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useToast } from "@/hooks/use-toast";
 import { ApiRequest, createApiRequest } from "@/types/api-request";
-import { generateRequestId } from "@/lib/utils";
+import { generateRequestId, generateRouteId } from "@/lib/utils"; // Assuming generateRouteId is here
 import cn from 'classnames';
 import { OpenAPIViewer } from "./openapi-viewer";
 
@@ -84,6 +84,7 @@ const parsePostmanCollection = (json: any): Collection => {
           enabled: true,
           description: v.description
         })) || [];
+
 
         if (urlData.path) {
           urlData.path.forEach((segment: string) => {
@@ -183,13 +184,17 @@ const parsePostmanCollection = (json: any): Collection => {
           oauth2: auth.type === 'oauth2' ? auth.oauth2 : undefined
         } : { type: "none" as const };
 
+        // Generate route ID for the request
+        const routeId = generateRouteId(item.name, collectionName);
+
         return createApiRequest({
           name: item.name,
           method: item.request.method,
           url: baseUrl,
           collectionId,
           collectionName: collectionName,
-          id: generateRequestId(item.name, collectionName),
+          routeId,
+          id: nanoid(), // Keep unique ID for internal use
           headers: (item.request.header || []).map((h: any) => ({
             key: h.key,
             value: h.value,
@@ -355,7 +360,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
   const handleRequestSelect = (request: ApiRequest) => {
     setSelectedItem(request.id);
     setView('collections');
-    onRequestSelect(request);
+    onRequestSelect({ ...request, routeId: request.routeId || generateRouteId(request.name, request.collectionName) });
   };
 
   const handleCollectionSelect = (collection: Collection) => {

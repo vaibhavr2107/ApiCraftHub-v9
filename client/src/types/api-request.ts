@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { Environment } from "./environment";
-import { generateRequestId } from "@/lib/utils";
+import { generateRequestId, generateRouteId } from "@/lib/utils";
 
 // Request Method Types
 export const HttpMethod = z.enum([
@@ -72,6 +72,7 @@ export interface ApiResponse {
 // Main API Request Interface
 export interface ApiRequest {
   id: string;
+  routeId: string; // Added routeId field
   name: string;
   method: HttpMethod;
   url: string;
@@ -90,21 +91,17 @@ export interface ApiRequest {
   selectedEnvironment: Environment;
 }
 
-// Helper function to generate a unique request name
-export function generateRequestName(baseName: string): string {
-  const timestamp = new Date().toISOString();
-  return `${baseName}_${timestamp}`;
-}
-
 // Helper function to create a new API request
 export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
   const now = new Date().toISOString();
+  const id = nanoid();
 
-  // Generate ID based on collection name if available
-  const id = generateRequestId(params.name || "New Request", params.collectionName);
+  // Generate route ID based on name and collection
+  const routeId = params.routeId || generateRouteId(params.name || "New Request", params.collectionName);
 
   const request: ApiRequest = {
     id,
+    routeId,
     name: params.name || "New Request",
     method: params.method || "GET",
     url: params.url || "",
@@ -134,6 +131,7 @@ export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
 // Validation schema for API request
 export const apiRequestSchema = z.object({
   id: z.string(),
+  routeId: z.string(), // Added validation for routeId
   name: z.string().min(1),
   method: HttpMethod,
   url: z.string().min(1),

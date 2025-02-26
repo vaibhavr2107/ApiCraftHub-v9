@@ -2,7 +2,7 @@ import { Plus, Save, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { nanoid } from "nanoid";
 import { useLocation } from "wouter";
-import { generateRequestId } from "@/lib/utils"; // Added import statement
+import { generateRequestId, generateRouteId } from "@/lib/utils";
 import {
   Tabs,
   TabsContent,
@@ -50,8 +50,9 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   });
 
   // Get active tab from route or first request
-  const requestId = location.split('/').pop();
-  const activeTab = requests.find(r => r.id === requestId)?.id || requests[0]?.id;
+  const routeId = location.split('/').pop();
+  const activeRequest = requests.find(r => r.routeId === routeId) || requests[0];
+  const activeTab = activeRequest?.id;
 
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
@@ -87,19 +88,26 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     const handleTabActivation = (event: CustomEvent) => {
       const tabId = event.detail;
       if (tabId && tabId !== activeTab) {
-        setLocation(`/request/${tabId}`);
+        const request = requests.find(r => r.id === tabId);
+        if (request) {
+          setLocation(`/request/${request.routeId}`);
+        }
       }
     };
 
     window.addEventListener('activateTab', handleTabActivation as EventListener);
     return () => window.removeEventListener('activateTab', handleTabActivation as EventListener);
-  }, [activeTab, setLocation]);
+  }, [activeTab, setLocation, requests]);
 
   const handleNewTab = useCallback(() => {
-    const newId = generateRequestId("New Request");
+    const name = "New Request";
+    const id = nanoid();
+    const routeId = generateRouteId(name);
+
     const newRequest = {
-      id: newId,
-      name: "New Request",
+      id,
+      routeId,
+      name,
       method: "GET",
       url: "https://api.restful-api.dev/objects",
       queryParams: [{ key: "", value: "", enabled: true }],
@@ -111,11 +119,13 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
         content: "",
       },
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      selectedEnvironment: "dev",
+      pathVariables: []
     } as ApiRequest;
 
     setRequests(prev => [...prev, newRequest]);
-    setLocation(`/request/${newId}`);
+    setLocation(`/request/${routeId}`);
   }, [setLocation]);
 
   const handleCloseTab = (requestId: string) => {
@@ -124,9 +134,9 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
     // If we're closing the active tab, navigate to another tab
     if (requestId === activeTab) {
-      const nextTab = updatedRequests[0]?.id;
+      const nextTab = updatedRequests[0];
       if (nextTab) {
-        setLocation(`/request/${nextTab}`);
+        setLocation(`/request/${nextTab.routeId}`);
       } else {
         setLocation('/');
         handleNewTab();
@@ -147,14 +157,14 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     const currentRequest = requests.find(r => r.id === requestId);
     if (!currentRequest) return;
 
-    const newId = generateRequestId(saveName, currentRequest.collectionName);
+    const newRouteId = generateRouteId(saveName, currentRequest.collectionName);
 
     const updatedRequests = requests.map((req) =>
       req.id === requestId
         ? {
             ...req,
             name: saveName,
-            id: newId
+            routeId: newRouteId
           }
         : req
     );
@@ -162,8 +172,8 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     setSaveDialogOpen(false);
     setSaveName("");
 
-    // Update location to new ID
-    setLocation(`/request/${newId}`);
+    // Update location to new route ID
+    setLocation(`/request/${newRouteId}`);
 
     toast({
       title: "Success",
@@ -190,8 +200,9 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   // Handle tab changes through route updates
   const handleTabChange = (value: string) => {
-    if (value !== activeTab) {
-      setLocation(`/request/${value}`);
+    const request = requests.find(r => r.id === value);
+    if (request && request.routeId !== routeId) {
+      setLocation(`/request/${request.routeId}`);
     }
   };
 
@@ -242,7 +253,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                   value={saveName}
                   onChange={(e) => setSaveName(e.target.value)}
                 />
-                <Button onClick={() => handleSaveRequest(activeTab)}>Save</Button>
+                <Button onClick={() => handleSaveRequest(activeTab || '')}>Save</Button>
               </div>
             </DialogContent>
           </Dialog>
