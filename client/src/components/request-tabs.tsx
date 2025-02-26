@@ -1,5 +1,5 @@
-import { Plus, Save, X } from "lucide-react";
-import { useCallback, useEffect, useState, useMemo } from "react";
+import { Plus, Save, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { nanoid } from "nanoid";
 import { useLocation } from "wouter";
 import { generateRequestId, generateRouteId } from "@/lib/utils";
@@ -22,16 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-
-interface RequestTabsProps {
-  onRequestComplete?: (request: ApiRequest, response: any) => void;
-}
-
-const DEFAULT_HEADERS = [
-  { key: "Accept", value: "*/*", enabled: true },
-  { key: "User-Agent", value: "API-Tester/1.0", enabled: true },
-  { key: "Content-Type", value: "application/json", enabled: true }
-];
+import { cn } from "@/lib/utils";
 
 // Moved outside component to prevent recreation
 const substituteVariables = (str: string, collection: any): string => {
@@ -63,6 +54,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const { toast } = useToast();
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
 
   // Get route ID once
   const routeId = useMemo(() => location.split('/').pop(), [location]);
@@ -352,28 +344,74 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     <div className="container py-6">
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center gap-2 mb-4">
-          <TabsList className="flex-1">
-            {requests.map((request) => (
-              <div key={request.id} className="flex items-center">
-                <TabsTrigger value={request.id} className="flex-1">
-                  {request.name}
-                </TabsTrigger>
-                {requests.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCloseTab(request.id);
-                    }}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="shrink-0"
+            onClick={() => {
+              const container = tabsContainerRef.current;
+              if (container) {
+                container.scrollLeft -= 200;
+              }
+            }}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+
+          <div 
+            ref={tabsContainerRef}
+            className="flex-1 overflow-x-auto relative"
+          >
+            <TabsList className="flex w-max space-x-1">
+              {requests.map((request) => (
+                <div 
+                  key={request.id} 
+                  className={cn(
+                    "flex items-center mx-1 rounded-md transition-colors",
+                    activeTab === request.id ? "bg-muted" : "bg-transparent"
+                  )}
+                >
+                  <TabsTrigger 
+                    value={request.id} 
+                    className="w-[160px] justify-start text-left truncate"
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </TabsList>
+                    {request.name}
+                  </TabsTrigger>
+                  {requests.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-8 w-8",
+                        activeTab === request.id ? "hover:bg-muted/80" : ""
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCloseTab(request.id);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </TabsList>
+          </div>
+
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="shrink-0"
+            onClick={() => {
+              const container = tabsContainerRef.current;
+              if (container) {
+                container.scrollLeft += 200;
+              }
+            }}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+
           <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="icon">
@@ -394,8 +432,18 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
               </div>
             </DialogContent>
           </Dialog>
+
           <Button variant="outline" size="icon" onClick={handleNewTab}>
             <Plus className="h-4 w-4" />
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setRequests([])}
+            className="ml-2"
+          >
+            Close All
           </Button>
         </div>
 
@@ -425,6 +473,16 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     </div>
   );
 }
+
+interface RequestTabsProps {
+  onRequestComplete?: (request: ApiRequest, response: any) => void;
+}
+
+const DEFAULT_HEADERS = [
+  { key: "Accept", value: "*/*", enabled: true },
+  { key: "User-Agent", value: "API-Tester/1.0", enabled: true },
+  { key: "Content-Type", value: "application/json", enabled: true }
+];
 
 interface RequestPanelProps {
   request: ApiRequest;
