@@ -80,6 +80,7 @@ const parsePostmanCollection = (json: any): Collection => {
     }));
 
     const collectionId = nanoid();
+    const collectionName = json.info?.name || "Imported Collection";
 
     const parseItem = (item: any): ApiRequest | CollectionFolder => {
       if (item.request) {
@@ -202,7 +203,8 @@ const parsePostmanCollection = (json: any): Collection => {
           method: item.request.method,
           url: baseUrl,
           collectionId,
-          id: generateRequestId(item.name, json.info?.name),
+          collectionName,
+          id: generateRequestId(item.name, collectionName),
           headers: (item.request.header || []).map((h: any) => ({
             key: h.key,
             value: h.value,
