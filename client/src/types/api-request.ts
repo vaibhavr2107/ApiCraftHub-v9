@@ -81,6 +81,7 @@ export interface ApiRequest {
   body: RequestBody;
   auth: RequestAuth;
   collectionId?: string;
+  collectionName?: string; // Added collectionName property
   lastResponse?: ApiResponse;
   createdAt: string;
   updatedAt: string;
@@ -97,9 +98,17 @@ export function generateRequestName(baseName: string): string {
 // Helper function to create a new API request
 export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
   const now = new Date().toISOString();
+
+  // Generate ID based on collection name if available
+  const id = params.name && params.collectionName 
+    ? `${params.collectionName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
+    : params.name 
+      ? params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+      : nanoid();
+
   return {
-    id: nanoid(),
-    name: params.name || generateRequestName("Request"),
+    id,
+    name: params.name || "New Request",
     method: params.method || "GET",
     url: params.url || "",
     queryParams: params.queryParams || [{ key: "", value: "", enabled: true }],
@@ -117,8 +126,10 @@ export function createApiRequest(params: Partial<ApiRequest>): ApiRequest {
     createdAt: now,
     updatedAt: now,
     collectionId: params.collectionId,
+    collectionName: params.collectionName, // Added collectionName
     selectedEnvironment: params.selectedEnvironment || "dev",
-    ...params
+    ...params,
+    id // Ensure the generated ID is used even if one was provided in params
   };
 }
 
@@ -187,5 +198,6 @@ export const apiRequestSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   tags: z.array(z.string()).optional(),
-  selectedEnvironment: z.enum(["dev", "qa01", "qa02", "qa03", "perf", "prod"])
+  selectedEnvironment: z.enum(["dev", "qa01", "qa02", "qa03", "perf", "prod"]),
+  collectionName: z.string().optional() //Added collectionName to schema
 });
