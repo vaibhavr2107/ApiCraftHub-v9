@@ -95,9 +95,10 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     return () => window.removeEventListener('activateTab', handleTabActivation as EventListener);
   }, [activeTab, setLocation]);
 
-  const handleNewTab = () => {
+  const handleNewTab = useCallback(() => {
+    const newId = generateRequestId("New Request");
     const newRequest = {
-      id: generateRequestId("New Request"), // Using generateRequestId
+      id: newId,
       name: "New Request",
       method: "GET",
       url: "https://api.restful-api.dev/objects",
@@ -113,9 +114,9 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       updatedAt: new Date().toISOString()
     } as ApiRequest;
 
-    setRequests([...requests, newRequest]);
-    setLocation(`/request/${newRequest.id}`);
-  };
+    setRequests(prev => [...prev, newRequest]);
+    setLocation(`/request/${newId}`);
+  }, [setLocation]);
 
   const handleCloseTab = (requestId: string) => {
     const updatedRequests = requests.filter(req => req.id !== requestId);
@@ -143,12 +144,17 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       return;
     }
 
+    const currentRequest = requests.find(r => r.id === requestId);
+    if (!currentRequest) return;
+
+    const newId = generateRequestId(saveName, currentRequest.collectionName);
+
     const updatedRequests = requests.map((req) =>
       req.id === requestId
         ? {
             ...req,
             name: saveName,
-            id: generateRequestId(saveName) // Using generateRequestId
+            id: newId
           }
         : req
     );
@@ -157,10 +163,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     setSaveName("");
 
     // Update location to new ID
-    const updatedRequest = updatedRequests.find(r => r.id === requestId);
-    if (updatedRequest) {
-      setLocation(`/request/${updatedRequest.id}`);
-    }
+    setLocation(`/request/${newId}`);
 
     toast({
       title: "Success",
