@@ -10,6 +10,7 @@ import { ApiRequest, createApiRequest } from "@/types/api-request";
 import { generateRequestId, generateRouteId } from "@/lib/utils";
 import cn from 'classnames';
 import { OpenAPIViewer } from "./openapi-viewer";
+import { ApiCatalog } from "@/components/api-catalog";
 
 export interface Collection {
   id: string;
@@ -328,7 +329,7 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
   const [expandedCollections, setExpandedCollections] = useState<Set<string>>(new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [selectedItem, setSelectedItem] = useState<string | null>(null);
-  const [view, setView] = useState<'collections' | 'openapi' | 'environment'>('collections');
+  const [view, setView] = useState<'collections' | 'openapi' | 'environment' | 'catalog'>('collections');
   const [searchQuery, setSearchQuery] = useState("");
   const [initialized, setInitialized] = useState(false);
 
@@ -615,10 +616,15 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
     <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen">
       <ViewSection
         onEnvironmentSelect={onEnvironmentSelect}
-        onViewChange={(v: 'collections' | 'openapi' | 'environment') => setView(v)}
+        onViewChange={(v) => setView(v)}
       />
       <div className="p-4 border-b">
-        {view === 'collections' ? (
+        {view === 'catalog' ? (
+          <ApiCatalog 
+            onRequestSelect={onRequestSelect}
+            onCollectionSelect={onCollectionSelect}
+          />
+        ) : view === 'collections' ? (
           <div className="space-y-2">
             <div className="cursor-pointer">
               <input
