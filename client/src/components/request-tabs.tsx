@@ -61,121 +61,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   // Memoize active request lookup
   const activeRequest = useMemo(() => {
-    // First try to find in current requests
-    let active = requests.find(r => r.routeId === routeId);
-    if (active) return active;
-
-    // Try OpenAPI specs
-    if (routeId) {
-      try {
-        const savedSpecs = localStorage.getItem("openapi_specs");
-        if (savedSpecs) {
-          const specs = JSON.parse(savedSpecs);
-          for (const spec of specs) {
-            for (const [path, methods] of Object.entries(spec.paths)) {
-              for (const [method, operation] of Object.entries(methods as any)) {
-                const cleanPath = path.replace(/[{}]/g, '').replace(/\//g, '-');
-                const expectedRouteId = generateRouteId(`${method.toLowerCase()}-${cleanPath}`, spec.fileName);
-
-                if (expectedRouteId === routeId) {
-                  active = createApiRequest({
-                    name: operation.summary || `${method.toUpperCase()} ${path}`,
-                    method: method.toUpperCase() as ApiRequest["method"],
-                    url: `${spec.servers?.[0]?.url || 'https://api.example.com'}${path}`,
-                    routeId,
-                    collectionName: spec.fileName,
-                    queryParams: operation.parameters
-                      ?.filter((p: any) => p.in === "query")
-                      .map((p: any) => ({
-                        key: p.name,
-                        value: "",
-                        enabled: true,
-                      })) || [],
-                    headers: operation.parameters
-                      ?.filter((p: any) => p.in === "header")
-                      .map((p: any) => ({
-                        key: p.name,
-                        value: "",
-                        enabled: true,
-                      })) || [],
-                  });
-                  setRequests(prev => [...prev, active!]);
-                  return active;
-                }
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Error processing OpenAPI specs:", e);
-      }
-    }
-
-    // Try collections
-    try {
-      const savedCollections = localStorage.getItem("collections");
-      if (savedCollections) {
-        const collections = JSON.parse(savedCollections);
-        for (const collection of collections) {
-          // Check root requests
-          let request = collection.requests.find((r: ApiRequest) => r.routeId === routeId);
-          if (request) {
-            request = {
-              ...request,
-              id: request.id || nanoid(),
-              url: substituteVariables(request.url, collection)
-            };
-            setRequests(prev => {
-              if (!prev.some(r => r.routeId === request.routeId)) {
-                return [...prev, request];
-              }
-              return prev;
-            });
-            return request;
-          }
-
-          // Search in folders
-          if (collection.folders) {
-            const findRequestInFolder = (folder: any): ApiRequest | null => {
-              const found = folder.requests.find((r: ApiRequest) => r.routeId === routeId);
-              if (found) {
-                return {
-                  ...found,
-                  id: found.id || nanoid(),
-                  url: substituteVariables(found.url, collection)
-                };
-              }
-
-              if (folder.folders) {
-                for (const subfolder of folder.folders) {
-                  const result = findRequestInFolder(subfolder);
-                  if (result) return result;
-                }
-              }
-              return null;
-            };
-
-            for (const folder of collection.folders) {
-              const found = findRequestInFolder(folder);
-              if (found) {
-                setRequests(prev => {
-                  if (!prev.some(r => r.routeId === found.routeId)) {
-                    return [...prev, found];
-                  }
-                  return prev;
-                });
-                return found;
-              }
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Error processing collections:", e);
-    }
-
-    // Fallback to first request
-    return requests[0];
+    return requests.find(r => r.routeId === routeId) || requests[0];
   }, [routeId, requests]);
 
   const activeTab = activeRequest?.id;
@@ -185,54 +71,21 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     localStorage.setItem("saved_requests", JSON.stringify(requests));
   }, [requests]);
 
-  // Storage event listener
-  useEffect(() => {
-    const handleStorageChange = () => {
-      try {
-        const saved = localStorage.getItem("saved_requests");
-        if (saved) {
-          setRequests(JSON.parse(saved));
-        }
-      } catch (e) {
-        console.error("Error loading saved requests:", e);
-      }
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
-
-  // Tab activation handler
-  useEffect(() => {
-    const handleTabActivation = (event: CustomEvent) => {
-      const tabId = event.detail;
-      if (tabId && tabId !== activeTab) {
-        const request = requests.find(r => r.id === tabId);
-        if (request) {
-          setLocation(`/request/${request.routeId}`);
-        }
-      }
-    };
-
-    window.addEventListener('activateTab', handleTabActivation as EventListener);
-    return () => window.removeEventListener('activateTab', handleTabActivation as EventListener);
-  }, [activeTab, setLocation, requests]);
-
   // Memoized handlers
   const handleNewTab = useCallback(() => {
-    const name = "New Request";
-    const id = nanoid();
     const timestamp = Date.now();
-    const routeId = generateRouteId(`${name}-v${timestamp}`);
+    const id = nanoid();
+    const routeId = generateRouteId(`new-request-${timestamp}`);
 
-    const newRequest = {
+    const newRequest: ApiRequest = {
       id,
       routeId,
-      name,
+      name: "New Request",
       method: "GET",
       url: "https://api.restful-api.dev/objects",
       queryParams: [{ key: "", value: "", enabled: true }],
       headers: DEFAULT_HEADERS,
+      pathVariables: [],
       auth: { type: "none" },
       body: {
         type: "none",
@@ -241,9 +94,8 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       },
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      selectedEnvironment: "dev",
-      pathVariables: []
-    } as ApiRequest;
+      selectedEnvironment: "dev"
+    };
 
     setRequests(prev => [...prev, newRequest]);
     setLocation(`/request/${routeId}`);
@@ -268,41 +120,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     });
   }, [activeTab, setLocation, handleNewTab]);
 
-  const handleSaveRequest = useCallback((requestId: string) => {
-    if (!saveName.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please enter a name for the request",
-      });
-      return;
+  const handleTabChange = useCallback((value: string) => {
+    const request = requests.find(r => r.id === value);
+    if (request && request.routeId !== routeId) {
+      setLocation(`/request/${request.routeId}`);
     }
-
-    const currentRequest = requests.find(r => r.id === requestId);
-    if (!currentRequest) return;
-
-    const newRouteId = generateRouteId(saveName, currentRequest.collectionName);
-
-    setRequests(prev =>
-      prev.map(req =>
-        req.id === requestId
-          ? {
-              ...req,
-              name: saveName,
-              routeId: newRouteId
-            }
-          : req
-      )
-    );
-    setSaveDialogOpen(false);
-    setSaveName("");
-    setLocation(`/request/${newRouteId}`);
-
-    toast({
-      title: "Success",
-      description: "Request saved successfully",
-    });
-  }, [saveName, requests, setLocation, toast]);
+  }, [requests, routeId, setLocation]);
 
   const handleUpdateRequest = useCallback((requestId: string, updates: Partial<ApiRequest>) => {
     setRequests(prev =>
@@ -322,13 +145,6 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     }
   }, [requests, onRequestComplete]);
 
-  const handleTabChange = useCallback((value: string) => {
-    const request = requests.find(r => r.id === value);
-    if (request && request.routeId !== routeId) {
-      setLocation(`/request/${request.routeId}`);
-    }
-  }, [requests, routeId, setLocation]);
-
   // Create initial tab if needed
   useEffect(() => {
     if (requests.length === 0) {
@@ -336,7 +152,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     }
   }, [requests.length, handleNewTab]);
 
-  if (requests.length === 0) {
+  if (!activeRequest) {
     return null;
   }
 
@@ -349,9 +165,8 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             size="icon" 
             className="shrink-0"
             onClick={() => {
-              const container = tabsContainerRef.current;
-              if (container) {
-                container.scrollLeft -= 200;
+              if (tabsContainerRef.current) {
+                tabsContainerRef.current.scrollLeft -= 200;
               }
             }}
           >
@@ -403,35 +218,13 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             size="icon"
             className="shrink-0"
             onClick={() => {
-              const container = tabsContainerRef.current;
-              if (container) {
-                container.scrollLeft += 200;
+              if (tabsContainerRef.current) {
+                tabsContainerRef.current.scrollLeft += 200;
               }
             }}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
-
-          <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="icon">
-                <Save className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Save Request</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Request Name"
-                  value={saveName}
-                  onChange={(e) => setSaveName(e.target.value)}
-                />
-                <Button onClick={() => handleSaveRequest(activeTab || '')}>Save</Button>
-              </div>
-            </DialogContent>
-          </Dialog>
 
           <Button variant="outline" size="icon" onClick={handleNewTab}>
             <Plus className="h-4 w-4" />
@@ -483,48 +276,3 @@ const DEFAULT_HEADERS = [
   { key: "User-Agent", value: "API-Tester/1.0", enabled: true },
   { key: "Content-Type", value: "application/json", enabled: true }
 ];
-
-interface RequestPanelProps {
-  request: ApiRequest;
-  onRequestChange: (updates: Partial<ApiRequest>) => void;
-  onResponse: (response: any) => void;
-  onLoading: (isLoading: boolean) => void;
-  onError: (error: string | null) => void;
-}
-
-const createApiRequest = ({
-  name,
-  method,
-  url,
-  routeId,
-  collectionName,
-  queryParams,
-  headers,
-}: {
-  name: string;
-  method: ApiRequest["method"];
-  url: string;
-  routeId: string;
-  collectionName?: string;
-  queryParams?: { key: string; value: string; enabled: boolean }[];
-  headers?: { key: string; value: string; enabled: boolean }[];
-}): ApiRequest => ({
-  id: nanoid(),
-  routeId,
-  name,
-  method,
-  url,
-  queryParams: queryParams || [],
-  headers: headers || DEFAULT_HEADERS,
-  auth: { type: "none" },
-  body: {
-    type: "none",
-    rawFormat: "json",
-    content: "",
-  },
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  selectedEnvironment: "dev",
-  pathVariables: [],
-  collectionName,
-});
