@@ -203,7 +203,7 @@ const parsePostmanCollection = (json: any): Collection => {
           method: item.request.method,
           url: baseUrl,
           collectionId,
-          collectionName,
+          collectionName: collectionName,
           id: generateRequestId(item.name, collectionName),
           headers: (item.request.header || []).map((h: any) => ({
             key: h.key,
