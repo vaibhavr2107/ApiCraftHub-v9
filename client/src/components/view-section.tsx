@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FolderTree, Settings, History, Search, FileJson } from "lucide-react";
+import { FolderTree, Settings, History, Search, FileJson, Database } from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -29,7 +29,7 @@ interface Environment {
 
 interface ViewSectionProps {
   onEnvironmentSelect?: (environment: Environment) => void;
-  onViewChange?: (view: 'collections' | 'environment' | 'history' | 'openapi') => void;
+  onViewChange?: (view: 'collections' | 'environment' | 'history' | 'openapi' | 'catalog') => void;
 }
 
 const generateHistoryRouteId = (entry: any): string => {
@@ -40,7 +40,7 @@ const generateHistoryRouteId = (entry: any): string => {
 };
 
 export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionProps) {
-  const [activeView, setActiveView] = useState<"collections" | "environment" | "history" | "openapi">("collections");
+  const [activeView, setActiveView] = useState<"collections" | "environment" | "history" | "openapi" | "catalog">("collections");
   const [environments, setEnvironments] = useState<Environment[]>(() => {
     const saved = localStorage.getItem("environments");
     return saved ? JSON.parse(saved) : [];
@@ -161,6 +161,15 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     <SidebarGroup>
       <SidebarGroupLabel>Views</SidebarGroupLabel>
       <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            onClick={() => handleViewChange("catalog")}
+            isActive={activeView === "catalog"}
+          >
+            <Database className="h-4 w-4" />
+            <span>API Catalog</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
         <SidebarMenuItem>
           <SidebarMenuButton
             onClick={() => handleViewChange("collections")}
