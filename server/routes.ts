@@ -27,8 +27,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
-      // Add body if present
-      if (body) {
+      // Add body only for non-GET/HEAD requests
+      if (body && !['GET', 'HEAD'].includes(method.toUpperCase())) {
         if (body instanceof FormData) {
           requestOptions.body = body;
         } else if (typeof body === 'string') {
