@@ -291,24 +291,6 @@ const loadCollectionsFromFiles = async (): Promise<Collection[]> => {
         const content = await fileResponse.json();
         const collection = parsePostmanCollection(content);
 
-        const allRequests = [...collection.requests];
-        collection.folders?.forEach(folder => {
-          const getFolderRequests = (f: CollectionFolder): ApiRequest[] => {
-            const requests = [...f.requests];
-            f.folders?.forEach(subFolder => {
-              requests.push(...getFolderRequests(subFolder));
-            });
-            return requests;
-          };
-          allRequests.push(...getFolderRequests(folder));
-        });
-
-        const savedRequests = localStorage.getItem("saved_requests");
-        const existingRequests = savedRequests ? JSON.parse(savedRequests) : [];
-        const updatedRequests = [...existingRequests, ...allRequests];
-        localStorage.setItem("saved_requests", JSON.stringify(updatedRequests));
-
-
         if (existingCollections.has(collection.name.toLowerCase())) continue;
 
         collections.push(collection);
@@ -403,23 +385,6 @@ export function Sidebar({ onRequestSelect, onCollectionSelect, onEnvironmentSele
             });
             return;
           }
-
-          const allRequests = [...collection.requests];
-          collection.folders?.forEach(folder => {
-            const getFolderRequests = (f: CollectionFolder): ApiRequest[] => {
-              const requests = [...f.requests];
-              f.folders?.forEach(subFolder => {
-                requests.push(...getFolderRequests(subFolder));
-              });
-              return requests;
-            };
-            allRequests.push(...getFolderRequests(folder));
-          });
-
-          const savedRequests = localStorage.getItem("saved_requests");
-          const existingRequests = savedRequests ? JSON.parse(savedRequests) : [];
-          const updatedRequests = [...existingRequests, ...allRequests];
-          localStorage.setItem("saved_requests", JSON.stringify(updatedRequests));
 
           newCollections.push(collection);
           existingCollections.add(collection.name.toLowerCase());

@@ -19,6 +19,10 @@ interface Environment {
   variables: { key: string; value: string }[];
 }
 
+const generateRequestId = (requestName: string, collectionName: string): string => {
+  return `${collectionName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${requestName.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+};
+
 export default function Home() {
   const [selectedCollection, setSelectedCollection] = useState<Collection | null>(null);
   const [selectedEnvironment, setSelectedEnvironment] = useState<Environment | null>(null);
@@ -193,13 +197,12 @@ export default function Home() {
     if (parts.length < 4) return null;
 
     const collectionName = parts[2];
-    const requestName = parts[3];
+    const requestPath = parts.slice(3).join('-');
 
     const savedCollections = localStorage.getItem("collections");
     if (!savedCollections) return null;
 
     const collections = JSON.parse(savedCollections);
-
     const collection = collections.find((c: Collection) =>
       c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === collectionName
     );
@@ -207,11 +210,19 @@ export default function Home() {
     if (!collection) return null;
 
     const searchInFolder = (folder: CollectionFolder): ApiRequest | null => {
-      const request = folder.requests.find(r =>
-        r.id.includes(requestName) ||
-        r.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === requestName
-      );
-      if (request) return request;
+      const request = folder.requests.find(r => {
+        const requestId = generateRequestId(r.name, collection.name);
+        return requestId === requestPath || r.id === requestPath;
+      });
+
+      if (request) {
+        return {
+          ...request,
+          collectionId: collection.id,
+          collectionName: collection.name,
+          id: generateRequestId(request.name, collection.name)
+        };
+      }
 
       if (folder.folders) {
         for (const subfolder of folder.folders) {
@@ -222,10 +233,19 @@ export default function Home() {
       return null;
     };
 
-    let request = collection.requests.find(r =>
-      r.id.includes(requestName) ||
-      r.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') === requestName
-    );
+    let request = collection.requests.find(r => {
+      const requestId = generateRequestId(r.name, collection.name);
+      return requestId === requestPath || r.id === requestPath;
+    });
+
+    if (request) {
+      request = {
+        ...request,
+        collectionId: collection.id,
+        collectionName: collection.name,
+        id: generateRequestId(request.name, collection.name)
+      };
+    }
 
     if (!request && collection.folders) {
       for (const folder of collection.folders) {
