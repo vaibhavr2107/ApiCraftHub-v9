@@ -114,6 +114,17 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     const routeId = generateHistoryRouteId(entry);
     console.log('Creating history request with routeId:', routeId);
 
+    // Check if we already have this request in saved requests
+    const savedRequests = localStorage.getItem("saved_requests");
+    const requests = savedRequests ? JSON.parse(savedRequests) : [];
+    const existingRequest = requests.find((r: any) => r.routeId === routeId);
+
+    if (existingRequest) {
+      console.log('Found existing request with same routeId:', existingRequest);
+      window.dispatchEvent(new CustomEvent('activateTab', { detail: existingRequest.id }));
+      return;
+    }
+
     const historyRequest = {
       id: crypto.randomUUID(),
       routeId,
@@ -130,10 +141,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       selectedEnvironment: "dev"
     };
 
-    const savedRequests = localStorage.getItem("saved_requests");
-    const requests = savedRequests ? JSON.parse(savedRequests) : [];
     localStorage.setItem("saved_requests", JSON.stringify([...requests, historyRequest]));
-
     window.dispatchEvent(new Event("storage"));
     window.dispatchEvent(new CustomEvent('activateTab', { detail: historyRequest.id }));
   };
