@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { nanoid } from "nanoid";
 import { useToast } from "@/hooks/use-toast";
 import { ApiRequest, createApiRequest } from "@/types/api-request";
+import { generateRequestId } from "@/lib/utils";
 import cn from 'classnames';
 import { OpenAPIViewer } from "./openapi-viewer";
 
@@ -59,6 +60,7 @@ interface SearchResult {
   folder?: CollectionFolder;
   path: string[];
 }
+
 
 const parsePostmanCollection = (json: any): Collection => {
   try {
@@ -200,6 +202,7 @@ const parsePostmanCollection = (json: any): Collection => {
           method: item.request.method,
           url: baseUrl,
           collectionId,
+          id: generateRequestId(item.name, json.info?.name),
           headers: (item.request.header || []).map((h: any) => ({
             key: h.key,
             value: h.value,

@@ -2,6 +2,7 @@ import { Plus, Save, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { nanoid } from "nanoid";
 import { useLocation } from "wouter";
+import { generateRequestId } from "@/lib/utils"; // Added import statement
 import {
   Tabs,
   TabsContent,
@@ -96,7 +97,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   const handleNewTab = () => {
     const newRequest = {
-      id: nanoid(),
+      id: generateRequestId("New Request"), // Using generateRequestId
       name: "New Request",
       method: "GET",
       url: "https://api.restful-api.dev/objects",
@@ -143,11 +144,24 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     }
 
     const updatedRequests = requests.map((req) =>
-      req.id === requestId ? { ...req, name: saveName } : req
+      req.id === requestId
+        ? {
+            ...req,
+            name: saveName,
+            id: generateRequestId(saveName) // Using generateRequestId
+          }
+        : req
     );
     setRequests(updatedRequests);
     setSaveDialogOpen(false);
     setSaveName("");
+
+    // Update location to new ID
+    const updatedRequest = updatedRequests.find(r => r.id === requestId);
+    if (updatedRequest) {
+      setLocation(`/request/${updatedRequest.id}`);
+    }
+
     toast({
       title: "Success",
       description: "Request saved successfully",
