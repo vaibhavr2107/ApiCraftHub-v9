@@ -51,7 +51,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   // Get active tab from route or first request
   const routeId = location.split('/').pop();
-  const activeRequest = requests.find(r => r.routeId === routeId) || requests[0];
+  console.log('Current routeId from URL:', routeId);
+  const activeRequest = requests.find(r => {
+    console.log('Checking request:', { requestRouteId: r.routeId, urlRouteId: routeId });
+    return r.routeId === routeId;
+  }) || requests[0];
+  console.log('Active request:', activeRequest);
   const activeTab = activeRequest?.id;
 
   const [responses, setResponses] = useState<Record<string, any>>({});
@@ -87,8 +92,10 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   useEffect(() => {
     const handleTabActivation = (event: CustomEvent) => {
       const tabId = event.detail;
+      console.log('Tab activation event:', { tabId, activeTab });
       if (tabId && tabId !== activeTab) {
         const request = requests.find(r => r.id === tabId);
+        console.log('Found request for tab:', request);
         if (request) {
           setLocation(`/request/${request.routeId}`);
         }
