@@ -172,7 +172,8 @@ export default function Home() {
         url: request.url,
         headers: request.headers,
         queryParams: request.queryParams,
-        body: request.body
+        body: request.body,
+        routeId: request.routeId // Add routeId to history entry
       },
       response: {
         status: response.status,

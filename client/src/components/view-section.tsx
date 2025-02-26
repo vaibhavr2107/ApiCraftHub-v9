@@ -101,9 +101,15 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     return "text-gray-500";
   };
 
+  const generateRouteId = (name: string) => {
+    //  A simple example, replace with a more robust ID generation if needed.
+    return name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  };
+
   const handleHistoryItemClick = (entry: any) => {
     const historyRequest = {
       id: crypto.randomUUID(),
+      routeId: generateRouteId(`History: ${entry.request.method} ${new URL(entry.request.url).pathname}`),
       name: `History: ${entry.request.method} ${new URL(entry.request.url).pathname}`,
       method: entry.request.method,
       url: entry.request.url,
@@ -111,7 +117,10 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       queryParams: entry.request.queryParams || [],
       body: entry.request.body || { type: "none", content: "", rawFormat: "json" },
       pathVariables: [],
-      auth: { type: "none" }
+      auth: { type: "none" },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      selectedEnvironment: "dev"
     };
 
     const savedRequests = localStorage.getItem("saved_requests");
