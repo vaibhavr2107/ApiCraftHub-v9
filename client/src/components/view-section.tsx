@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { generateRouteId } from "@/lib/utils";
 
 interface Environment {
   id: string;
@@ -30,6 +31,13 @@ interface ViewSectionProps {
   onEnvironmentSelect?: (environment: Environment) => void;
   onViewChange?: (view: 'collections' | 'environment' | 'history' | 'openapi') => void;
 }
+
+const generateHistoryRouteId = (entry: any): string => {
+  const timestamp = new Date(entry.timestamp).getTime();
+  const urlPath = new URL(entry.request.url).pathname;
+  const baseRouteId = `history-${entry.request.method.toLowerCase()}-${urlPath.replace(/[^a-z0-9]+/g, '-')}`;
+  return `${baseRouteId}-${timestamp}`;
+};
 
 export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionProps) {
   const [activeView, setActiveView] = useState<"collections" | "environment" | "history" | "openapi">("collections");
@@ -101,16 +109,15 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     return "text-gray-500";
   };
 
-  const generateRouteId = (name: string) => {
-    //  A simple example, replace with a more robust ID generation if needed.
-    return name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  };
 
   const handleHistoryItemClick = (entry: any) => {
+    const routeId = generateHistoryRouteId(entry);
+    console.log('Creating history request with routeId:', routeId);
+
     const historyRequest = {
       id: crypto.randomUUID(),
-      routeId: generateRouteId(`History: ${entry.request.method} ${new URL(entry.request.url).pathname}`),
-      name: `History: ${entry.request.method} ${new URL(entry.request.url).pathname}`,
+      routeId,
+      name: `${entry.request.method} ${new URL(entry.request.url).pathname} (${formatDate(entry.timestamp)})`,
       method: entry.request.method,
       url: entry.request.url,
       headers: entry.request.headers || [],

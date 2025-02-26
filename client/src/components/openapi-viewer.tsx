@@ -8,7 +8,7 @@ import { ApiRequest } from "@/types/api-request";
 import { createApiRequest } from "@/types/api-request";
 import { Upload, ChevronDown, ChevronRight, FileText, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { generateRouteId } from "@/lib/utils";  // Add import
+import { generateRouteId } from "@/lib/utils";
 
 interface OpenAPISpec {
   paths: Record<string, Record<string, any>>;
@@ -143,15 +143,24 @@ export function OpenAPIViewer({ onRequestSelect }: OpenAPIViewerProps) {
     // Generate a name for the request
     const requestName = operation.summary || `${method.toUpperCase()} ${path}`;
 
-    // Generate a routeId using the spec name as collection and request name
-    const routeId = generateRouteId(requestName, spec.fileName);
+    // Generate a unique route ID using spec name, method, and path
+    // This ensures uniqueness across different specs and operations
+    const cleanPath = path.replace(/[{}]/g, '').replace(/\//g, '-');
+    const uniqueRequestName = `${method.toLowerCase()}-${cleanPath}`;
+    const routeId = generateRouteId(uniqueRequestName, spec.fileName);
+
+    console.log('Creating OpenAPI request:', {
+      name: requestName,
+      routeId,
+      collectionName: spec.fileName
+    });
 
     return createApiRequest({
       name: requestName,
       method: method.toUpperCase() as ApiRequest["method"],
       url,
-      routeId, // Add routeId
-      collectionName: spec.fileName, // Add collection name
+      routeId,
+      collectionName: spec.fileName,
       queryParams: operation.parameters
         ?.filter((p: any) => p.in === "query")
         .map((p: any) => ({
