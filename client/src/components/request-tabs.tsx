@@ -33,7 +33,6 @@ const DEFAULT_HEADERS = [
   { key: "Content-Type", value: "application/json", enabled: true }
 ];
 
-// Add substituteVariables helper at the top of the file
 const substituteVariables = (str: string, collection: any): string => {
   if (!collection || !str) return str;
 
@@ -44,6 +43,44 @@ const substituteVariables = (str: string, collection: any): string => {
     return variable ? variable.value : match;
   });
 };
+
+const createApiRequest = ({
+  name,
+  method,
+  url,
+  routeId,
+  collectionName,
+  queryParams,
+  headers,
+}: {
+  name: string;
+  method: ApiRequest["method"];
+  url: string;
+  routeId: string;
+  collectionName?: string;
+  queryParams?: { key: string; value: string; enabled: boolean }[];
+  headers?: { key: string; value: string; enabled: boolean }[];
+}): ApiRequest => ({
+  id: nanoid(),
+  routeId,
+  name,
+  method,
+  url,
+  queryParams: queryParams || [],
+  headers: headers || [],
+  auth: { type: "none" },
+  body: {
+    type: "none",
+    rawFormat: "json",
+    content: "",
+  },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  selectedEnvironment: "dev",
+  pathVariables: [],
+  collectionName,
+});
+
 
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
@@ -71,58 +108,119 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     return r.routeId === routeId;
   });
 
-  // If not found, try to find in saved collections
+  // If not found, try to find in collections or OpenAPI specs
   if (!activeRequest && routeId) {
-    const savedCollections = localStorage.getItem("collections");
-    if (savedCollections) {
-      const collections = JSON.parse(savedCollections);
+    // Check OpenAPI specs first
+    const savedSpecs = localStorage.getItem("openapi_specs");
+    if (savedSpecs) {
+      const specs = JSON.parse(savedSpecs);
+      console.log('Checking OpenAPI specs for routeId:', routeId);
 
-      const findRequestInFolder = (folder: any, collection: any): ApiRequest | null => {
-        const request = folder.requests.find((r: ApiRequest) => r.routeId === routeId);
-        if (request) {
-          // Process variables before returning
-          return {
-            ...request,
-            id: request.id || nanoid(),
-            url: substituteVariables(request.url, collection)
-          };
-        }
+      for (const spec of specs) {
+        for (const [path, methods] of Object.entries(spec.paths)) {
+          for (const [method, operation] of Object.entries(methods as any)) {
+            const cleanPath = path.replace(/[{}]/g, '').replace(/\//g, '-');
+            const expectedRouteId = generateRouteId(`${method.toLowerCase()}-${cleanPath}`, spec.fileName);
+            console.log('Comparing OpenAPI route IDs:', { expectedRouteId, routeId });
 
-        if (folder.folders) {
-          for (const subfolder of folder.folders) {
-            const found = findRequestInFolder(subfolder, collection);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-
-      for (const collection of collections) {
-        // Check root requests
-        let request = collection.requests.find((r: ApiRequest) => r.routeId === routeId);
-        if (request) {
-          // Process variables before setting
-          request = {
-            ...request,
-            id: request.id || nanoid(),
-            url: substituteVariables(request.url, collection)
-          };
-          setRequests(prev => [...prev, request]);
-          activeRequest = request;
-          break;
-        }
-
-        // Check folders
-        if (collection.folders) {
-          for (const folder of collection.folders) {
-            const found = findRequestInFolder(folder, collection);
-            if (found) {
-              setRequests(prev => [...prev, found]);
-              activeRequest = found;
+            if (expectedRouteId === routeId) {
+              const request = createApiRequest({
+                name: operation.summary || `${method.toUpperCase()} ${path}`,
+                method: method.toUpperCase() as ApiRequest["method"],
+                url: `${spec.servers?.[0]?.url || 'https://api.example.com'}${path}`,
+                routeId,
+                collectionName: spec.fileName,
+                queryParams: operation.parameters
+                  ?.filter((p: any) => p.in === "query")
+                  .map((p: any) => ({
+                    key: p.name,
+                    value: "",
+                    enabled: true,
+                  })) || [],
+                headers: operation.parameters
+                  ?.filter((p: any) => p.in === "header")
+                  .map((p: any) => ({
+                    key: p.name,
+                    value: "",
+                    enabled: true,
+                  })) || [],
+              });
+              console.log('Found matching OpenAPI request:', request);
+              setRequests(prev => [...prev, request]);
+              activeRequest = request;
               break;
             }
           }
           if (activeRequest) break;
+        }
+        if (activeRequest) break;
+      }
+    }
+
+    // If still not found, check collections
+    if (!activeRequest) {
+      const savedCollections = localStorage.getItem("collections");
+      if (savedCollections) {
+        const collections = JSON.parse(savedCollections);
+        console.log('Checking collections for routeId:', routeId);
+
+        const findRequestInFolder = (folder: any, collection: any): ApiRequest | null => {
+          const request = folder.requests.find((r: ApiRequest) => r.routeId === routeId);
+          if (request) {
+            return {
+              ...request,
+              id: request.id || nanoid(),
+              url: substituteVariables(request.url, collection)
+            };
+          }
+
+          if (folder.folders) {
+            for (const subfolder of folder.folders) {
+              const found = findRequestInFolder(subfolder, collection);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+
+        for (const collection of collections) {
+          // Check root requests
+          let request = collection.requests.find((r: ApiRequest) => r.routeId === routeId);
+          if (request) {
+            request = {
+              ...request,
+              id: request.id || nanoid(),
+              url: substituteVariables(request.url, collection)
+            };
+            setRequests(prev => {
+              // Check if we already have this request
+              if (!prev.some(r => r.routeId === request.routeId)) {
+                return [...prev, request];
+              }
+              return prev;
+            });
+            activeRequest = request;
+            break;
+          }
+
+          // Check folders
+          if (collection.folders) {
+            for (const folder of collection.folders) {
+              const found = findRequestInFolder(folder, collection);
+              if (found) {
+                setRequests(prev => {
+                  // Check if we already have this request
+                  if (!prev.some(r => r.routeId === found.routeId)) {
+                    return [...prev, found];
+                  }
+                  return prev;
+                });
+                activeRequest = found;
+                break;
+              }
+            }
+            if (activeRequest) break;
+          }
         }
       }
     }
