@@ -230,7 +230,8 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const handleNewTab = useCallback(() => {
     const name = "New Request";
     const id = nanoid();
-    const routeId = generateRouteId(name);
+    const timestamp = Date.now();
+    const routeId = generateRouteId(`${name}-v${timestamp}`);
 
     const newRequest = {
       id,
