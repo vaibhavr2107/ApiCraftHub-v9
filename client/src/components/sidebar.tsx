@@ -367,7 +367,7 @@ const RequestHistoryItem = ({ entry }: { entry: HistoryEntry }) => (
         {formatDate(entry.timestamp)}
       </span>
     </div>
-    <div className="truncate font-mono text-muted-foreground text-[0.8rem]">
+    <div className="truncate font-figtree text-muted-foreground text-[0.8rem]">
       {entry.request.url}
     </div>
   </div>

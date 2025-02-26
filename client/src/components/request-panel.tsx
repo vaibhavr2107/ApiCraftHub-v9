@@ -788,7 +788,7 @@ export function RequestPanel({
               value={request.url}
               onChange={(e) => updateUrl(e.target.value)}
               placeholder="Enter URL"
-              className="request-url-input"
+              className="request-url-input font-figtree text-sm"
             />
             <Button onClick={handleSend} size="sm" className="h-9">
               <Send className="w-4 h-4 mr-2" />
