@@ -1,4 +1,5 @@
 import type { ResponseData } from "@/types/api-request";
+import type { Request } from "@shared/schema";
 
 interface RequestOptions {
   method: string;
@@ -55,4 +56,30 @@ export async function makeRequest({
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     throw new Error(errorMessage);
   }
+}
+
+export async function saveRequest(request: Request): Promise<{ fileName: string; version: number }> {
+  const response = await fetch('/api/requests', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request)
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to save request');
+  }
+
+  return response.json();
+}
+
+export async function loadRequests(): Promise<Request[]> {
+  const response = await fetch('/api/requests');
+
+  if (!response.ok) {
+    throw new Error('Failed to load requests');
+  }
+
+  return response.json();
 }

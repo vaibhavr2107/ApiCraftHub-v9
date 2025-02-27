@@ -10,16 +10,16 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ApiRequest } from "@/types/api-request";
-import { RequestPanel } from "./request-panel";
-import { ResponsePanel } from "./response-panel";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { saveRequest, loadRequests } from "@/lib/api";
+import type { Request, RequestHistory } from "@shared/schema";
+import { RequestPanel } from "./request-panel";
+import { ResponsePanel } from "./response-panel";
 
 // Keep track of version numbers for new requests
 let newRequestVersion = 1;
 
-// Moved outside component to prevent recreation
 const substituteVariables = (str: string, collection: any): string => {
   if (!collection || !str) return str;
 
@@ -33,7 +33,7 @@ const substituteVariables = (str: string, collection: any): string => {
 
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
-  const [requests, setRequests] = useState<ApiRequest[]>(() => {
+  const [requests, setRequests] = useState<Request[]>(() => {
     try {
       const saved = localStorage.getItem("saved_requests");
       return saved ? JSON.parse(saved) : [];
@@ -49,164 +49,82 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const { toast } = useToast();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
 
-  // Get route ID once
+  // Get route ID and active request once
   const routeId = useMemo(() => location.split('/').pop(), [location]);
+  const activeRequest = useMemo(() => requests.find(r => r.routeId === routeId), [requests, routeId]);
 
-  // Memoize active request lookup
-  const activeRequest = useMemo(() => {
-    // First try to find in current requests
-    let active = requests.find(r => r.routeId === routeId);
-    if (active) return active;
-
-    // Try OpenAPI specs
-    if (routeId) {
-      try {
-        const savedSpecs = localStorage.getItem("openapi_specs");
-        if (savedSpecs) {
-          const specs = JSON.parse(savedSpecs);
-          for (const spec of specs) {
-            for (const [path, methods] of Object.entries(spec.paths)) {
-              for (const [method, operation] of Object.entries(methods as any)) {
-                const cleanPath = path.replace(/[{}]/g, '').replace(/\//g, '-');
-                const expectedRouteId = generateRouteId(`${method.toLowerCase()}-${cleanPath}`, spec.fileName);
-
-                if (expectedRouteId === routeId) {
-                  active = {
-                    id: nanoid(),
-                    routeId,
-                    name: operation.summary || `${method.toUpperCase()} ${path}`,
-                    method: method.toUpperCase() as ApiRequest["method"],
-                    url: `${spec.servers?.[0]?.url || 'https://api.example.com'}${path}`,
-                    collectionName: spec.fileName,
-                    queryParams: operation.parameters
-                      ?.filter((p: any) => p.in === "query")
-                      .map((p: any) => ({
-                        key: p.name,
-                        value: "",
-                        enabled: true,
-                      })) || [],
-                    headers: DEFAULT_HEADERS,
-                    pathVariables: [],
-                    auth: { type: "none" },
-                    body: {
-                      type: "none",
-                      rawFormat: "json",
-                      content: "",
-                    },
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    selectedEnvironment: "dev"
-                  };
-                  setRequests(prev => [...prev, active!]);
-                  return active;
-                }
-              }
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Error processing OpenAPI specs:", e);
-      }
-    }
-
-    // Try collections
-    try {
-      const savedCollections = localStorage.getItem("collections");
-      if (savedCollections) {
-        const collections = JSON.parse(savedCollections);
-        for (const collection of collections) {
-          // Check root requests
-          let request = collection.requests?.find((r: ApiRequest) => r.routeId === routeId);
-          if (request) {
-            request = {
-              ...request,
-              id: nanoid(),
-              url: substituteVariables(request.url, collection)
-            };
-            setRequests(prev => {
-              if (!prev.some(r => r.routeId === request.routeId)) {
-                return [...prev, request];
-              }
-              return prev;
-            });
-            return request;
-          }
-
-          // Search in folders
-          if (collection.folders) {
-            const findRequestInFolder = (folder: any): ApiRequest | null => {
-              const found = folder.requests?.find((r: ApiRequest) => r.routeId === routeId);
-              if (found) {
-                return {
-                  ...found,
-                  id: nanoid(),
-                  url: substituteVariables(found.url, collection)
-                };
-              }
-
-              if (folder.folders) {
-                for (const subfolder of folder.folders) {
-                  const result = findRequestInFolder(subfolder);
-                  if (result) return result;
-                }
-              }
-              return null;
-            };
-
-            for (const folder of collection.folders) {
-              const found = findRequestInFolder(folder);
-              if (found) {
-                setRequests(prev => {
-                  if (!prev.some(r => r.routeId === found.routeId)) {
-                    return [...prev, found];
-                  }
-                  return prev;
-                });
-                return found;
-              }
-            }
-          }
-        }
-      }
-    } catch (e) {
-      console.error("Error processing collections:", e);
-    }
-
-    // Fallback to first request
-    return requests[0];
-  }, [routeId, requests]);
-
-  const activeTab = activeRequest?.id;
-
-  // Persist requests to localStorage
+  // Load requests from server on mount
   useEffect(() => {
-    localStorage.setItem("saved_requests", JSON.stringify(requests));
-  }, [requests]);
+    const loadSavedRequests = async () => {
+      try {
+        const serverRequests = await loadRequests();
+        if (serverRequests.length > 0) {
+          setRequests(serverRequests);
+          localStorage.setItem("saved_requests", JSON.stringify(serverRequests));
+        }
+      } catch (error) {
+        console.error('Error loading requests from server:', error);
+      }
+    };
 
-  // Memoized handlers
+    loadSavedRequests();
+  }, []);
+
+  // Update request history after successful request
+  const updateRequestHistory = async (request: Request, response: any) => {
+    if (response.status >= 200 && response.status < 300) {
+      const historyEntry: RequestHistory = {
+        method: request.method,
+        url: request.baseUrl,
+        requestBody: request.requestBody,
+        responseFields: response.data,
+        timestamp: new Date().toISOString(),
+        responseTime: response.time
+      };
+
+      const updatedRequest = {
+        ...request,
+        historyRequests: [
+          historyEntry,
+          ...(request.historyRequests || []).slice(0, 4) // Keep only last 5 entries
+        ]
+      };
+
+      try {
+        await saveRequest(updatedRequest);
+        setRequests(prev =>
+          prev.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
+        );
+      } catch (error) {
+        console.error('Error saving request history:', error);
+      }
+    }
+  };
+
   const handleNewTab = useCallback(() => {
     const id = nanoid();
     const routeId = generateRouteId(`new-request-v${newRequestVersion}`);
     newRequestVersion++; // Increment version for next new request
 
-    const newRequest: ApiRequest = {
-      id,
+    const newRequest: Request = {
+      requestId: id,
       routeId,
       name: "New Request",
       method: "GET",
-      url: "https://api.restful-api.dev/objects",
-      queryParams: [{ key: "", value: "", enabled: true }],
+      baseUrl: "https://api.restful-api.dev/objects",
+      queryParams: { page: "1", limit: "10" },
+      pathVariables: {},
+      auth: { type: "bearer", token: "tiaa" },
       headers: DEFAULT_HEADERS,
-      pathVariables: [],
-      auth: { type: "none" },
-      body: {
-        type: "none",
-        rawFormat: "json",
-        content: "",
-      },
+      historyId: `history-${id}`,
+      historyRequests: [],
+      responseFields: {},
+      requestBody: {},
+      exampleResponseBody: {},
+      tags: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      selectedEnvironment: "dev"
+      version: 1
     };
 
     setRequests(prev => [...prev, newRequest]);
@@ -214,11 +132,13 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   }, [setLocation]);
 
   const handleCloseTab = useCallback((requestId: string) => {
+    if (!activeRequest) return;
+
     setRequests(prev => {
-      const updatedRequests = prev.filter(req => req.id !== requestId);
+      const updatedRequests = prev.filter(req => req.requestId !== requestId);
 
       // If we're closing the active tab, navigate to another tab
-      if (requestId === activeTab) {
+      if (requestId === activeRequest.requestId) {
         const nextTab = updatedRequests[0];
         if (nextTab) {
           setLocation(`/request/${nextTab.routeId}`);
@@ -230,28 +150,29 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
       return updatedRequests;
     });
-  }, [activeTab, setLocation, handleNewTab]);
+  }, [activeRequest, setLocation, handleNewTab]);
 
   const handleTabChange = useCallback((value: string) => {
-    const request = requests.find(r => r.id === value);
+    const request = requests.find(r => r.requestId === value);
     if (request && request.routeId !== routeId) {
       setLocation(`/request/${request.routeId}`);
     }
   }, [requests, routeId, setLocation]);
 
-  const handleUpdateRequest = useCallback((requestId: string, updates: Partial<ApiRequest>) => {
+  const handleUpdateRequest = useCallback((requestId: string, updates: Partial<Request>) => {
     setRequests(prev =>
       prev.map(req =>
-        req.id === requestId ? { ...req, ...updates } : req
+        req.requestId === requestId ? { ...req, ...updates } : req
       )
     );
   }, []);
 
   const handleResponse = useCallback((requestId: string, response: any) => {
     setResponses(prev => ({ ...prev, [requestId]: response }));
-    if (onRequestComplete) {
-      const request = requests.find(req => req.id === requestId);
-      if (request) {
+    const request = requests.find(req => req.requestId === requestId);
+    if (request) {
+      updateRequestHistory(request, response);
+      if (onRequestComplete) {
         onRequestComplete(request, response);
       }
     }
@@ -270,7 +191,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   return (
     <div className="container py-6 max-w-[1400px]">
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+      <Tabs value={activeRequest.requestId} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center gap-2 mb-4">
           <Button
             variant="ghost"
@@ -292,17 +213,17 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             <TabsList className="flex w-max space-x-1">
               {requests.map((request) => (
                 <div
-                  key={request.id}
+                  key={request.requestId}
                   className={cn(
                     "flex items-center mx-1 rounded-md transition-colors",
-                    activeTab === request.id ? "bg-muted" : "bg-transparent"
+                    activeRequest.requestId === request.requestId ? "bg-muted" : "bg-transparent"
                   )}
                 >
                   <TabsTrigger
-                    value={request.id}
+                    value={request.requestId}
                     className={cn(
                       "w-[160px] justify-start text-left truncate",
-                      activeTab === request.id ? "bg-muted" : ""
+                      activeRequest.requestId === request.requestId ? "bg-muted" : ""
                     )}
                   >
                     {request.name}
@@ -313,11 +234,11 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                       size="icon"
                       className={cn(
                         "h-8 w-8",
-                        activeTab === request.id ? "bg-muted hover:bg-muted/80" : ""
+                        activeRequest.requestId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleCloseTab(request.id);
+                        handleCloseTab(request.requestId);
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -356,23 +277,23 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
         </div>
 
         {requests.map((request) => (
-          <TabsContent key={request.id} value={request.id} className="space-y-6">
+          <TabsContent key={request.requestId} value={request.requestId} className="space-y-6">
             <div className="flex flex-col gap-6">
               <RequestPanel
                 request={request}
-                onRequestChange={(updates) => handleUpdateRequest(request.id, updates)}
-                onResponse={(response) => handleResponse(request.id, response)}
+                onRequestChange={(updates) => handleUpdateRequest(request.requestId, updates)}
+                onResponse={(response) => handleResponse(request.requestId, response)}
                 onLoading={(isLoading) =>
-                  setLoading(prev => ({ ...prev, [request.id]: isLoading }))
+                  setLoading(prev => ({ ...prev, [request.requestId]: isLoading }))
                 }
                 onError={(error) =>
-                  setErrors(prev => ({ ...prev, [request.id]: error }))
+                  setErrors(prev => ({ ...prev, [request.requestId]: error }))
                 }
               />
               <ResponsePanel
-                response={responses[request.id]}
-                isLoading={loading[request.id]}
-                error={errors[request.id]}
+                response={responses[request.requestId]}
+                isLoading={loading[request.requestId]}
+                error={errors[request.requestId]}
               />
             </div>
           </TabsContent>
@@ -383,11 +304,11 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 }
 
 interface RequestTabsProps {
-  onRequestComplete?: (request: ApiRequest, response: any) => void;
+  onRequestComplete?: (request: Request, response: any) => void;
 }
 
-const DEFAULT_HEADERS = [
-  { key: "Accept", value: "*/*", enabled: true },
-  { key: "User-Agent", value: "API-Tester/1.0", enabled: true },
-  { key: "Content-Type", value: "application/json", enabled: true }
-];
+const DEFAULT_HEADERS: Record<string, string> = {
+  'Accept': '*/*',
+  'User-Agent': 'API-Tester/1.0',
+  'Content-Type': 'application/json'
+};
