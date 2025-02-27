@@ -17,10 +17,60 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { makeRequest } from "@/lib/api";
 import type { ApiRequest, RequestParameter, BodyType, RawFormat } from "@/types/api-request";
 import { useToast } from "@/hooks/use-toast";
-import { X, Send } from "lucide-react";
+import { X, Send, History } from "lucide-react";
 import { useLocation } from "wouter";
 import { EnvironmentSelector } from "./environment-selector";
 import { Environment, EnvironmentStore, DEFAULT_ENVIRONMENTS } from "@/types/environment";
+
+// Add HistorySection component
+const HistorySection = ({ history }: { history: any[] }) => {
+  if (!history || history.length === 0) {
+    return (
+      <div className="text-center text-muted-foreground py-4">
+        No request history available
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {history.map((entry, index) => (
+        <Card key={index} className="p-4">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <span className={`font-semibold ${METHOD_COLORS[entry.method as keyof typeof METHOD_COLORS]}`}>
+                {entry.method}
+              </span>
+              <span className="ml-2 text-sm text-muted-foreground">
+                {new Date(entry.timestamp).toLocaleString()}
+              </span>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {entry.responseTime.toFixed(0)}ms
+            </div>
+          </div>
+          <div className="text-sm break-all">{entry.url}</div>
+          {entry.requestBody && (
+            <div className="mt-2">
+              <div className="text-sm font-medium text-muted-foreground">Request Body:</div>
+              <pre className="mt-1 text-sm bg-muted p-2 rounded-md overflow-auto">
+                {JSON.stringify(entry.requestBody, null, 2)}
+              </pre>
+            </div>
+          )}
+          {entry.responseFields && (
+            <div className="mt-2">
+              <div className="text-sm font-medium text-muted-foreground">Response:</div>
+              <pre className="mt-1 text-sm bg-muted p-2 rounded-md overflow-auto">
+                {JSON.stringify(entry.responseFields, null, 2)}
+              </pre>
+            </div>
+          )}
+        </Card>
+      ))}
+    </div>
+  );
+};
 
 // Import component styles
 import "@/styles/request-panel.css";
@@ -827,6 +877,10 @@ export function RequestPanel({
             <TabsTrigger value="body" className="tab-trigger data-[state=active]:bg-muted">
               Body
             </TabsTrigger>
+            <TabsTrigger value="history" className="tab-trigger data-[state=active]:bg-muted">
+              <History className="h-4 w-4 mr-1" />
+              History
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -877,6 +931,10 @@ export function RequestPanel({
               onChange={(updates) => onRequestChange({ body: updates })}
               onFormat={handleFormatBody}
             />
+          </TabsContent>
+          {/* Add History Tab Content */}
+          <TabsContent value="history" className="p-4">
+            <HistorySection history={request.historyRequests || []} />
           </TabsContent>
         </div>
       </Tabs>

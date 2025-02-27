@@ -1,20 +1,4 @@
-import { pgTable, text, serial, integer, boolean, jsonb } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
-
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
 
 // Request History schema
 export const RequestHistorySchema = z.object({
@@ -26,55 +10,71 @@ export const RequestHistorySchema = z.object({
   responseTime: z.number(),
 });
 
+export type RequestHistory = z.infer<typeof RequestHistorySchema>;
+
 // Main Request schema
-export const requests = pgTable("requests", {
-  id: serial("id").primaryKey(),
-  requestId: text("request_id").notNull(), // method + requestname
-  routeId: text("route_id").notNull(), // method + requestname
-  method: text("method").notNull(),
-  baseUrl: text("base_url").notNull(),
-  queryParams: jsonb("query_params").default('{}'),
-  pathVariables: jsonb("path_variables").default('{}'),
-  devEnvUrl: text("dev_env_url"),
-  qa01EnvUrl: text("qa01_env_url"),
-  qa02EnvUrl: text("qa02_env_url"),
-  qa03EnvUrl: text("qa03_env_url"),
-  perfEnvUrl: text("perf_env_url"),
-  auth: jsonb("auth").default('{"type": "bearer", "token": "tiaa"}'),
-  headers: jsonb("headers").default('{}'),
-  historyId: text("history_id"), // "history" + requestId
-  historyRequests: jsonb("history_requests").default('[]'), // Array of last 5 successful requests
-  responseFields: jsonb("response_fields").default('{}'),
-  requestBody: jsonb("request_body").default('{}'),
-  exampleResponseBody: jsonb("example_response_body").default('{}'),
-  tags: text("tags").array(),
-  teamName: text("team_name"),
-  collectionId: text("collection_id"),
-  avgResponseTime: integer("avg_response_time"),
-  createdAt: text("created_at").notNull(),
-  updatedAt: text("updated_at").notNull(),
+export const RequestSchema = z.object({
+  requestId: z.string(), // method + requestname
+  routeId: z.string(), // method + requestname
+  name: z.string(), // Add name field that was missing
+  method: z.string(),
+  baseUrl: z.string(),
+  queryParams: z.record(z.any()).default({}),
+  pathVariables: z.record(z.any()).default({}),
+  devEnvUrl: z.string().optional(),
+  qa01EnvUrl: z.string().optional(),
+  qa02EnvUrl: z.string().optional(),
+  qa03EnvUrl: z.string().optional(),
+  perfEnvUrl: z.string().optional(),
+  auth: z.object({
+    type: z.string(),
+    token: z.string().optional(), // Make token optional
+    basic: z.object({
+      username: z.string(),
+      password: z.string()
+    }).optional(),
+    bearer: z.object({
+      token: z.string()
+    }).optional(),
+    oauth2: z.any().optional()
+  }).default({ type: "bearer", token: "tiaa" }),
+  headers: z.record(z.string()).default({}),
+  historyId: z.string(), // "history" + requestId
+  historyRequests: z.array(RequestHistorySchema).max(5).default([]),
+  responseFields: z.record(z.any()).default({}),
+  requestBody: z.record(z.any()).default({}),
+  exampleResponseBody: z.record(z.any()).default({}),
+  tags: z.array(z.string()).default([]),
+  teamName: z.string().optional(),
+  collectionId: z.string().optional(),
+  avgResponseTime: z.number().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  version: z.number().default(1), // For handling duplicate request/route IDs
+  selectedEnvironment: z.string().optional() // Add selectedEnvironment field
 });
 
-export const insertRequestSchema = createInsertSchema(requests)
-  .extend({
-    historyRequests: z.array(RequestHistorySchema).max(5).optional(),
-    queryParams: z.record(z.any()).optional(),
-    pathVariables: z.record(z.any()).optional(),
-    headers: z.record(z.string()).optional(),
-    auth: z.object({
-      type: z.string(),
-      token: z.string(),
-    }).optional(),
-    responseFields: z.record(z.any()).optional(),
-    requestBody: z.record(z.any()).optional(),
-    exampleResponseBody: z.record(z.any()).optional(),
-    tags: z.array(z.string()).optional(),
-  })
-  .omit({ 
-    id: true,
-    createdAt: true,
-    updatedAt: true,
-  });
+export type Request = z.infer<typeof RequestSchema>;
 
-export type InsertRequest = z.infer<typeof insertRequestSchema>;
-export type Request = typeof requests.$inferSelect;
+// For creating new requests
+export const CreateRequestSchema = RequestSchema.omit({
+  createdAt: true,
+  updatedAt: true,
+  version: true,
+  historyId: true,
+  avgResponseTime: true,
+});
+
+export type CreateRequest = z.infer<typeof CreateRequestSchema>;
+
+// Users schema (keeping this for authentication if needed)
+export const UserSchema = z.object({
+  id: z.number(),
+  username: z.string(),
+  password: z.string(),
+});
+
+export type User = z.infer<typeof UserSchema>;
+
+export const CreateUserSchema = UserSchema.omit({ id: true });
+export type CreateUser = z.infer<typeof CreateUserSchema>;
