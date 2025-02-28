@@ -172,48 +172,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       return;
     }
 
-    // If not a new request, load from API
-    if (!routeId.startsWith('new-request-')) {
-      console.log('RequestTabs: Loading request from API:', routeId);
-      fetch(`/api/requests/${routeId}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      })
-        .then(async response => {
-          const contentType = response.headers.get('content-type');
-          console.log('RequestTabs: Response content type:', contentType);
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error('RequestTabs: API Error Response:', errorText);
-            throw new Error(`Request failed with status ${response.status}: ${errorText}`);
-          }
-
-          if (!contentType || !contentType.includes('application/json')) {
-            const responseText = await response.text();
-            console.error('RequestTabs: Unexpected response type:', contentType);
-            console.error('RequestTabs: Response body:', responseText);
-            throw new Error(`Expected JSON response but got ${contentType}`);
-          }
-
-          return response.json();
-        })
-        .then(request => {
-          console.log('RequestTabs: Successfully loaded request from API:', request);
-          setActiveRequests(prev => [...prev, request]);
-        })
-        .catch(error => {
-          console.error('RequestTabs: Error loading request:', error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to load request: " + error.message
-          });
-        });
+    // Do not make API calls for new requests
+    if (routeId.startsWith('new-request-')) {
+      console.log('RequestTabs: Creating new request for route:', routeId);
+      createDefaultRequest();
     }
-  }, [routeId, activeRequests, toast]);
+  }, [routeId, activeRequests, createDefaultRequest, setLocation]);
 
   const handleSaveRequest = useCallback((request: Request) => {
     setRequestToSave(request);

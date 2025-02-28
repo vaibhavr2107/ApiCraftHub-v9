@@ -38,10 +38,10 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
 
   const handleRequestSelect = (request: Request) => {
     console.log('Sidebar: Request selected:', request);
+    // Pass the full request object to the parent
+    onRequestSelect(request);
     // Update the route to reflect the selected request
     setLocation(`/request/${request.routeId}`);
-    // Notify parent component about the selection
-    onRequestSelect(request);
   };
 
   function groupRequestsByCollection(requests: Request[]): Collection[] {
