@@ -175,10 +175,19 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     // If not a new request, load from API
     if (!routeId.startsWith('new-request-')) {
       console.log('RequestTabs: Loading request from API:', routeId);
-      fetch(`/api/requests/${routeId}`)
+      fetch(`/api/requests/${routeId}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      })
         .then(response => {
           if (!response.ok) {
             throw new Error(`Request failed with status ${response.status}`);
+          }
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Expected JSON response but got ' + contentType);
           }
           return response.json();
         })
