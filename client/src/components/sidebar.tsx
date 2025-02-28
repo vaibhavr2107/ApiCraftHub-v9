@@ -237,18 +237,34 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
 
   // Safely filter collections
   console.log('Current collections before filtering:', collections);
-  const filteredCollections = (collections || []).map((collection: Collection) => ({
+  const filteredCollections = collections.filter((collection: Collection) => {
+    // Make sure collection has requests array
+    if (!Array.isArray(collection.requests)) {
+      console.log('Collection has no requests array:', collection);
+      return false;
+    }
+
+    // Filter requests based on search
+    const matchingRequests = collection.requests.filter((request: Request) =>
+      request.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.method.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      request.baseUrl.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // Include collection if it has matching requests
+    return matchingRequests.length > 0;
+  }).map((collection: Collection) => ({
     ...collection,
-    requests: (collection.requests || []).filter((request: Request) =>
+    requests: collection.requests.filter((request: Request) =>
       request.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.method.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.baseUrl.toLowerCase().includes(searchQuery.toLowerCase())
     )
-  })).filter(collection => (collection.requests || []).length > 0);
+  }));
+
   console.log('Filtered collections:', filteredCollections);
 
   if (isLoading) {
-    console.log('Loading state active');
     return (
       <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen p-4">
         Loading requests...
@@ -329,7 +345,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
               </Button>
               {expandedFolders.has(collection.id) && (
                 <div className="pl-4">
-                  {(collection.requests || []).map((request: Request) => (
+                  {collection.requests.map((request: Request) => (
                     <Button
                       key={request.requestId}
                       variant="ghost"
