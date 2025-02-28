@@ -83,35 +83,29 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   // Load active requests from localStorage
   useEffect(() => {
-    const savedRequests = localStorage.getItem(ACTIVE_REQUESTS_KEY);
-    if (savedRequests) {
-      try {
-        const requests = JSON.parse(savedRequests);
-        setActiveRequests(requests);
-      } catch (error) {
-        console.error('Error loading active requests from localStorage:', error);
+    if (!initialized.current) {
+      const savedRequests = localStorage.getItem(ACTIVE_REQUESTS_KEY);
+      if (savedRequests) {
+        try {
+          const requests = JSON.parse(savedRequests);
+          setActiveRequests(requests);
+          initialized.current = true;
+        } catch (error) {
+          console.error('Error loading active requests from localStorage:', error);
+        }
       }
     }
   }, []);
 
   // Save active requests to localStorage
   useEffect(() => {
-    if (activeRequests.length > 0) {
+    if (initialized.current && activeRequests.length > 0) {
       localStorage.setItem(ACTIVE_REQUESTS_KEY, JSON.stringify(activeRequests));
     }
   }, [activeRequests]);
 
   const createDefaultRequest = useCallback(() => {
-    const baseId = 'new-request';
-    const existingVersions = activeRequests
-      .filter(r => r.routeId.startsWith(baseId))
-      .map(r => {
-        const match = r.routeId.match(/-v(\d+)$/);
-        return match ? parseInt(match[1]) : 0;
-      });
-
-    const version = existingVersions.length > 0 ? Math.max(...existingVersions) + 1 : 1;
-    const newId = `${baseId}-v${version}`;
+    const newId = generateRouteId('new-request');
 
     console.log('RequestTabs: Creating new default request with ID:', newId);
 
@@ -137,15 +131,15 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       tags: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      version: version,
+      version: 1,
       selectedEnvironment: "qa01"
     };
 
     console.log('RequestTabs: Adding new request to active requests:', newRequest);
-    setActiveRequests(prev => [...prev, newRequest]);
+    setActiveRequests([newRequest]);
     setLocation(`/request/${newRequest.routeId}`);
     return newRequest;
-  }, [activeRequests, setLocation]);
+  }, [setLocation]);
 
   // Initialize with a single default request if no active requests
   useEffect(() => {
@@ -158,8 +152,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   // Handle route changes and request loading
   useEffect(() => {
-    if (!routeId) {
-      console.log('RequestTabs: No routeId present, skipping effect');
+    if (!routeId || !initialized.current) {
       return;
     }
 
@@ -172,12 +165,36 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       return;
     }
 
-    // Do not make API calls for new requests
-    if (routeId.startsWith('new-request-')) {
-      console.log('RequestTabs: Creating new request for route:', routeId);
-      createDefaultRequest();
+    // Handle incoming request from sidebar
+    if (!routeId.startsWith('new-request')) {
+      const newRequest = activeRequests.find(r => r.routeId === routeId);
+      if (!newRequest) {
+        // This is a request from sidebar, add it to active requests
+        const sidebarRequest: Request = {
+          requestId: routeId,
+          routeId: routeId,
+          name: "Loading...",
+          method: "GET",
+          baseUrl: "",
+          queryParams: {},
+          pathVariables: {},
+          auth: { type: "none" },
+          headers: {},
+          historyId: `history-${routeId}`,
+          historyRequests: [],
+          responseFields: {},
+          requestBody: {},
+          exampleResponseBody: {},
+          tags: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          version: 1,
+          selectedEnvironment: "qa01"
+        };
+        setActiveRequests(prev => [...prev, sidebarRequest]);
+      }
     }
-  }, [routeId, activeRequests, createDefaultRequest, setLocation]);
+  }, [routeId, activeRequests, initialized.current]);
 
   const handleSaveRequest = useCallback((request: Request) => {
     setRequestToSave(request);
@@ -197,7 +214,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       const result = await saveRequest(updatedRequest);
       setActiveRequests(prev =>
         prev.map(req =>
-          req.requestId === updatedRequest.requestId ? result.request : req
+          req.requestId === updatedRequest.requestId ? updatedRequest : req
         )
       );
 
