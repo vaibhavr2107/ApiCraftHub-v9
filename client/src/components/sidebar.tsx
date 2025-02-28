@@ -141,7 +141,14 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       requestBody: entry.request.body || {},
       responseFields: entry.response.data || {},
       historyId: routeId,
-      historyRequests: [],
+      historyRequests: [{
+        method: entry.request.method,
+        url: entry.request.url,
+        timestamp: entry.timestamp,
+        responseTime: 0,
+        requestBody: entry.request.body || {},
+        responseFields: entry.response.data || {}
+      }],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       selectedEnvironment: "qa01",
@@ -160,12 +167,24 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     // Save to active requests and navigate
     const savedRequests = localStorage.getItem("active_requests");
     const requests = savedRequests ? JSON.parse(savedRequests) : [];
-    localStorage.setItem("active_requests", JSON.stringify([...requests, historyRequest]));
+
+    // Check if the request already exists
+    const existingIndex = requests.findIndex((r: Request) => r.routeId === routeId);
+    if (existingIndex !== -1) {
+      // Replace existing request
+      requests[existingIndex] = historyRequest;
+    } else {
+      // Add new request
+      requests.push(historyRequest);
+    }
+
+    localStorage.setItem("active_requests", JSON.stringify(requests));
     window.dispatchEvent(new Event("storage"));
-    setLocation(`/request/${routeId}`);
+
+    // Call onRequestSelect to trigger the tab creation
+    onRequestSelect(historyRequest);
   };
 
-  // Rest of the existing functions remain unchanged...
   function groupRequestsByCollection(requests: Request[]): Collection[] {
     const collectionMap = new Map<string, Collection>();
 

@@ -335,8 +335,18 @@ export function RequestPanel({
       const endTime = performance.now();
       const responseTime = endTime - startTime;
 
-      // Create history entry
+      // Create history entry that matches the required schema
       const historyEntry = {
+        method: request.method,
+        url: urlObj.toString(),
+        timestamp: new Date().toISOString(),
+        responseTime,
+        requestBody: requestBody || {},
+        responseFields: response.data || {}
+      };
+
+      // Save to local storage for global history
+      const globalHistoryEntry = {
         id: crypto.randomUUID(),
         request: {
           method: request.method,
@@ -355,25 +365,17 @@ export function RequestPanel({
         responseTime
       };
 
-      // Save to request history in localStorage
       const savedHistory = localStorage.getItem('request_history') || '[]';
       const history = JSON.parse(savedHistory);
-      history.unshift(historyEntry); // Add new entry at the beginning
-      localStorage.setItem('request_history', JSON.stringify(history.slice(0, 100))); // Keep last 100 entries
-
-      // Trigger storage event for other components
+      history.unshift(globalHistoryEntry);
+      localStorage.setItem('request_history', JSON.stringify(history.slice(0, 100)));
       window.dispatchEvent(new Event('storage'));
 
       // Update request with new history entry
-      const updatedHistoryRequests = [
-        historyEntry,
-        ...(request.historyRequests || [])
-      ].slice(0, 5); // Keep only last 5 entries
-
       onRequestChange({
+        historyRequests: [historyEntry, ...(request.historyRequests || [])].slice(0, 5),
         requestBody: requestBody || {},
-        responseFields: response.data || {},
-        historyRequests: updatedHistoryRequests
+        responseFields: response.data || {}
       });
       setUnsavedChanges(true);
 
@@ -396,6 +398,16 @@ export function RequestPanel({
   };
 
   const handleSave = () => {
+    // Create a properly formatted history requests array
+    const formattedHistoryRequests = (request.historyRequests || []).map(entry => ({
+      method: entry.method || request.method,
+      url: entry.url || request.baseUrl,
+      timestamp: entry.timestamp || new Date().toISOString(),
+      responseTime: entry.responseTime || 0,
+      requestBody: entry.requestBody || {},
+      responseFields: entry.responseFields || {}
+    }));
+
     onRequestChange({
       requestBody: bodyType === "raw" && rawBody ? JSON.parse(rawBody) : {},
       headers: headers.reduce((acc, h) => {
@@ -410,6 +422,7 @@ export function RequestPanel({
         }
         return acc;
       }, {} as Record<string, string>),
+      historyRequests: formattedHistoryRequests,
       updatedAt: new Date().toISOString()
     });
     setUnsavedChanges(false);
@@ -420,7 +433,7 @@ export function RequestPanel({
     });
   };
 
-  // Handle URL change
+  // Handle URL change without auto-save
   const handleUrlChange = (newUrl: string) => {
     onRequestChange({ baseUrl: newUrl });
     syncUrlQueryParams(newUrl);
@@ -981,8 +994,7 @@ export function RequestPanel({
                   onClick={() => {
                     setUrlEncodedData([
                       ...urlEncodedData,
-                      { key: "", value: "", enabled: true }
-                    ]);
+                      { key: "", value: "", enabled: true }                    ]);
                     setUnsavedChanges(true);
                   }}
                   variant="outline"
@@ -996,10 +1008,11 @@ export function RequestPanel({
           </div>
         </TabsContent>
 
-        <TabsContent value="history" className="space-y-4">
+        <TabsContent value="history">
           <HistorySection history={request.historyRequests || []} />
         </TabsContent>
       </Tabs>
+
       <EnvironmentUrlDialog
         isOpen={isEnvDialogOpen}
         onClose={() => setIsEnvDialogOpen(false)}
