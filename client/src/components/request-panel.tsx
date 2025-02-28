@@ -337,13 +337,32 @@ export function RequestPanel({
 
       // Create history entry
       const historyEntry = {
-        method: request.method,
-        url: urlObj.toString(),
-        requestBody: requestBody || {},
-        responseFields: response.data,
+        id: crypto.randomUUID(),
+        request: {
+          method: request.method,
+          url: urlObj.toString(),
+          headers: headersRecord,
+          body: requestBody,
+          queryParams: Object.fromEntries(urlObj.searchParams.entries())
+        },
+        response: {
+          status: response.status,
+          statusText: response.statusText,
+          data: response.data,
+          headers: response.headers
+        },
         timestamp: new Date().toISOString(),
         responseTime
       };
+
+      // Save to request history in localStorage
+      const savedHistory = localStorage.getItem('request_history') || '[]';
+      const history = JSON.parse(savedHistory);
+      history.unshift(historyEntry); // Add new entry at the beginning
+      localStorage.setItem('request_history', JSON.stringify(history.slice(0, 100))); // Keep last 100 entries
+
+      // Trigger storage event for other components
+      window.dispatchEvent(new Event('storage'));
 
       // Update request with new history entry
       const updatedHistoryRequests = [

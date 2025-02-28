@@ -109,52 +109,97 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     return "text-gray-500";
   };
 
-
   const handleHistoryItemClick = (entry: any) => {
     const routeId = generateHistoryRouteId(entry);
     console.log('Creating history request with routeId:', routeId);
 
-    // Check if we already have this request in saved requests
-    const savedRequests = localStorage.getItem("saved_requests");
+    // Check if we already have this request in local storage
+    const savedRequests = localStorage.getItem("active_requests");
     const requests = savedRequests ? JSON.parse(savedRequests) : [];
     const existingRequest = requests.find((r: any) => r.routeId === routeId);
 
     if (existingRequest) {
       console.log('Found existing request with same routeId:', existingRequest);
-      window.dispatchEvent(new CustomEvent('activateTab', { detail: existingRequest.id }));
+      window.dispatchEvent(new CustomEvent('activateTab', { detail: existingRequest.routeId }));
       return;
     }
 
     const historyRequest = {
-      id: crypto.randomUUID(),
+      requestId: routeId,
       routeId,
       name: `${entry.request.method} ${new URL(entry.request.url).pathname} (${formatDate(entry.timestamp)})`,
       method: entry.request.method,
-      url: entry.request.url,
-      headers: entry.request.headers || [],
-      queryParams: entry.request.queryParams || [],
-      body: entry.request.body || { type: "none", content: "", rawFormat: "json" },
-      pathVariables: [],
+      baseUrl: entry.request.url,
+      headers: entry.request.headers || {},
+      queryParams: entry.request.queryParams || {},
+      pathVariables: {},
       auth: { type: "none" },
+      requestBody: entry.request.body || {},
+      responseFields: entry.response.data || {},
+      historyId: routeId,
+      historyRequests: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      selectedEnvironment: "dev"
+      selectedEnvironment: "qa01",
+      devUrl: "",
+      qa01Url: "",
+      qa02Url: "",
+      qa03Url: "",
+      perfUrl: "",
+      exampleResponseBody: entry.response.data || {},
+      tags: [],
+      version: 1
     };
 
-    localStorage.setItem("saved_requests", JSON.stringify([...requests, historyRequest]));
+    // Save to local storage and trigger update
+    const updatedRequests = [...requests, historyRequest];
+    localStorage.setItem("active_requests", JSON.stringify(updatedRequests));
     window.dispatchEvent(new Event("storage"));
-    window.dispatchEvent(new CustomEvent('activateTab', { detail: historyRequest.id }));
+
+    // Navigate to the new request
+    window.location.href = `/request/${routeId}`;
+  };
+
+  // Enhanced search functionality
+  const searchInObject = (obj: any, searchTerm: string): boolean => {
+    const searchRegex = new RegExp(searchTerm, 'i');
+
+    const search = (value: any): boolean => {
+      if (typeof value === 'string') {
+        return searchRegex.test(value);
+      }
+      if (typeof value === 'number' || typeof value === 'boolean') {
+        return searchRegex.test(String(value));
+      }
+      if (Array.isArray(value)) {
+        return value.some(item => search(item));
+      }
+      if (value && typeof value === 'object') {
+        return Object.values(value).some(val => search(val));
+      }
+      return false;
+    };
+
+    return search(obj);
   };
 
   const filteredHistory = requestHistory.filter(entry => {
     if (!historySearch) return true;
-    const searchLower = historySearch.toLowerCase();
-    return (
-      entry.request.method.toLowerCase().includes(searchLower) ||
-      entry.request.url.toLowerCase().includes(searchLower) ||
-      entry.response.status.toString().includes(searchLower) ||
-      (entry.request.body?.content || "").toLowerCase().includes(searchLower)
-    );
+
+    // Search in URL, method, and status
+    if (
+      entry.request.method.toLowerCase().includes(historySearch.toLowerCase()) ||
+      entry.request.url.toLowerCase().includes(historySearch.toLowerCase()) ||
+      entry.response.status.toString().includes(historySearch)
+    ) {
+      return true;
+    }
+
+    // Deep search in request body and response data
+    if (searchInObject(entry.request.body, historySearch)) return true;
+    if (searchInObject(entry.response.data, historySearch)) return true;
+
+    return false;
   }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return (
@@ -263,7 +308,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search history..."
+                placeholder="Search history (supports regex)..."
                 value={historySearch}
                 onChange={(e) => setHistorySearch(e.target.value)}
                 className="pl-8"
@@ -291,6 +336,16 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
                     <div className="truncate font-mono text-muted-foreground">
                       {entry.request.url}
                     </div>
+                    {historySearch && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {searchInObject(entry.request.body, historySearch) && (
+                          <div>Match found in request body</div>
+                        )}
+                        {searchInObject(entry.response.data, historySearch) && (
+                          <div>Match found in response data</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
                 {filteredHistory.length === 0 && (
