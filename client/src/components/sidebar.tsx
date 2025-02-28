@@ -4,18 +4,34 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Upload, Wand2, Search, FileText, ChevronDown, ChevronRight, FolderClosed, FolderOpen } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Request } from "@shared/schema";
+import { Request, RequestAuth } from "@shared/schema";
 import { generateRouteId } from "@/lib/utils";
 import yaml from 'js-yaml';
 
-interface SidebarProps {
-  onRequestSelect: (request: Request) => void;
+export interface Collection {
+  id: string;
+  name: string;
+  description?: string;
+  requests: Request[];
+  auth?: RequestAuth;
+  variables?: CollectionVariable[];
 }
 
-interface RequestFolder {
+export interface CollectionVariable {
+  id: string;
+  key: string;
+  value: string;
+  type: "default" | "secret";
+}
+
+export interface RequestFolder {
   id: string;
   name: string;
   requests: Request[];
+}
+
+interface SidebarProps {
+  onRequestSelect: (request: Request) => void;
 }
 
 export function Sidebar({ onRequestSelect }: SidebarProps) {
@@ -54,11 +70,13 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     // Add collection folders
     folderMap.forEach((requests, collectionId) => {
       const firstRequest = requests[0];
-      newFolders.push({
-        id: collectionId,
-        name: firstRequest.collectionName || 'Unnamed Collection',
-        requests
-      });
+      if (firstRequest) {
+        newFolders.push({
+          id: collectionId,
+          name: firstRequest.collectionName || 'Unnamed Collection',
+          requests
+        });
+      }
     });
 
     // Add "New Requests" folder if there are any
@@ -80,14 +98,17 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     const processRequest = (item: any): Request | null => {
       if (!item.request) return null;
 
-      const url = typeof item.request.url === 'string' 
-        ? item.request.url 
+      const url = typeof item.request.url === 'string'
+        ? item.request.url
         : item.request.url?.raw || '';
 
+      const requestName = item.name || 'Unnamed Request';
+      const requestId = generateRouteId(`${collectionName}-${requestName}`);
+
       return {
-        requestId: generateRouteId(`${collectionName}-${item.name}`),
-        routeId: generateRouteId(`${collectionName}-${item.name}`),
-        name: item.name,
+        requestId,
+        routeId: requestId,
+        name: requestName,
         method: item.request.method || 'GET',
         baseUrl: url,
         queryParams: {},
@@ -97,7 +118,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
           if (!h.disabled) acc[h.key] = h.value;
           return acc;
         }, {}) || {},
-        historyId: generateRouteId(`history-${collectionName}-${item.name}`),
+        historyId: generateRouteId(`history-${collectionName}-${requestName}`),
         historyRequests: [],
         responseFields: {},
         requestBody: item.request.body?.raw ? JSON.parse(item.request.body.raw) : {},
@@ -129,38 +150,49 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   };
 
   const processOpenAPI = (spec: any) => {
+    if (!spec || typeof spec !== 'object') return [];
+
     const collectionId = generateRouteId(spec.info?.title || 'openapi-collection');
     const collectionName = spec.info?.title || 'OpenAPI Collection';
     const requests: Request[] = [];
 
-    Object.entries(spec.paths || {}).forEach(([path, methods]: [string, any]) => {
-      Object.entries(methods).forEach(([method, operation]: [string, any]) => {
-        const operationId = operation.operationId || `${method}-${path}`;
-        requests.push({
-          requestId: generateRouteId(`${collectionName}-${operationId}`),
-          routeId: generateRouteId(`${collectionName}-${operationId}`),
-          name: operation.summary || operationId,
-          method: method.toUpperCase(),
-          baseUrl: `${spec.servers?.[0]?.url || ''}${path}`,
-          queryParams: {},
-          pathVariables: {},
-          auth: { type: "bearer-tiaa" },
-          headers: {},
-          historyId: generateRouteId(`history-${collectionName}-${operationId}`),
-          historyRequests: [],
-          responseFields: {},
-          requestBody: operation.requestBody?.content?.['application/json']?.example || {},
-          exampleResponseBody: {},
-          tags: operation.tags || [],
-          collectionId,
-          collectionName,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          version: 1,
-          selectedEnvironment: "qa01"
-        });
+    if (spec.paths && typeof spec.paths === 'object') {
+      Object.entries(spec.paths).forEach(([path, methods]: [string, any]) => {
+        if (methods && typeof methods === 'object') {
+          Object.entries(methods).forEach(([method, operation]: [string, any]) => {
+            if (operation && typeof operation === 'object') {
+              const operationId = operation.operationId || `${method}-${path}`;
+              const requestName = operation.summary || operationId;
+              const requestId = generateRouteId(`${collectionName}-${requestName}`);
+
+              requests.push({
+                requestId,
+                routeId: requestId,
+                name: requestName,
+                method: method.toUpperCase(),
+                baseUrl: `${spec.servers?.[0]?.url || ''}${path}`,
+                queryParams: {},
+                pathVariables: {},
+                auth: { type: "bearer-tiaa" },
+                headers: {},
+                historyId: generateRouteId(`history-${collectionName}-${operationId}`),
+                historyRequests: [],
+                responseFields: {},
+                requestBody: operation.requestBody?.content?.['application/json']?.example || {},
+                exampleResponseBody: {},
+                tags: operation.tags || [],
+                collectionId,
+                collectionName,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                version: 1,
+                selectedEnvironment: "qa01"
+              });
+            }
+          });
+        }
       });
-    });
+    }
 
     return requests;
   };
@@ -194,7 +226,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
         // If JSON parsing fails, try YAML
         try {
           const spec = yaml.load(content);
-          if (spec.openapi || spec.swagger) {
+          if (spec && (spec.openapi || spec.swagger)) {
             requests = processOpenAPI(spec);
           }
         } catch (yamlError) {
@@ -209,11 +241,31 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       // Update localStorage
       const savedRequests = localStorage.getItem("saved_requests");
       const existingRequests = savedRequests ? JSON.parse(savedRequests) : [];
-      const updatedRequests = [...existingRequests, ...requests];
-      localStorage.setItem("saved_requests", JSON.stringify(updatedRequests));
+
+      // Merge requests, avoiding duplicates by routeId
+      const uniqueRequests = [...existingRequests];
+      requests.forEach(newRequest => {
+        const existingIndex = uniqueRequests.findIndex(r => r.routeId === newRequest.routeId);
+        if (existingIndex !== -1) {
+          uniqueRequests[existingIndex] = newRequest;
+        } else {
+          uniqueRequests.push(newRequest);
+        }
+      });
+
+      localStorage.setItem("saved_requests", JSON.stringify(uniqueRequests));
+
+      // Save each request to the API (assuming saveRequest function exists)
+      for (const request of requests) {
+        try {
+          await saveRequest(request); //Requires a saveRequest function to be defined elsewhere
+        } catch (error) {
+          console.error(`Error saving request ${request.name}:`, error);
+        }
+      }
 
       // Reorganize folders
-      organizeRequestsIntoFolders(updatedRequests);
+      organizeRequestsIntoFolders(uniqueRequests);
 
       toast({
         title: "Success",
@@ -277,8 +329,8 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
                 </span>
               </Button>
             </label>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="flex-1"
               onClick={handleImportWizard}
             >
@@ -345,4 +397,20 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       </ScrollArea>
     </div>
   );
+}
+
+// Placeholder for the saveRequest function.  This needs to be implemented elsewhere.
+const saveRequest = async (request: Request) => {
+  //Implementation for saving the request to the API goes here.
+  //Example using fetch:
+  // const response = await fetch('/api/requests', {
+  //   method: 'POST',
+  //   headers: {
+  //     'Content-Type': 'application/json',
+  //   },
+  //   body: JSON.stringify(request),
+  // });
+  // if (!response.ok) {
+  //   throw new Error(`Failed to save request: ${response.statusText}`);
+  // }
 }

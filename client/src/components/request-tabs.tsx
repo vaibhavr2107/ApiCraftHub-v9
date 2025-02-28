@@ -1,4 +1,4 @@
-import { Plus, X } from "lucide-react";
+import { Plus, X, Save } from "lucide-react";
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { useLocation } from "wouter";
 import { generateRouteId } from "@/lib/utils";
@@ -8,7 +8,16 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { saveRequest } from "@/lib/api";
@@ -16,12 +25,48 @@ import type { Request, RequestHistory } from "@shared/schema";
 import { RequestPanel } from "./request-panel";
 import { ResponsePanel } from "./response-panel";
 
+interface SaveDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (name: string) => void;
+  defaultName: string;
+}
+
+function SaveDialog({ isOpen, onClose, onSave, defaultName }: SaveDialogProps) {
+  const [name, setName] = useState(defaultName);
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Save Request</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          <Label htmlFor="name">Request Name</Label>
+          <Input
+            id="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="mt-2"
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={() => onSave(name)}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
   const [activeRequests, setActiveRequests] = useState<Request[]>([]);
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [requestToSave, setRequestToSave] = useState<Request | null>(null);
   const { toast } = useToast();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
@@ -110,6 +155,63 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     );
   }, []);
 
+  const handleSaveRequest = useCallback((request: Request) => {
+    setRequestToSave(request);
+    setSaveDialogOpen(true);
+  }, []);
+
+  const handleSaveConfirm = useCallback(async (name: string) => {
+    if (!requestToSave) return;
+
+    const updatedRequest = {
+      ...requestToSave,
+      name,
+      updatedAt: new Date().toISOString()
+    };
+
+    try {
+      // Get existing requests
+      const savedRequests = localStorage.getItem("saved_requests");
+      const existingRequests = savedRequests ? JSON.parse(savedRequests) : [];
+
+      // Update or add the request
+      const requestIndex = existingRequests.findIndex((r: Request) => r.routeId === updatedRequest.routeId);
+      if (requestIndex !== -1) {
+        existingRequests[requestIndex] = updatedRequest;
+      } else {
+        existingRequests.push(updatedRequest);
+      }
+
+      // Save back to localStorage
+      localStorage.setItem("saved_requests", JSON.stringify(existingRequests));
+
+      // Save to backend
+      await saveRequest(updatedRequest);
+
+      // Update active requests
+      setActiveRequests(prev =>
+        prev.map(req =>
+          req.requestId === updatedRequest.requestId ? updatedRequest : req
+        )
+      );
+
+      toast({
+        title: "Success",
+        description: "Request saved successfully",
+      });
+    } catch (error) {
+      console.error('Error saving request:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save request"
+      });
+    }
+
+    setSaveDialogOpen(false);
+    setRequestToSave(null);
+  }, [requestToSave, toast]);
+
   const updateRequestHistory = async (request: Request, response: any) => {
     if (response.status >= 200 && response.status < 300) {
       const historyEntry: RequestHistory = {
@@ -129,31 +231,31 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
         ]
       };
 
-      try {
-        await saveRequest(updatedRequest);
+      // Update active requests
+      setActiveRequests(prev =>
+        prev.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
+      );
 
-        setActiveRequests(prev =>
-          prev.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
-        );
+      // Update localStorage if the request was saved
+      const savedRequests = localStorage.getItem("saved_requests");
+      if (savedRequests) {
+        const allRequests = JSON.parse(savedRequests);
+        const requestIndex = allRequests.findIndex((r: Request) => r.routeId === updatedRequest.routeId);
+        if (requestIndex !== -1) {
+          allRequests[requestIndex] = updatedRequest;
+          localStorage.setItem("saved_requests", JSON.stringify(allRequests));
 
-        // Update localStorage for sidebar
-        const savedRequests = localStorage.getItem("saved_requests");
-        const allRequests = savedRequests ? JSON.parse(savedRequests) : [];
-        const updatedRequests = allRequests.map((r: Request) => 
-          r.routeId === updatedRequest.routeId ? updatedRequest : r
-        );
-        if (!allRequests.some((r: Request) => r.routeId === updatedRequest.routeId)) {
-          updatedRequests.push(updatedRequest);
+          try {
+            await saveRequest(updatedRequest);
+          } catch (error) {
+            console.error('Error saving request history:', error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Failed to save request history"
+            });
+          }
         }
-        localStorage.setItem("saved_requests", JSON.stringify(updatedRequests));
-
-      } catch (error) {
-        console.error('Error saving request history:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to save request history"
-        });
       }
     }
   };
@@ -199,7 +301,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                   >
                     {request.name}
                   </TabsTrigger>
-                  {activeRequests.length > 1 && (
+                  <div className="flex items-center">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -209,12 +311,28 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleCloseTab(request.requestId);
+                        handleSaveRequest(request);
                       }}
                     >
-                      <X className="h-4 w-4" />
+                      <Save className="h-4 w-4" />
                     </Button>
-                  )}
+                    {activeRequests.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-8 w-8",
+                          activeRequest?.requestId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloseTab(request.requestId);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </TabsList>
@@ -248,6 +366,16 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
           </TabsContent>
         ))}
       </Tabs>
+
+      <SaveDialog
+        isOpen={saveDialogOpen}
+        onClose={() => {
+          setSaveDialogOpen(false);
+          setRequestToSave(null);
+        }}
+        onSave={handleSaveConfirm}
+        defaultName={requestToSave?.name || ""}
+      />
     </div>
   );
 }
