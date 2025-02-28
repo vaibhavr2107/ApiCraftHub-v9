@@ -169,4 +169,83 @@ router.post('/requests', async (req, res) => {
   }
 });
 
+// GET single request file by routeId
+router.get('/requests/open/:routeId', async (req, res) => {
+  try {
+    const { routeId } = req.params;
+    await ensureApiFolder();
+
+    // Look for the file with matching routeId
+    const files = await fs.readdir(API_FOLDER);
+    const requestFile = files.find(file => file.startsWith(`${routeId}.json`));
+
+    if (!requestFile) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    const filePath = path.join(API_FOLDER, requestFile);
+    const content = await fs.readFile(filePath, 'utf-8');
+    const request = JSON.parse(content);
+
+    // Validate against schema
+    const validatedRequest = RequestSchema.parse(request);
+
+    res.json(validatedRequest);
+  } catch (error) {
+    console.error('Error opening request:', error);
+    res.status(500).json({ 
+      error: 'Failed to open request',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// PUT update existing request file
+router.put('/requests/update/:routeId', async (req, res) => {
+  try {
+    const { routeId } = req.params;
+    const updates = req.body;
+
+    await ensureApiFolder();
+
+    // Find existing file
+    const files = await fs.readdir(API_FOLDER);
+    const requestFile = files.find(file => file.startsWith(`${routeId}.json`));
+
+    if (!requestFile) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    const filePath = path.join(API_FOLDER, requestFile);
+
+    // Read existing request
+    const content = await fs.readFile(filePath, 'utf-8');
+    const existingRequest = JSON.parse(content);
+
+    // Merge updates with existing request
+    const updatedRequest = {
+      ...existingRequest,
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Validate updated request
+    const validatedRequest = RequestSchema.parse(updatedRequest);
+
+    // Write back to file
+    await fs.writeFile(filePath, JSON.stringify(validatedRequest, null, 2));
+
+    res.json({
+      message: 'Request updated successfully',
+      request: validatedRequest
+    });
+  } catch (error) {
+    console.error('Error updating request:', error);
+    res.status(500).json({ 
+      error: 'Failed to update request',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

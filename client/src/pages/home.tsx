@@ -2,12 +2,11 @@ import { RequestTabs } from "@/components/request-tabs";
 import { Sidebar } from "@/components/sidebar";
 import { Request } from "@shared/schema";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { generateRouteId } from "@/lib/utils";
 
 export default function Home() {
   const [location, setLocation] = useLocation();
-  const [selectedRequest, setSelectedRequest] = useState<Request | undefined>();
 
   // Create and open a default request only if we're at root
   useEffect(() => {
@@ -21,8 +20,7 @@ export default function Home() {
 
   const handleRequestSelect = (request: Request) => {
     console.log('Home: Request selected from sidebar:', request);
-    // Store the selected request and change location
-    setSelectedRequest(request);
+    // Change location to trigger the tab creation in RequestTabs
     setLocation(`/request/${request.routeId}`);
   };
 
@@ -36,7 +34,7 @@ export default function Home() {
           </div>
         </header>
         <main className="p-4">
-          <RequestTabs selectedRequest={selectedRequest} />
+          <RequestTabs />
         </main>
       </div>
     </div>
