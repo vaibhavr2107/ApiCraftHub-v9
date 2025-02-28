@@ -63,7 +63,7 @@ router.get('/requests', async (req, res) => {
 });
 
 // GET single request
-router.get('/requests/:routeId', async (req, res) => {
+router.get('/requests/:routeId', async (req, res, next) => {
   try {
     const { routeId } = req.params;
     await ensureApiFolder();
@@ -77,6 +77,7 @@ router.get('/requests/:routeId', async (req, res) => {
 
       const filePath = path.join(API_FOLDER, file);
       const loadedRequest = await loadRequestFile(filePath);
+      console.log('Checking request:', loadedRequest?.routeId, 'against:', routeId);
 
       if (loadedRequest?.routeId === routeId || loadedRequest?.requestId === routeId) {
         request = loadedRequest;
@@ -85,6 +86,8 @@ router.get('/requests/:routeId', async (req, res) => {
     }
 
     if (!request) {
+      // Set JSON content type even for error responses
+      res.setHeader('Content-Type', 'application/json');
       return res.status(404).json({ error: 'Request not found' });
     }
 
@@ -92,8 +95,12 @@ router.get('/requests/:routeId', async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     res.json(request);
   } catch (error) {
-    console.error('Error loading request:', error);
-    res.status(500).json({ error: 'Failed to load request' });
+    // Ensure JSON response for errors
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({ 
+      error: 'Failed to load request',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
@@ -131,13 +138,19 @@ router.post('/requests', async (req, res) => {
     const filePath = path.join(API_FOLDER, `${request.routeId}.json`);
     await fs.writeFile(filePath, JSON.stringify(request, null, 2));
 
+    // Set proper content type header
+    res.setHeader('Content-Type', 'application/json');
     res.json({ 
       message: 'Request saved successfully',
       request 
     });
   } catch (error) {
-    console.error('Error saving request:', error);
-    res.status(500).json({ error: 'Failed to save request' });
+    // Ensure JSON response for errors
+    res.setHeader('Content-Type', 'application/json');
+    res.status(500).json({ 
+      error: 'Failed to save request',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 
