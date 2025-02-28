@@ -114,86 +114,49 @@ router.get('/requests/:routeId', async (req, res, next) => {
   }
 });
 
-// Save request
-router.post('/requests', async (req, res) => {
-  try {
-    const request = RequestSchema.parse(req.body);
-    await ensureApiFolder();
-
-    // Generate routeId if not provided
-    if (!request.routeId) {
-      request.routeId = request.requestId;
-    }
-
-    // Implement versioning
-    const baseFileName = request.routeId.replace(/-v\d+$/, ''); // Remove existing version
-    const files = await fs.readdir(API_FOLDER);
-    let version = 1;
-
-    // Find existing versions
-    const versionRegex = new RegExp(`^${baseFileName}-v(\\d+)\\.json$`);
-    for (const file of files) {
-      const match = file.match(versionRegex);
-      if (match) {
-        const fileVersion = parseInt(match[1]);
-        version = Math.max(version, fileVersion + 1);
-      }
-    }
-
-    // Update routeId with version
-    request.routeId = `${baseFileName}-v${version}`;
-    request.requestId = request.routeId;
-    request.version = version;
-
-    // Manage history - keep only last 5 entries
-    if (request.historyRequests && request.historyRequests.length > 5) {
-      request.historyRequests = request.historyRequests.slice(-5);
-    }
-
-    const filePath = path.join(API_FOLDER, `${request.routeId}.json`);
-    await fs.writeFile(filePath, JSON.stringify(request, null, 2));
-
-    // Set proper content type header
-    res.setHeader('Content-Type', 'application/json');
-    res.json({ 
-      message: 'Request saved successfully',
-      request 
-    });
-  } catch (error) {
-    // Ensure JSON response for errors
-    res.setHeader('Content-Type', 'application/json');
-    res.status(500).json({ 
-      error: 'Failed to save request',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
 // GET single request file by routeId
 router.get('/requests/open/:routeId', async (req, res) => {
   try {
+    res.setHeader('Content-Type', 'application/json');
+
     const { routeId } = req.params;
     await ensureApiFolder();
 
     // Look for the file with matching routeId
     const files = await fs.readdir(API_FOLDER);
-    const requestFile = files.find(file => file.startsWith(`${routeId}.json`));
+    const requestFile = files.find(file => file.startsWith(`${routeId}.json`) || file === `${routeId}.json`);
 
     if (!requestFile) {
+      console.error(`Request file not found for routeId: ${routeId}`);
       return res.status(404).json({ error: 'Request not found' });
     }
 
     const filePath = path.join(API_FOLDER, requestFile);
-    const content = await fs.readFile(filePath, 'utf-8');
-    const request = JSON.parse(content);
 
-    // Validate against schema
-    const validatedRequest = RequestSchema.parse(request);
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+    } catch (error) {
+      console.error(`File access error for ${filePath}:`, error);
+      return res.status(404).json({ error: 'Request file not found' });
+    }
 
-    res.json(validatedRequest);
+    // Read and parse the file
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      const request = JSON.parse(content);
+      const validatedRequest = RequestSchema.parse(request);
+      return res.json(validatedRequest);
+    } catch (error) {
+      console.error(`Error reading/parsing file ${filePath}:`, error);
+      return res.status(500).json({ 
+        error: 'Failed to read request file',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   } catch (error) {
     console.error('Error opening request:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to open request',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -203,6 +166,8 @@ router.get('/requests/open/:routeId', async (req, res) => {
 // PUT update existing request file
 router.put('/requests/update/:routeId', async (req, res) => {
   try {
+    res.setHeader('Content-Type', 'application/json');
+
     const { routeId } = req.params;
     const updates = req.body;
 
