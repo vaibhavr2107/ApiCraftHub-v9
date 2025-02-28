@@ -17,19 +17,7 @@ import type { Request, RequestHistory } from "@shared/schema";
 import { RequestPanel } from "./request-panel";
 import { ResponsePanel } from "./response-panel";
 
-// Keep track of version numbers for new requests
 let newRequestVersion = 1;
-
-const substituteVariables = (str: string, collection: any): string => {
-  if (!collection || !str) return str;
-
-  const variablePattern = /\{\{([^}]+)\}\}/g;
-  return str.replace(variablePattern, (match, variableName) => {
-    const trimmedName = variableName.trim();
-    const variable = collection.variables?.find((v: any) => v.key === trimmedName);
-    return variable ? variable.value : match;
-  });
-};
 
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
@@ -41,25 +29,61 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
 
-  // Get route ID and active request once
+  // Get route ID and active request
   const routeId = useMemo(() => location.split('/').pop(), [location]);
   const activeRequest = useMemo(() => requests.find(r => r.routeId === routeId), [requests, routeId]);
 
-  // Initialize with a new request if at root path
-  useEffect(() => {
-    if (!initialized.current && (location === "/" || !routeId)) {
-      console.log("Initializing with new request");
-      initialized.current = true;
-      handleNewTab();
-    }
-  }, [location, routeId]);
+  const createDefaultRequest = useCallback(() => {
+    const id = nanoid();
+    const routeId = generateRouteId(`new-request-v${newRequestVersion}`);
+    newRequestVersion++;
 
-  // Load requests from server on mount
+    const newRequest: Request = {
+      requestId: id,
+      routeId,
+      name: "New Request",
+      method: "GET",
+      baseUrl: "https://api.restful-api.dev/objects",
+      queryParams: {},
+      pathVariables: {},
+      auth: { type: "bearer-tiaa" },
+      headers: {
+        'Accept': '*/*',
+        'User-Agent': 'API-Tester/1.0',
+        'Content-Type': 'application/json'
+      },
+      historyId: `history-${id}`,
+      historyRequests: [],
+      responseFields: {},
+      requestBody: {},
+      exampleResponseBody: {},
+      tags: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      version: 1,
+      selectedEnvironment: "qa01"
+    };
+
+    setRequests(prev => [...prev, newRequest]);
+    setLocation(`/request/${routeId}`);
+    return newRequest;
+  }, [setLocation]);
+
+  // Initialize with a new request if needed
+  useEffect(() => {
+    if (!initialized.current) {
+      console.log("Initializing with default request");
+      initialized.current = true;
+      createDefaultRequest();
+    }
+  }, [createDefaultRequest]);
+
+  // Load requests from server
   useEffect(() => {
     const loadSavedRequests = async () => {
       try {
         const serverRequests = await loadRequests();
-        if (serverRequests.length > 0) {
+        if (serverRequests && serverRequests.length > 0) {
           setRequests(serverRequests);
           localStorage.setItem("saved_requests", JSON.stringify(serverRequests));
         }
@@ -71,38 +95,10 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     loadSavedRequests();
   }, []);
 
-
   const handleNewTab = useCallback(() => {
     console.log("Creating new tab");
-    const id = nanoid();
-    const routeId = generateRouteId(`new-request-v${newRequestVersion}`);
-    newRequestVersion++; // Increment version for next new request
-
-    const newRequest: Request = {
-      requestId: id,
-      routeId,
-      name: "New Request",
-      method: "GET",
-      baseUrl: "https://api.restful-api.dev/objects",
-      queryParams: { page: "1", limit: "10" },
-      pathVariables: {},
-      auth: { type: "bearer", token: "tiaa" },
-      headers: DEFAULT_HEADERS,
-      historyId: `history-${id}`,
-      historyRequests: [],
-      responseFields: {},
-      requestBody: {},
-      exampleResponseBody: {},
-      tags: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      version: 1,
-      selectedEnvironment: "dev"
-    };
-
-    setRequests(prev => [...prev, newRequest]);
-    setLocation(`/request/${routeId}`);
-  }, [setLocation]);
+    createDefaultRequest();
+  }, [createDefaultRequest]);
 
   const handleCloseTab = useCallback((requestId: string) => {
     if (!activeRequest) return;
@@ -110,20 +106,18 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     setRequests(prev => {
       const updatedRequests = prev.filter(req => req.requestId !== requestId);
 
-      // If we're closing the active tab, navigate to another tab
       if (requestId === activeRequest.requestId) {
         const nextTab = updatedRequests[0];
         if (nextTab) {
           setLocation(`/request/${nextTab.routeId}`);
         } else {
-          setLocation('/');
-          handleNewTab();
+          createDefaultRequest();
         }
       }
 
       return updatedRequests;
     });
-  }, [activeRequest, setLocation, handleNewTab]);
+  }, [activeRequest, setLocation, createDefaultRequest]);
 
   const handleTabChange = useCallback((value: string) => {
     const request = requests.find(r => r.requestId === value);
@@ -156,7 +150,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       const historyEntry: RequestHistory = {
         method: request.method,
         url: request.baseUrl,
-        requestBody: request.requestBody,
+        requestBody: request.requestBody || null,
         responseFields: response.data,
         timestamp: new Date().toISOString(),
         responseTime: response.time
@@ -166,24 +160,15 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
         ...request,
         historyRequests: [
           historyEntry,
-          ...(request.historyRequests || []).slice(0, 4) // Keep only last 5 entries
+          ...(request.historyRequests || []).slice(0, 4)
         ]
       };
 
       try {
-        // Save request with updated history
         await saveRequest(updatedRequest);
-
-        // Update local state
         setRequests(prev =>
           prev.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
         );
-
-        // Update localStorage
-        localStorage.setItem("saved_requests", JSON.stringify(
-          requests.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
-        ));
-
         console.log('Successfully saved request history:', historyEntry);
       } catch (error) {
         console.error('Error saving request history:', error);
@@ -197,11 +182,10 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   };
 
   if (!activeRequest) {
-    console.log("No active request, returning null");
+    console.log("No active request, creating default");
+    createDefaultRequest();
     return null;
   }
-
-  console.log("Rendering with active request:", activeRequest);
 
   return (
     <div className="container py-6 max-w-[1400px]">
@@ -282,9 +266,3 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 interface RequestTabsProps {
   onRequestComplete?: (request: Request, response: any) => void;
 }
-
-const DEFAULT_HEADERS: Record<string, string> = {
-  'Accept': '*/*',
-  'User-Agent': 'API-Tester/1.0',
-  'Content-Type': 'application/json'
-};
