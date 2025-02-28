@@ -86,6 +86,8 @@ router.get('/requests/:routeId', async (req, res) => {
       return res.status(404).json({ error: 'Request not found' });
     }
 
+    // Set proper content type header
+    res.setHeader('Content-Type', 'application/json');
     res.json(request);
   } catch (error) {
     console.error('Error loading request:', error);
@@ -99,11 +101,38 @@ router.post('/requests', async (req, res) => {
     const request = RequestSchema.parse(req.body);
     await ensureApiFolder();
 
-    const fileName = `${request.routeId || request.requestId}.json`;
-    const filePath = path.join(API_FOLDER, fileName);
+    // Generate routeId if not provided
+    if (!request.routeId) {
+      request.routeId = request.requestId;
+    }
 
+    // Implement versioning
+    const baseFileName = request.routeId.replace(/-v\d+$/, ''); // Remove existing version
+    const files = await fs.readdir(API_FOLDER);
+    let version = 1;
+
+    // Find existing versions
+    const versionRegex = new RegExp(`^${baseFileName}-v(\\d+)\\.json$`);
+    for (const file of files) {
+      const match = file.match(versionRegex);
+      if (match) {
+        const fileVersion = parseInt(match[1]);
+        version = Math.max(version, fileVersion + 1);
+      }
+    }
+
+    // Update routeId with version
+    request.routeId = `${baseFileName}-v${version}`;
+    request.requestId = request.routeId;
+    request.version = version;
+
+    const filePath = path.join(API_FOLDER, `${request.routeId}.json`);
     await fs.writeFile(filePath, JSON.stringify(request, null, 2));
-    res.json({ message: 'Request saved successfully' });
+
+    res.json({ 
+      message: 'Request saved successfully',
+      request 
+    });
   } catch (error) {
     console.error('Error saving request:', error);
     res.status(500).json({ error: 'Failed to save request' });
