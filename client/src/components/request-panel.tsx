@@ -13,17 +13,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { makeRequest } from "@/lib/api";
-import type { ApiRequest, RequestParameter, BodyType, RawFormat } from "@/types/api-request";
+import type { Request, RequestHistory } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { X, Send, History } from "lucide-react";
-import { useLocation } from "wouter";
-import { EnvironmentSelector } from "./environment-selector";
-import { Environment, EnvironmentStore, DEFAULT_ENVIRONMENTS } from "@/types/environment";
+import { nanoid } from "nanoid";
 
 // Add HistorySection component
-const HistorySection = ({ history }: { history: any[] }) => {
+const HistorySection = ({ history }: { history: RequestHistory[] }) => {
   if (!history || history.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-4">
@@ -38,7 +36,7 @@ const HistorySection = ({ history }: { history: any[] }) => {
         <Card key={index} className="p-4">
           <div className="flex justify-between items-start mb-2">
             <div>
-              <span className={`font-semibold ${METHOD_COLORS[entry.method as keyof typeof METHOD_COLORS]}`}>
+              <span className={`font-semibold ${METHOD_COLORS[entry.method]}`}>
                 {entry.method}
               </span>
               <span className="ml-2 text-sm text-muted-foreground">
@@ -72,28 +70,7 @@ const HistorySection = ({ history }: { history: any[] }) => {
   );
 };
 
-// Import component styles
-import "@/styles/request-panel.css";
-
-// Add custom scrollbar styles
-const customScrollbarStyle = {
-  '&::-webkit-scrollbar': {
-    width: '8px',
-    height: '8px',
-  },
-  '&::-webkit-scrollbar-track': {
-    background: 'transparent',
-  },
-  '&::-webkit-scrollbar-thumb': {
-    background: 'hsl(var(--muted-foreground) / 0.3)',
-    borderRadius: '4px',
-  },
-  '&::-webkit-scrollbar-thumb:hover': {
-    background: 'hsl(var(--muted-foreground) / 0.5)',
-  },
-};
-
-// Add method color mapping
+// Method color mapping
 const METHOD_COLORS = {
   GET: "text-green-500",
   POST: "text-orange-500",
@@ -104,16 +81,20 @@ const METHOD_COLORS = {
   OPTIONS: "text-gray-400"
 } as const;
 
+interface RequestPanelProps {
+  request: Request;
+  onRequestChange: (updates: Partial<Request>) => void;
+  onResponse: (response: any) => void;
+  onLoading: (isLoading: boolean) => void;
+  onError: (error: string | null) => void;
+}
 
-/**
- * RequestPanel Component
- * Handles the main API request interface including:
- * - URL and method selection
- * - Query parameters
- * - Headers
- * - Request body
- * - Environment selection
- */
+interface Parameter {
+  key: string;
+  value: string;
+  enabled: boolean;
+}
+
 export function RequestPanel({
   request,
   onRequestChange,
@@ -121,175 +102,94 @@ export function RequestPanel({
   onLoading,
   onError,
 }: RequestPanelProps) {
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [queryParams, setQueryParams] = useState<Parameter[]>([
+    { key: "", value: "", enabled: true }
+  ]);
+  const [pathParams, setPathParams] = useState<Parameter[]>([
+    { key: "", value: "", enabled: true }
+  ]);
+  const [headers, setHeaders] = useState<Parameter[]>([
+    { key: "", value: "", enabled: true }
+  ]);
+  const [body, setBody] = useState<string>("");
 
-  // URL Parameter Detection and Management
+  // Initialize parameters from request
   useEffect(() => {
-    if (!request.pathVariables) {
-      onRequestChange({ pathVariables: [] });
-    }
-  }, []);
+    // Convert query params from record to array
+    const qParams = Object.entries(request.queryParams || {}).map(([key, value]) => ({
+      key,
+      value: String(value),
+      enabled: true
+    }));
+    setQueryParams(qParams.length > 0 ? qParams : [{ key: "", value: "", enabled: true }]);
 
-  useEffect(() => {
-    const pathVars = detectPathVariables(request.url);
-    if (pathVars.length > 0 && request.pathVariables) {
-      const existingKeys = new Set(request.pathVariables.map(v => v.key));
-      const newVars = pathVars.filter(v => !existingKeys.has(v.key));
-      if (newVars.length > 0) {
-        onRequestChange({
-          pathVariables: [...request.pathVariables, ...newVars]
-        });
-      }
-    }
-  }, [request.url]);
+    // Convert path variables from record to array
+    const pParams = Object.entries(request.pathVariables || {}).map(([key, value]) => ({
+      key,
+      value: String(value),
+      enabled: true
+    }));
+    setPathParams(pParams.length > 0 ? pParams : [{ key: "", value: "", enabled: true }]);
 
-  // URL Management Helpers
-  const updateUrl = (baseUrl: string) => {
-    try {
-      if (baseUrl.includes('{{') || baseUrl.includes(':')) {
-        onRequestChange({ url: baseUrl });
-        return;
-      }
+    // Convert headers from record to array
+    const hParams = Object.entries(request.headers || {}).map(([key, value]) => ({
+      key,
+      value: String(value),
+      enabled: true
+    }));
+    setHeaders(hParams.length > 0 ? hParams : [{ key: "", value: "", enabled: true }]);
 
-      const formattedUrl = baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
-      const url = new URL(formattedUrl);
-      url.search = '';
+    // Set body
+    setBody(JSON.stringify(request.requestBody || {}, null, 2));
+  }, [request]);
 
-      request.queryParams.forEach(({ key, value, enabled }) => {
-        if (key && value && enabled) {
-          url.searchParams.append(key, value);
-        }
-      });
-
-      onRequestChange({ url: url.toString() });
-    } catch (e) {
-      onRequestChange({ url: baseUrl });
-    }
-  };
-
-  // Environment Management
-  const handleEnvironmentChange = (environment: Environment) => {
-    const envStore = localStorage.getItem("environment_store");
-    if (!envStore) return;
-
-    try {
-      const store: EnvironmentStore = JSON.parse(envStore);
-
-      // Initialize request environments if not present
-      if (!store.environments[request.id]) {
-        store.environments[request.id] = DEFAULT_ENVIRONMENTS;
-      }
-
-      const requestEnvironments = store.environments[request.id];
-      const config = requestEnvironments[environment];
-
-      // For dev environment, keep the original URL
-      if (environment === 'dev') {
-        onRequestChange({
-          selectedEnvironment: environment,
-          auth: { type: "none" }
-        });
-        return;
-      }
-
-      // Update URL if base URL is configured
-      let newUrl = request.url;
-      if (config && config.baseUrl) {
-        try {
-          const currentUrl = new URL(request.url);
-          const path = currentUrl.pathname + currentUrl.search;
-          newUrl = new URL(path, config.baseUrl).toString();
-        } catch (e) {
-          // If URL parsing fails, treat it as a relative path
-          newUrl = new URL(request.url, config.baseUrl).toString();
-        }
-      }
-
-      // Update URL, auth, and selected environment in a single change
-      onRequestChange({
-        url: newUrl,
-        auth: config?.bearerToken
-          ? { type: "bearer", bearer: { token: config.bearerToken } }
-          : { type: "none" },
-        selectedEnvironment: environment
-      });
-
-      // Update environment store with the new request-specific configuration
-      store.requestConfigs[request.id] = environment;
-      localStorage.setItem("environment_store", JSON.stringify(store));
-
-    } catch (e) {
-      console.error("Error processing environment change:", e);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update environment configuration"
-      });
-    }
-  };
-
-  // Request Execution
   const handleSend = async () => {
     onLoading(true);
     onError(null);
     const startTime = performance.now();
 
     try {
-      // Process headers
-      const headers: Record<string, string> = {};
-      request.headers
-        .filter((h) => h.enabled && h.key && h.value)
-        .forEach((h) => {
-          headers[h.key] = h.value;
+      // Convert parameters back to records
+      const queryParamsRecord: Record<string, string> = {};
+      queryParams
+        .filter(p => p.enabled && p.key && p.value)
+        .forEach(p => {
+          queryParamsRecord[p.key] = p.value;
         });
 
-      // Add auth headers
-      if (request.auth.type === "basic" && request.auth.basic) {
-        const { username, password } = request.auth.basic;
-        const base64Credentials = btoa(`${username}:${password}`);
-        headers["Authorization"] = `Basic ${base64Credentials}`;
-      } else if (request.auth.type === "bearer" && request.auth.bearer) {
-        const { token } = request.auth.bearer;
-        headers["Authorization"] = `Bearer ${token}`;
-      } else if (request.auth.type === "bearer-tiaa") {
-        // Get token based on environment
-        const token = await getTiaaToken(request.selectedEnvironment);
-        headers["Authorization"] = `Bearer ${token}`;
+      const headersRecord: Record<string, string> = {};
+      headers
+        .filter(h => h.enabled && h.key && h.value)
+        .forEach(h => {
+          headersRecord[h.key] = h.value;
+        });
+
+      // Process path variables
+      let url = request.baseUrl;
+      pathParams
+        .filter(p => p.enabled && p.key && p.value)
+        .forEach(p => {
+          url = url.replace(`{{${p.key}}}`, p.value);
+        });
+
+      // Add query parameters to URL
+      const urlObj = new URL(url);
+      Object.entries(queryParamsRecord).forEach(([key, value]) => {
+        urlObj.searchParams.append(key, value);
+      });
+
+      // Add auth header if present
+      if (request.auth.type === "bearer" && request.auth.token) {
+        headersRecord["Authorization"] = `Bearer ${request.auth.token}`;
       }
 
-      // Process URL with path variables
-      const processedUrl = request.pathVariables ?
-        replacePathVariables(request.url, request.pathVariables) :
-        request.url;
-
-      let body: string | FormData | undefined;
-      if (request.body.type === "raw" && request.body.content) {
-        body = request.body.content;
-      } else if (request.body.type === "form-data" && request.body.formData) {
-        const formData = new FormData();
-        request.body.formData.forEach(({ key, value }) => {
-          formData.append(key, value);
-        });
-        body = formData;
-      } else if (request.body.type === "x-www-form-urlencoded" && request.body.urlEncoded) {
-        const params = new URLSearchParams();
-        request.body.urlEncoded.forEach(({ key, value }) => {
-          params.append(key, value);
-        });
-        body = params.toString();
-      }
-
-      // Wrap makeRequest in Promise.resolve to ensure all rejections are caught
-      const response = await Promise.resolve().then(() =>
-        makeRequest({
-          method: request.method,
-          url: processedUrl,
-          body,
-          headers,
-        })
-      );
-
+      const response = await makeRequest({
+        method: request.method,
+        url: urlObj.toString(),
+        headers: headersRecord,
+        body: body ? JSON.parse(body) : undefined
+      });
 
       const endTime = performance.now();
       const responseTime = endTime - startTime;
@@ -298,6 +198,7 @@ export function RequestPanel({
         ...response,
         time: responseTime
       });
+
     } catch (err: any) {
       const message = err instanceof Error ? err.message : "An error occurred";
       onError(message);
@@ -311,670 +212,200 @@ export function RequestPanel({
     }
   };
 
-  const handleAddQueryParam = () => {
-    const newParams = [...request.queryParams, { key: "", value: "", enabled: true }];
-    onRequestChange({ queryParams: newParams });
-    updateUrlWithParams(newParams);
+  const handleAddParam = (
+    params: Parameter[],
+    setParams: React.Dispatch<React.SetStateAction<Parameter[]>>
+  ) => {
+    setParams([...params, { key: "", value: "", enabled: true }]);
   };
 
-  const handleRemoveQueryParam = (index: number) => {
-    const newParams = request.queryParams.filter((_, i) => i !== index);
-    if (newParams.length === 0) {
-      newParams.push({ key: "", value: "", enabled: true });
-    }
-    onRequestChange({ queryParams: newParams });
-    updateUrlWithParams(newParams);
+  const handleRemoveParam = (
+    index: number,
+    params: Parameter[],
+    setParams: React.Dispatch<React.SetStateAction<Parameter[]>>
+  ) => {
+    setParams(params.filter((_, i) => i !== index));
   };
 
-  const handleUpdateQueryParam = (index: number, field: keyof RequestParameter, value: string | boolean) => {
-    const newParams = [...request.queryParams];
+  const handleUpdateParam = (
+    index: number,
+    field: keyof Parameter,
+    value: string | boolean,
+    params: Parameter[],
+    setParams: React.Dispatch<React.SetStateAction<Parameter[]>>
+  ) => {
+    const newParams = [...params];
     newParams[index] = { ...newParams[index], [field]: value };
-    onRequestChange({ queryParams: newParams });
-
-    // Update URL with query parameters
-    if (field === "enabled" || (newParams[index].key && newParams[index].value)) {
-      updateUrlWithParams(newParams);
-    }
+    setParams(newParams);
   };
 
-  const handleAddPathVariable = () => {
-    if (!request.pathVariables) {
-      onRequestChange({
-        pathVariables: [{ key: "", value: "", enabled: true }],
-      });
-      return;
-    }
-
-    onRequestChange({
-      pathVariables: [...request.pathVariables, { key: "", value: "", enabled: true }],
-    });
-  };
-
-  const handleRemovePathVariable = (index: number) => {
-    if (!request.pathVariables) return;
-
-    const newPathVars = request.pathVariables.filter((_, i) => i !== index);
-    onRequestChange({ pathVariables: newPathVars });
-  };
-
-  const handleUpdatePathVariable = (index: number, field: keyof RequestParameter, value: string | boolean) => {
-    if (!request.pathVariables) return;
-
-    const newPathVars = [...request.pathVariables];
-    newPathVars[index] = { ...newPathVars[index], [field]: value };
-    onRequestChange({ pathVariables: newPathVars });
-  };
-
-  const updateUrlWithParams = (queryParams: RequestParameter[]) => {
-    try {
-      const url = new URL(request.url);
-      url.search = '';
-      queryParams.forEach(({ key, value, enabled }) => {
-        if (key && value && enabled) {
-          url.searchParams.append(key, value);
-        }
-      });
-      onRequestChange({ url: url.toString() });
-    } catch (e) {
-      // Invalid URL or contains variables, skip update
-    }
-  };
-
-  const handleUpdateHeader = (index: number, field: "key" | "value" | "enabled", value: string | boolean) => {
-    const newHeaders = [...request.headers];
-    newHeaders[index] = { ...newHeaders[index], [field]: value };
-    onRequestChange({ headers: newHeaders });
-  };
-
-  const handleAddHeader = () => {
-    onRequestChange({ headers: [...request.headers, { key: "", value: "", enabled: true }] });
-  };
-
-  const handleRemoveHeader = (index: number) => {
-    const newHeaders = request.headers.filter((_, i) => i !== index);
-    onRequestChange({ headers: newHeaders });
-  };
-
-  const handleUpdateBodyType = (type: BodyType) => {
-    const newBody = {
-      type,
-      rawFormat: type === "raw" ? request.body.rawFormat || "json" : undefined,
-      content: type === "raw" ? request.body.content || "" : undefined,
-      formData: type === "form-data" ? [{ key: "", value: "", type: "text" as const, enabled: true }] : undefined,
-      urlEncoded: type === "x-www-form-urlencoded" ? [{ key: "", value: "", enabled: true }] : undefined
-    };
-
-    onRequestChange({ body: newBody });
-  };
-
-  const handleFormatBody = () => {
-    if (request.body.type !== "raw" || !request.body.content) return;
-
-    try {
-      let formatted = request.body.content;
-      if (request.body.rawFormat === "json") {
-        formatted = JSON.stringify(JSON.parse(request.body.content), null, 2);
-      }
-      // Add XML formatting if needed later
-
-      onRequestChange({
-        body: { ...request.body, content: formatted }
-      });
-    } catch (err) {
-      toast({
-        variant: "destructive",
-        title: "Formatting Error",
-        description: "Invalid content format"
-      });
-    }
-  };
-
-  const detectPathVariables = (url: string): RequestParameter[] => {
-    // Match both {{variable}} and :variable formats
-    const regex = /(?:\{\{([^}]+)\}\})|:([a-zA-Z][a-zA-Z0-9_]*)/g;
-    const pathVars: RequestParameter[] = [];
-    const seen = new Set<string>();
-    let match;
-
-    while ((match = regex.exec(url)) !== null) {
-      const varName = match[1] || match[2]; // match[1] for {{var}}, match[2] for :var
-      if (!seen.has(varName)) {
-        seen.add(varName);
-        pathVars.push({
-          key: varName.trim(),
-          value: "",
-          enabled: true
-        });
-      }
-    }
-
-    return pathVars;
-  };
-
-  const replacePathVariables = (url: string, pathVariables: RequestParameter[]): string => {
-    let processedUrl = url;
-    pathVariables.forEach(variable => {
-      if (variable.enabled && variable.value) {
-        // Replace both formats with the value
-        processedUrl = processedUrl
-          .replace(new RegExp(`\\{\\{${variable.key}\\}\\}`, 'g'), variable.value)
-          .replace(new RegExp(`:${variable.key}\\b`, 'g'), variable.value);
-      }
-    });
-    return processedUrl;
-  };
-
-
-  const ParametersSection = ({title, parameters, onAdd, onRemove, onChange}: any) => (
+  const ParametersSection = ({
+    title,
+    parameters,
+    setParameters
+  }: {
+    title: string;
+    parameters: Parameter[];
+    setParameters: React.Dispatch<React.SetStateAction<Parameter[]>>;
+  }) => (
     <div className="space-y-2">
       <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
       <div className="space-y-2">
-        {parameters.map((param:any, index:number) => (
+        {parameters.map((param, index) => (
           <div key={index} className="flex items-center gap-2">
             <Checkbox
               checked={param.enabled}
               onCheckedChange={(checked) =>
-                onChange(index, "enabled", checked === true)
+                handleUpdateParam(index, "enabled", checked === true, parameters, setParameters)
               }
             />
             <Input
               placeholder="Key"
               value={param.key}
-              onChange={(e) => onChange(index, "key", e.target.value)}
+              onChange={(e) =>
+                handleUpdateParam(index, "key", e.target.value, parameters, setParameters)
+              }
               className="flex-1"
             />
             <Input
               placeholder="Value"
               value={param.value}
-              onChange={(e) => onChange(index, "value", e.target.value)}
+              onChange={(e) =>
+                handleUpdateParam(index, "value", e.target.value, parameters, setParameters)
+              }
               className="flex-1"
             />
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => onRemove(index)}
+              onClick={() => handleRemoveParam(index, parameters, setParameters)}
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
         ))}
-        <Button onClick={onAdd} variant="outline" size="sm" className="w-full">
+        <Button
+          onClick={() => handleAddParam(parameters, setParameters)}
+          variant="outline"
+          size="sm"
+          className="w-full"
+        >
           Add {title.replace('Parameters', '').trim()}
         </Button>
       </div>
     </div>
   );
 
-  const AuthorizationSection = ({ auth, onChange }: any) => (
-    <div className="space-y-4">
-      <Select
-        value={auth.type}
-        onValueChange={(value: "none" | "basic" | "bearer" | "bearer-tiaa") =>
-          onChange({
-            type: value,
-            basic: value === "basic" ? { username: "", password: "" } : undefined,
-            bearer: value === "bearer" ? { token: "" } : undefined,
-            "bearer-tiaa": value === "bearer-tiaa" ? {} : undefined,
-          })
-        }
-      >
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select auth type" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="none">No Auth</SelectItem>
-          <SelectItem value="basic">Basic Auth</SelectItem>
-          <SelectItem value="bearer">Bearer Token</SelectItem>
-          <SelectItem value="bearer-tiaa">Bearer Token (TIAA)</SelectItem>
-        </SelectContent>
-      </Select>
-
-      {auth.type === "basic" && (
-        <div className="space-y-2">
-          <Input
-            placeholder="Username"
-            value={auth.basic?.username || ""}
-            onChange={(e) =>
-              onChange({
-                ...auth,
-                basic: {
-                  ...auth.basic,
-                  username: e.target.value,
-                },
-              })
-            }
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={auth.basic?.password || ""}
-            onChange={(e) =>
-              onChange({
-                ...auth,
-                basic: {
-                  ...auth.basic,
-                  password: e.target.value,
-                },
-              })
-            }
-          />
-        </div>
-      )}
-
-      {auth.type === "bearer" && (
-        <Input
-          placeholder="Bearer Token"
-          value={auth.bearer?.token || ""}
-          onChange={(e) =>
-            onChange({
-              ...auth,
-              bearer: { token: e.target.value },
-            })
-          }
-        />
-      )}
-      {auth.type === "bearer-tiaa" && (
-        <p>TIAA token will be retrieved automatically based on environment.</p>
-      )}
-    </div>
-  );
-
-  const HeadersSection = ({ headers, onAdd, onRemove, onChange }: any) => (
-    <div className="space-y-4">
-      {headers.map((header: any, index: number) => (
-        <div key={index} className="flex items-center gap-2">
-          <Checkbox
-            checked={header.enabled}
-            onCheckedChange={(checked) =>
-              onChange(index, "enabled", checked === true)
-            }
-          />
-          <Input
-            placeholder="Header"
-            value={header.key}
-            onChange={(e) => onChange(index, "key", e.target.value)}
-            className="flex-1"
-          />
-          <Input
-            placeholder="Value"
-            value={header.value}
-            onChange={(e) => onChange(index, "value", e.target.value)}
-            className="flex-1"
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onRemove(index)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      ))}
-      <Button onClick={onAdd} variant="outline" size="sm" className="w-full">
-        Add Header
-      </Button>
-    </div>
-  );
-
-  const RequestBodySection = ({ body, onChange, onFormat }: any) => {
-    const [localContent, setLocalContent] = useState(body.content);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-    // Update local content only when body content prop changes
-    useEffect(() => {
-      if (body.content !== localContent) {
-        setLocalContent(body.content);
-      }
-    }, [body.content]);
-
-    // Optimized debounced handler
-    const debouncedOnChange = useCallback(
-      debounce((value: string) => {
-        onChange({ ...body, content: value });
-      }, 300),
-      [body]
-    );
-
-    // Handle local state updates
-    const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const newValue = e.target.value;
-      setLocalContent(newValue);
-      debouncedOnChange(newValue);
-    };
-
-    return (
-      <div className="space-y-4 text-sm">
-        <div className="flex items-center gap-4 py-2 border-b">
-          <RadioGroup
-            value={body.type}
-            onValueChange={(value) => handleUpdateBodyType(value as BodyType)}
-            className="flex items-center gap-4"
-          >
-            {BODY_TYPES.map((type) => (
-              <div key={type} className="flex items-center space-x-2">
-                <RadioGroupItem value={type} id={`body-type-${type}`} />
-                <Label htmlFor={`body-type-${type}`} className="text-sm">{type}</Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </div>
-
-        {body.type === "raw" && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Select
-                value={body.rawFormat}
-                onValueChange={(format) => onChange({ ...body, rawFormat: format as RawFormat })}
-              >
-                <SelectTrigger className="w-32 text-sm">
-                  <SelectValue placeholder="Format" />
-                </SelectTrigger>
-                <SelectContent>
-                  {RAW_FORMATS.map((format) => (
-                    <SelectItem key={format} value={format} className="text-sm">
-                      {format.toUpperCase()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={onFormat}
-                variant="outline"
-                size="sm"
-                className="ml-auto text-sm"
-              >
-                Beautify
-              </Button>
-            </div>
-            <div className="relative border rounded-md" style={{ maxHeight: 'calc(100vh - 400px)' }}>
-              <Textarea
-                ref={textareaRef}
-                value={localContent}
-                onChange={handleTextareaChange}
-                placeholder="Enter request body"
-                className="font-['Courier_New'] min-h-[200px] pl-12 pt-2 resize-y text-sm overflow-auto"
-                style={{
-                  tabSize: 2,
-                  fontFamily: "Courier New, monospace",
-                  fontSize: '12px',
-                  lineHeight: '20px',
-                  ...customScrollbarStyle
-                }}
-              />
-              <div className="absolute left-0 top-0 bottom-0 w-10 bg-muted/50 border-r select-none">
-                {localContent.split('\n').map((_, i) => (
-                  <div
-                    key={i}
-                    className="text-right pr-2 text-xs text-muted-foreground"
-                    style={{ height: "20px", lineHeight: "20px" }}
-                  >
-                    {i + 1}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {body.type === "form-data" && body.formData && (
-          <div className="space-y-2 max-h-[calc(100vh-400px)] overflow-auto" style={customScrollbarStyle}>
-            {body.formData.map((item, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  placeholder="Key"
-                  value={item.key}
-                  onChange={(e) => {
-                    const newFormData = [...body.formData!];
-                    newFormData[index] = { ...item, key: e.target.value };
-                    onChange({ ...body, formData: newFormData });
-                  }}
-                  className="flex-1 text-sm h-8"
-                />
-                <Input
-                  placeholder="Value"
-                  value={item.value}
-                  onChange={(e) => {
-                    const newFormData = [...body.formData!];
-                    newFormData[index] = { ...item, value: e.target.value };
-                    onChange({ ...body, formData: newFormData });
-                  }}
-                  className="flex-1 text-sm h-8"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    const newFormData = body.formData!.filter((_, i) => i !== index);
-                    onChange({ ...body, formData: newFormData });
-                  }}
-                  className="h-8 w-8"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              onClick={() => {
-                const newFormData = [...(body.formData || []), { key: "", value: "", type: "text" as const, enabled: true }];
-                onChange({ ...body, formData: newFormData });
-              }}
-              variant="outline"
-              size="sm"
-              className="w-full text-sm"
-            >
-              Add Form Field
-            </Button>
-          </div>
-        )}
-
-        {body.type === "x-www-form-urlencoded" && body.urlEncoded && (
-          <div className="space-y-2 max-h-[calc(100vh-400px)] overflow-auto" style={customScrollbarStyle}>
-            {body.urlEncoded.map((item, index) => (
-              <div key={index} className="flex gap-2">
-                <Input
-                  placeholder="Key"
-                  value={item.key}
-                  onChange={(e) => {
-                    const newUrlEncoded = [...body.urlEncoded!];
-                    newUrlEncoded[index] = { ...item, key: e.target.value };
-                    onChange({ ...body, urlEncoded: newUrlEncoded });
-                  }}
-                  className="flex-1 text-sm h-8"
-                />
-                <Input
-                  placeholder="Value"
-                  value={item.value}
-                  onChange={(e) => {
-                    const newUrlEncoded = [...body.urlEncoded!];
-                    newUrlEncoded[index] = { ...item, value: e.target.value };
-                    onChange({ ...body, urlEncoded: newUrlEncoded });
-                  }}
-                  className="flex-1 text-sm h-8"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => {
-                    const newUrlEncoded = body.urlEncoded!.filter((_, i) => i !== index);
-                    onChange({ ...body, urlEncoded: newUrlEncoded });
-                  }}
-                  className="h-8 w-8"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-            <Button
-              onClick={() => {
-                const newUrlEncoded = [...(body.urlEncoded || []), { key: "", value: "", enabled: true }];
-                onChange({ ...body, urlEncoded: newUrlEncoded });
-              }}
-              variant="outline"
-              size="sm"
-              className="w-full text-sm"
-            >
-              Add URL Encoded Field
-            </Button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Render Component
   return (
-    <div className="request-panel">
-      <div className="request-header">
-        <div className="request-header-content">
+    <div className="space-y-4">
+      <div className="flex items-center gap-4">
+        <Select
+          value={request.method}
+          onValueChange={(value) => onRequestChange({ method: value })}
+        >
+          <SelectTrigger className="w-[100px]">
+            <SelectValue placeholder="Method" />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.keys(METHOD_COLORS).map((method) => (
+              <SelectItem key={method} value={method}>
+                {method}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Input
+          value={request.baseUrl}
+          onChange={(e) => onRequestChange({ baseUrl: e.target.value })}
+          placeholder="Enter URL"
+          className="flex-1"
+        />
+
+        <Button onClick={handleSend}>
+          <Send className="mr-2 h-4 w-4" />
+          Send
+        </Button>
+      </div>
+
+      <Tabs defaultValue="params" className="w-full">
+        <TabsList>
+          <TabsTrigger value="params">Parameters</TabsTrigger>
+          <TabsTrigger value="auth">Authorization</TabsTrigger>
+          <TabsTrigger value="headers">Headers</TabsTrigger>
+          <TabsTrigger value="body">Body</TabsTrigger>
+          <TabsTrigger value="history">
+            <History className="h-4 w-4 mr-1" />
+            History
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="params" className="space-y-4">
+          <ParametersSection
+            title="Query Parameters"
+            parameters={queryParams}
+            setParameters={setQueryParams}
+          />
+          <ParametersSection
+            title="Path Parameters"
+            parameters={pathParams}
+            setParameters={setPathParams}
+          />
+        </TabsContent>
+
+        <TabsContent value="auth" className="space-y-4">
           <Select
-            value={request.method}
-            onValueChange={(value) => onRequestChange({ method: value as ApiRequest["method"] })}
+            value={request.auth.type}
+            onValueChange={(value) =>
+              onRequestChange({
+                auth: { type: value, token: request.auth.token }
+              })
+            }
           >
-            <SelectTrigger className={`request-method-select ${METHOD_COLORS[request.method as keyof typeof METHOD_COLORS]}`}>
-              <SelectValue />
+            <SelectTrigger>
+              <SelectValue placeholder="Select auth type" />
             </SelectTrigger>
             <SelectContent>
-              {HTTP_METHODS.map((m) => (
-                <SelectItem key={m} value={m} className={METHOD_COLORS[m as keyof typeof METHOD_COLORS]}>
-                  {m}
-                </SelectItem>
-              ))}
+              <SelectItem value="none">No Auth</SelectItem>
+              <SelectItem value="bearer">Bearer Token</SelectItem>
             </SelectContent>
           </Select>
-          <div className="request-url-container">
+
+          {request.auth.type === "bearer" && (
             <Input
-              value={request.url}
-              onChange={(e) => updateUrl(e.target.value)}
-              placeholder="Enter URL"
-              className="request-url-input font-figtree text-sm"
+              type="text"
+              placeholder="Bearer Token"
+              value={request.auth.token}
+              onChange={(e) =>
+                onRequestChange({
+                  auth: { ...request.auth, token: e.target.value }
+                })
+              }
             />
-            <Button onClick={handleSend} size="sm" className="h-9">
-              <Send className="w-4 h-4 mr-2" />
-              Send
-            </Button>
-            <EnvironmentSelector
-              selectedEnvironment={request.selectedEnvironment}
-              requestId={request.id}
-              onEnvironmentChange={handleEnvironmentChange}
-            />
-          </div>
-        </div>
-      </div>
+          )}
+        </TabsContent>
 
-      {/* Request Configuration Tabs */}
-      <Tabs defaultValue="params" className="request-tabs" style={{ maxWidth: '800px' }}>
-        <div className="request-tabs-header border-b">
-          <TabsList className="p-0 h-auto bg-transparent border-b-0">
-            <TabsTrigger value="params" className="tab-trigger data-[state=active]:bg-muted">
-              Params
-            </TabsTrigger>
-            <TabsTrigger value="auth" className="tab-trigger data-[state=active]:bg-muted">
-              Authorization
-            </TabsTrigger>
-            <TabsTrigger value="headers" className="tab-trigger data-[state=active]:bg-muted">
-              Headers
-            </TabsTrigger>
-            <TabsTrigger value="body" className="tab-trigger data-[state=active]:bg-muted">
-              Body
-            </TabsTrigger>
-            <TabsTrigger value="history" className="tab-trigger data-[state=active]:bg-muted">
-              <History className="h-4 w-4 mr-1" />
-              History
-            </TabsTrigger>
-          </TabsList>
-        </div>
+        <TabsContent value="headers" className="space-y-4">
+          <ParametersSection
+            title="Headers"
+            parameters={headers}
+            setParameters={setHeaders}
+          />
+        </TabsContent>
 
-        {/* Tab Content */}
-        <div className="flex-1 overflow-auto" style={customScrollbarStyle}>
-          <TabsContent value="params" className="p-4 space-y-6">
-            {/* Query Parameters Section */}
-            <ParametersSection
-              title="Query Parameters"
-              parameters={request.queryParams}
-              onAdd={handleAddQueryParam}
-              onRemove={handleRemoveQueryParam}
-              onChange={handleUpdateQueryParam}
-            />
+        <TabsContent value="body" className="space-y-4">
+          <Textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Request Body (JSON)"
+            className="font-mono min-h-[200px]"
+          />
+        </TabsContent>
 
-            {/* Path Variables Section */}
-            <ParametersSection
-              title="Path Variables"
-              parameters={request.pathVariables || []}
-              onAdd={handleAddPathVariable}
-              onRemove={handleRemovePathVariable}
-              onChange={handleUpdatePathVariable}
-            />
-          </TabsContent>
-
-          {/* Authorization Tab */}
-          <TabsContent value="auth" className="p-4">
-            <AuthorizationSection
-              auth={request.auth}
-              onChange={(updates) => onRequestChange({ auth: updates })}
-            />
-          </TabsContent>
-
-          {/* Headers Tab */}
-          <TabsContent value="headers" className="p-4">
-            <HeadersSection
-              headers={request.headers}
-              onAdd={handleAddHeader}
-              onRemove={handleRemoveHeader}
-              onChange={handleUpdateHeader}
-            />
-          </TabsContent>
-
-          {/* Body Tab */}
-          <TabsContent value="body" className="p-4">
-            <RequestBodySection
-              body={request.body}
-              onChange={(updates) => onRequestChange({ body: updates })}
-              onFormat={handleFormatBody}
-            />
-          </TabsContent>
-          {/* Add History Tab Content */}
-          <TabsContent value="history" className="p-4">
-            <HistorySection history={request.historyRequests || []} />
-          </TabsContent>
-        </div>
+        <TabsContent value="history" className="space-y-4">
+          <HistorySection history={request.historyRequests || []} />
+        </TabsContent>
       </Tabs>
     </div>
   );
-}
-
-interface RequestPanelProps {
-  request: ApiRequest;
-  onRequestChange: (updates: Partial<ApiRequest>) => void;
-  onResponse: (response: any) => void;
-  onLoading: (isLoading: boolean) => void;
-  onError: (error: string | null) => void;
-}
-
-const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
-const BODY_TYPES: BodyType[] = ["none", "form-data", "x-www-form-urlencoded", "raw"];
-const RAW_FORMATS: RawFormat[] = ["json", "text", "xml", "html"];
-
-//Debounce function (needed for RequestBodySection)
-const debounce = (func: any, wait: number) => {
-  let timeoutId: NodeJS.Timeout;
-  return (...args: any[]) => {
-    clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => func.apply(this, args), wait);
-  };
-};
-
-// Added function to retrieve TIAA token.  Implementation needs to be added based on your specific needs.
-async function getTiaaToken(environment: string): Promise<string> {
-  // Replace this with your actual token retrieval logic
-  // This is a placeholder and will need to be implemented based on your TIAA authentication system.
-  //  It should fetch the token based on the provided environment.  Consider using a different approach
-  //  to handle environment-specific configuration, such as environment variables or a configuration file.
-
-  if (environment === 'prod') {
-    return 'your-production-tiaa-token';
-  } else if (environment === 'staging'){
-    return 'your-staging-tiaa-token';
-  } else {
-    return 'your-dev-tiaa-token';
-  }
 }
