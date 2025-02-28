@@ -5,7 +5,7 @@ export const RequestHistorySchema = z.object({
   method: z.string(),
   url: z.string(),
   requestBody: z.any().optional(),
-  responseFields: z.record(z.any()).optional(),
+  responseFields: z.any(), // Allow any type of response (array or object)
   timestamp: z.string(),
   responseTime: z.number(),
 });
@@ -41,7 +41,7 @@ export const RequestSchema = z.object({
   headers: z.record(z.string()).default({}),
   historyId: z.string(), // "history" + requestId
   historyRequests: z.array(RequestHistorySchema).max(5).default([]),
-  responseFields: z.record(z.any()).default({}),
+  responseFields: z.any().default({}), // Allow any type of response
   requestBody: z.record(z.any()).default({}),
   exampleResponseBody: z.record(z.any()).default({}),
   tags: z.array(z.string()).default([]),
