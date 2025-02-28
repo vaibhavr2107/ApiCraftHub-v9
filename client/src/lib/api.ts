@@ -1,5 +1,5 @@
 import type { ResponseData } from "@/types/api-request";
-import type { Request } from "@shared/schema";
+import type { Request, Collection } from "@shared/schema";
 
 interface RequestOptions {
   method: string;
@@ -60,17 +60,6 @@ export async function makeRequest({
 
 export async function saveRequest(request: Request): Promise<{ fileName: string; version: number }> {
   try {
-    // First check if a file with this name already exists
-    const checkResponse = await fetch(`/api/requests/${request.routeId}`);
-    let version = 1;
-
-    if (checkResponse.ok) {
-      // File exists, increment version
-      const existingRequest = await checkResponse.json();
-      version = (existingRequest.version || 0) + 1;
-      request = { ...request, version };
-    }
-
     // Save the request
     const saveResponse = await fetch('/api/requests', {
       method: 'POST',
@@ -85,33 +74,28 @@ export async function saveRequest(request: Request): Promise<{ fileName: string;
       throw new Error(errorText || 'Failed to save request');
     }
 
-    const result = await saveResponse.json();
-
-    // Also update localStorage
-    const savedRequests = localStorage.getItem("saved_requests");
-    const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-    const existingIndex = currentRequests.findIndex((r: Request) => r.routeId === request.routeId);
-
-    if (existingIndex !== -1) {
-      currentRequests[existingIndex] = request;
-    } else {
-      currentRequests.push(request);
-    }
-
-    localStorage.setItem("saved_requests", JSON.stringify(currentRequests));
-
-    return result;
+    return saveResponse.json();
   } catch (error) {
     console.error('Error saving request:', error);
     throw error;
   }
 }
 
-export async function loadRequests(): Promise<Request[]> {
+export async function loadRequests(): Promise<Collection[]> {
   const response = await fetch('/api/requests');
 
   if (!response.ok) {
     throw new Error('Failed to load requests');
+  }
+
+  return response.json();
+}
+
+export async function getRequestByRouteId(routeId: string): Promise<Request> {
+  const response = await fetch(`/api/requests/${routeId}`);
+
+  if (!response.ok) {
+    throw new Error('Failed to load request');
   }
 
   return response.json();

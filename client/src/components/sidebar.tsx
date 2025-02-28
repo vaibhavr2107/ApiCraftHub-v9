@@ -3,23 +3,12 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Upload, Wand2, Search, FileText, ChevronDown, ChevronRight, FolderClosed, FolderOpen } from "lucide-react";
-import { useState, useEffect } from "react";
-import { Request } from "@shared/schema";
+import { useState } from "react";
+import { Collection, Request } from "@shared/schema";
 import { generateRouteId } from "@/lib/utils";
 import yaml from 'js-yaml';
-
-export interface Collection {
-  id: string;
-  name: string;
-  description?: string;
-  requests: Request[];
-}
-
-export interface RequestFolder {
-  id: string;
-  name: string;
-  requests: Request[];
-}
+import { useQuery } from "@tanstack/react-query";
+import { loadRequests, saveRequest } from "@/lib/api";
 
 interface SidebarProps {
   onRequestSelect: (request: Request) => void;
@@ -29,59 +18,12 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
-  const [folders, setFolders] = useState<RequestFolder[]>([]);
 
-  useEffect(() => {
-    const savedRequests = localStorage.getItem("saved_requests");
-    if (savedRequests) {
-      try {
-        const requests: Request[] = JSON.parse(savedRequests);
-        console.log('Loaded saved requests:', requests);
-        organizeRequestsIntoFolders(requests);
-      } catch (error) {
-        console.error('Error loading saved requests:', error);
-      }
-    }
-  }, []);
-
-  const organizeRequestsIntoFolders = (requests: Request[]) => {
-    console.log('Organizing requests into folders:', requests);
-    const folderMap = new Map<string, Request[]>();
-    const newRequests: Request[] = [];
-
-    requests.forEach(request => {
-      if (request.collectionId) {
-        const collection = folderMap.get(request.collectionId) || [];
-        collection.push(request);
-        folderMap.set(request.collectionId, collection);
-      } else {
-        newRequests.push(request);
-      }
-    });
-
-    const newFolders: RequestFolder[] = [];
-
-    folderMap.forEach((requests, collectionId) => {
-      if (requests.length > 0) {
-        newFolders.push({
-          id: collectionId,
-          name: requests[0].collectionName || 'Unnamed Collection',
-          requests: requests.sort((a, b) => a.name.localeCompare(b.name))
-        });
-      }
-    });
-
-    if (newRequests.length > 0) {
-      newFolders.push({
-        id: 'new-requests',
-        name: 'New Requests',
-        requests: newRequests.sort((a, b) => a.name.localeCompare(b.name))
-      });
-    }
-
-    console.log('Organized folders:', newFolders);
-    setFolders(newFolders);
-  };
+  // Load collections from API
+  const { data: collections = [], isLoading, error } = useQuery({
+    queryKey: ['/api/requests'],
+    queryFn: loadRequests,
+  });
 
   const handleRequestSelect = (request: Request) => {
     console.log('Sidebar: Request selected:', request);
@@ -134,7 +76,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
 
       console.log('Processed requests:', requests);
 
-      // Save each request to both localStorage and API
+      // Save each request
       const savedPromises = requests.map(async (request) => {
         try {
           await saveRequest(request);
@@ -147,26 +89,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
 
       const savedRequests = await Promise.all(savedPromises);
       const successfulSaves = savedRequests.filter((r): r is Request => r !== null);
-
-      // Update localStorage
-      const existingRequests = localStorage.getItem("saved_requests");
-      const currentRequests = existingRequests ? JSON.parse(existingRequests) : [];
-
-      // Merge requests, avoiding duplicates
-      const uniqueRequests = [...currentRequests];
-      successfulSaves.forEach(newRequest => {
-        const existingIndex = uniqueRequests.findIndex(r => r.routeId === newRequest.routeId);
-        if (existingIndex !== -1) {
-          uniqueRequests[existingIndex] = newRequest;
-        } else {
-          uniqueRequests.push(newRequest);
-        }
-      });
-
-      localStorage.setItem("saved_requests", JSON.stringify(uniqueRequests));
-
-      // Reorganize folders
-      organizeRequestsIntoFolders(uniqueRequests);
 
       toast({
         title: "Success",
@@ -184,7 +106,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     event.target.value = '';
   };
 
-  const processPostmanCollection = (json: any) => {
+  const processPostmanCollection = (json: any): Request[] => {
     const collectionId = generateRouteId(json.info?.name || 'imported-collection');
     const collectionName = json.info?.name || 'Imported Collection';
 
@@ -242,7 +164,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     return processItems(json.item || []);
   };
 
-  const processOpenAPI = (spec: any) => {
+  const processOpenAPI = (spec: any): Request[] => {
     if (!spec || typeof spec !== 'object') return [];
 
     const collectionId = generateRouteId(spec.info?.title || 'openapi-collection');
@@ -307,39 +229,31 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     setExpandedFolders(newExpanded);
   };
 
-  const filteredFolders = folders.map(folder => ({
-    ...folder,
-    requests: folder.requests.filter(request =>
+  // Safely filter collections
+  const filteredCollections = (collections || []).map((collection: Collection) => ({
+    ...collection,
+    requests: (collection.requests || []).filter((request: Request) =>
       request.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.method.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.baseUrl.toLowerCase().includes(searchQuery.toLowerCase())
     )
-  })).filter(folder => folder.requests.length > 0);
+  })).filter(collection => (collection.requests || []).length > 0);
 
-  const saveRequest = async (request: Request) => {
-    try {
-      console.log('Saving request:', request);
-      const response = await fetch('/api/requests', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request)
-      });
+  if (isLoading) {
+    return (
+      <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen p-4">
+        Loading requests...
+      </div>
+    );
+  }
 
-      if (!response.ok) {
-        throw new Error(`Failed to save request: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('Save request response:', result);
-      return result;
-    } catch (error) {
-      console.error(`Error saving request ${request.name}:`, error);
-      throw error;
-    }
-  };
-
+  if (error) {
+    return (
+      <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen p-4">
+        Error loading requests. Please try again.
+      </div>
+    );
+  }
 
   return (
     <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen">
@@ -383,14 +297,14 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       </div>
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="p-2">
-          {filteredFolders.map((folder) => (
-            <div key={folder.id} className="mb-2">
+          {filteredCollections.map((collection) => (
+            <div key={collection.id} className="mb-2">
               <Button
                 variant="ghost"
                 className="w-full justify-start mb-1"
-                onClick={() => toggleFolder(folder.id)}
+                onClick={() => toggleFolder(collection.id)}
               >
-                {expandedFolders.has(folder.id) ? (
+                {expandedFolders.has(collection.id) ? (
                   <>
                     <ChevronDown className="h-4 w-4 mr-2" />
                     <FolderOpen className="h-4 w-4 mr-2" />
@@ -401,11 +315,11 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
                     <FolderClosed className="h-4 w-4 mr-2" />
                   </>
                 )}
-                {folder.name}
+                {collection.name}
               </Button>
-              {expandedFolders.has(folder.id) && (
+              {expandedFolders.has(collection.id) && (
                 <div className="pl-4">
-                  {folder.requests.map((request) => (
+                  {(collection.requests || []).map((request: Request) => (
                     <Button
                       key={request.requestId}
                       variant="ghost"
