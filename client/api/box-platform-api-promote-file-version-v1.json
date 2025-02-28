@@ -1,0 +1,29 @@
+{
+  "requestId": "box-platform-api-promote-file-version",
+  "routeId": "box-platform-api-promote-file-version",
+  "name": "Promote file version",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/files/:file_id/versions/current",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-promote-file-version",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "id": "11446498",
+    "type": "file_version"
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

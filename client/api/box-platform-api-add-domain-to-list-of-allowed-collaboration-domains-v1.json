@@ -1,0 +1,29 @@
+{
+  "requestId": "box-platform-api-add-domain-to-list-of-allowed-collaboration-domains",
+  "routeId": "box-platform-api-add-domain-to-list-of-allowed-collaboration-domains",
+  "name": "Add domain to list of allowed collaboration domains",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/collaboration_whitelist_entries",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-add-domain-to-list-of-allowed-collaboration-domains",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "domain": "example.com",
+    "direction": "inbound"
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

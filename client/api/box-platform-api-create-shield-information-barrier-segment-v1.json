@@ -1,0 +1,33 @@
+{
+  "requestId": "box-platform-api-create-shield-information-barrier-segment",
+  "routeId": "box-platform-api-create-shield-information-barrier-segment",
+  "name": "Create shield information barrier segment",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/shield_information_barrier_segments",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-shield-information-barrier-segment",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "shield_information_barrier": {
+      "id": "11446498",
+      "type": "shield_information_barrier"
+    },
+    "name": "Investment Banking",
+    "description": "'Corporate division that engages in\n advisory_based financial\ntransactions on behalf of individuals,\ncorporations, and governments.'"
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.455Z",
+  "updatedAt": "2025-02-28T01:52:03.455Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-get-shield-information-barrier-report-by-id",
+  "routeId": "box-platform-api-get-shield-information-barrier-report-by-id",
+  "name": "Get shield information barrier report by ID",
+  "method": "GET",
+  "baseUrl": "https://{{api.box.com}}/2.0/shield_information_barrier_reports/:shield_information_barrier_report_id",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-get-shield-information-barrier-report-by-id",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

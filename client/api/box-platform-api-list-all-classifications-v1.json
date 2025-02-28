@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-list-all-classifications",
+  "routeId": "box-platform-api-list-all-classifications",
+  "name": "List all classifications",
+  "method": "GET",
+  "baseUrl": "https://{{api.box.com}}/2.0/metadata_templates/enterprise/securityClassification-6VMVochwUWo/schema",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-list-all-classifications",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.453Z",
+  "updatedAt": "2025-02-28T01:52:03.453Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

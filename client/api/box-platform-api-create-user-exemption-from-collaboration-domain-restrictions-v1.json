@@ -1,0 +1,30 @@
+{
+  "requestId": "box-platform-api-create-user-exemption-from-collaboration-domain-restrictions",
+  "routeId": "box-platform-api-create-user-exemption-from-collaboration-domain-restrictions",
+  "name": "Create user exemption from collaboration domain restrictions",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/collaboration_whitelist_exempt_targets",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-user-exemption-from-collaboration-domain-restrictions",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "user": {
+      "id": "23522323"
+    }
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

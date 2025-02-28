@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-get-ai-agent-by-agent-id",
+  "routeId": "box-platform-api-get-ai-agent-by-agent-id",
+  "name": "Get AI agent by agent ID",
+  "method": "GET",
+  "baseUrl": "https://{{api.box.com}}/2.0/ai_agents/:agent_id",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-get-ai-agent-by-agent-id",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.453Z",
+  "updatedAt": "2025-02-28T01:52:03.453Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

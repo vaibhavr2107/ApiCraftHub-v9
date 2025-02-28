@@ -1,0 +1,40 @@
+{
+  "requestId": "box-platform-api-create-slack-integration-mapping",
+  "routeId": "box-platform-api-create-slack-integration-mapping",
+  "name": "Create Slack integration mapping",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/integration_mappings/slack",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-slack-integration-mapping",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "partner_item": {
+      "type": "channel",
+      "id": "C12378991223",
+      "slack_workspace_id": "T12352314",
+      "slack_org_id": "E1234567"
+    },
+    "box_item": {
+      "type": "folder",
+      "id": "1234567891"
+    },
+    "options": {
+      "is_access_management_disabled": true
+    }
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

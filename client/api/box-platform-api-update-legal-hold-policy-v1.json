@@ -1,0 +1,30 @@
+{
+  "requestId": "box-platform-api-update-legal-hold-policy",
+  "routeId": "box-platform-api-update-legal-hold-policy",
+  "name": "Update legal hold policy",
+  "method": "PUT",
+  "baseUrl": "https://{{api.box.com}}/2.0/legal_hold_policies/:legal_hold_policy_id",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-update-legal-hold-policy",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "policy_name": "Sales Policy",
+    "description": "A custom policy for the sales team",
+    "release_notes": "Required for GDPR"
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

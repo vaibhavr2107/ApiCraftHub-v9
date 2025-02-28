@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-download-zip-archive",
+  "routeId": "box-platform-api-download-zip-archive",
+  "name": "Download zip archive",
+  "method": "GET",
+  "baseUrl": "https://{{dl.boxcloud.com}}/2.0/zip_downloads/:zip_download_id/content",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-download-zip-archive",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.455Z",
+  "updatedAt": "2025-02-28T01:52:03.455Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

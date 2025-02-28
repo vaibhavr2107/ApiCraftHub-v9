@@ -1,0 +1,34 @@
+{
+  "requestId": "box-platform-api-update-slack-integration-mapping",
+  "routeId": "box-platform-api-update-slack-integration-mapping",
+  "name": "Update Slack integration mapping",
+  "method": "PUT",
+  "baseUrl": "https://{{api.box.com}}/2.0/integration_mappings/slack/:integration_mapping_id",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-update-slack-integration-mapping",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "box_item": {
+      "type": "folder",
+      "id": "1234567891"
+    },
+    "options": {
+      "is_access_management_disabled": true
+    }
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}
