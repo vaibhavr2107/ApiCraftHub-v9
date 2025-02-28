@@ -15,21 +15,18 @@ export async function makeRequest({
   headers = {},
 }: RequestOptions): Promise<ResponseData> {
   try {
-    // Validate URL
     if (!url) {
       throw new Error("URL is required");
     }
 
-    // Ensure URL is properly formatted
     let requestUrl: string;
     try {
       requestUrl = url.startsWith('http') ? url : `https://${url}`;
-      new URL(requestUrl); // Validate URL format
+      new URL(requestUrl);
     } catch (urlError) {
       throw new Error("Invalid URL format. Please check the URL and try again.");
     }
 
-    // Make request to proxy endpoint
     const response = await fetch('/api/proxy', {
       method: 'POST',
       headers: {
@@ -48,11 +45,8 @@ export async function makeRequest({
       throw new Error(errorText || response.statusText);
     }
 
-    const proxyResponse = await response.json();
-    return proxyResponse;
-
+    return response.json();
   } catch (error: any) {
-    // Return formatted error
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     throw new Error(errorMessage);
   }
@@ -196,6 +190,45 @@ export async function getRequestByRouteId(routeId: string): Promise<Request> {
   } catch (error) {
     console.error('Error loading request:', error);
     throw error instanceof Error ? error : new Error('Failed to load request');
+  }
+}
+
+export async function openRequest(routeId: string): Promise<Request> {
+  try {
+    const response = await fetch(`/api/requests/open/${routeId}`);
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to open request');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error opening request:', error);
+    throw error instanceof Error ? error : new Error('Failed to open request');
+  }
+}
+
+export async function updateRequest(routeId: string, updates: Partial<Request>): Promise<Request> {
+  try {
+    const response = await fetch(`/api/requests/update/${routeId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates)
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update request');
+    }
+
+    const result = await response.json();
+    return result.request;
+  } catch (error) {
+    console.error('Error updating request:', error);
+    throw error instanceof Error ? error : new Error('Failed to update request');
   }
 }
 
