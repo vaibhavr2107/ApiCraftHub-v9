@@ -70,12 +70,15 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const { toast } = useToast();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
+  const requestCounter = useRef(0);
 
   // Get route ID
   const routeId = useMemo(() => location.split('/').pop(), [location]);
 
   const createDefaultRequest = useCallback(() => {
-    const newId = generateRouteId('new-request');
+    const timestamp = Date.now();
+    const counter = requestCounter.current++;
+    const newId = generateRouteId(`new-request-${timestamp}-${counter}`);
 
     const newRequest: Request = {
       requestId: newId,
@@ -169,22 +172,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     };
 
     try {
-      // Get existing requests
-      const savedRequests = localStorage.getItem("saved_requests");
-      const existingRequests = savedRequests ? JSON.parse(savedRequests) : [];
-
-      // Update or add the request
-      const requestIndex = existingRequests.findIndex((r: Request) => r.routeId === updatedRequest.routeId);
-      if (requestIndex !== -1) {
-        existingRequests[requestIndex] = updatedRequest;
-      } else {
-        existingRequests.push(updatedRequest);
-      }
-
-      // Save back to localStorage
-      localStorage.setItem("saved_requests", JSON.stringify(existingRequests));
-
-      // Save to backend
+      // Save to backend first
       await saveRequest(updatedRequest);
 
       // Update active requests
@@ -211,8 +199,10 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     setRequestToSave(null);
   }, [requestToSave, toast]);
 
-  const updateRequestHistory = async (request: Request, response: any) => {
-    if (response.status >= 200 && response.status < 300) {
+  const handleResponse = useCallback((requestId: string, response: any) => {
+    setResponses(prev => ({ ...prev, [requestId]: response }));
+    const request = activeRequests.find(req => req.requestId === requestId);
+    if (request) {
       const historyEntry: RequestHistory = {
         method: request.method,
         url: request.baseUrl,
@@ -243,27 +233,8 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
         if (requestIndex !== -1) {
           allRequests[requestIndex] = updatedRequest;
           localStorage.setItem("saved_requests", JSON.stringify(allRequests));
-
-          try {
-            await saveRequest(updatedRequest);
-          } catch (error) {
-            console.error('Error saving request history:', error);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Failed to save request history"
-            });
-          }
         }
       }
-    }
-  };
-
-  const handleResponse = useCallback((requestId: string, response: any) => {
-    setResponses(prev => ({ ...prev, [requestId]: response }));
-    const request = activeRequests.find(req => req.requestId === requestId);
-    if (request) {
-      updateRequestHistory(request, response);
     }
   }, [activeRequests]);
 

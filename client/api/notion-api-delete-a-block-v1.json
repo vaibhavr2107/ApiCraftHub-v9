@@ -1,0 +1,26 @@
+{
+  "requestId": "notion-api-delete-a-block",
+  "routeId": "notion-api-delete-a-block",
+  "name": "Delete a block",
+  "method": "DELETE",
+  "baseUrl": "https://api.notion.com/v1/blocks/{block_id}",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-notion-api-block-removeblockbyid",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Block"
+  ],
+  "collectionId": "notion-api",
+  "createdAt": "2025-02-28T01:27:45.306Z",
+  "updatedAt": "2025-02-28T01:27:45.306Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}
