@@ -13,15 +13,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { makeRequest } from "@/lib/api";
 import type { Request, RequestHistory } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Send, History, X } from "lucide-react";
-import { nanoid } from "nanoid";
+import { Save, Send, History, X, ChevronDown, ChevronRight } from "lucide-react";
+
+const ENVIRONMENTS = ['dev', 'qa01', 'qa02', 'qa03', 'perf'] as const;
 
 // History Section Component
 const HistorySection = ({ history }: { history: RequestHistory[] }) => {
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+
+  const toggleExpand = (index: number) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedItems(newExpanded);
+  };
+
   if (!history || history.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-4">
@@ -34,8 +47,13 @@ const HistorySection = ({ history }: { history: RequestHistory[] }) => {
     <div className="space-y-4">
       {history.map((entry, index) => (
         <Card key={index} className="p-4">
-          <div className="flex justify-between items-start mb-2">
-            <div>
+          <div className="flex justify-between items-start mb-2 cursor-pointer" onClick={() => toggleExpand(index)}>
+            <div className="flex items-center">
+              {expandedItems.has(index) ? (
+                <ChevronDown className="h-4 w-4 mr-2" />
+              ) : (
+                <ChevronRight className="h-4 w-4 mr-2" />
+              )}
               <span className={`font-semibold ${METHOD_COLORS[entry.method]}`}>
                 {entry.method}
               </span>
@@ -48,21 +66,25 @@ const HistorySection = ({ history }: { history: RequestHistory[] }) => {
             </div>
           </div>
           <div className="text-sm break-all">{entry.url}</div>
-          {entry.requestBody && Object.keys(entry.requestBody).length > 0 && (
-            <div className="mt-2">
-              <div className="text-sm font-medium text-muted-foreground">Request Body:</div>
-              <pre className="mt-1 text-sm bg-muted p-2 rounded-md overflow-auto">
-                {JSON.stringify(entry.requestBody, null, 2)}
-              </pre>
-            </div>
-          )}
-          {entry.responseFields && (
-            <div className="mt-2">
-              <div className="text-sm font-medium text-muted-foreground">Response:</div>
-              <pre className="mt-1 text-sm bg-muted p-2 rounded-md overflow-auto">
-                {JSON.stringify(entry.responseFields, null, 2)}
-              </pre>
-            </div>
+          {expandedItems.has(index) && (
+            <>
+              {entry.requestBody && Object.keys(entry.requestBody).length > 0 && (
+                <div className="mt-2">
+                  <div className="text-sm font-medium text-muted-foreground">Request Body:</div>
+                  <pre className="mt-1 text-sm bg-muted p-2 rounded-md overflow-auto">
+                    {JSON.stringify(entry.requestBody, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {entry.responseFields && (
+                <div className="mt-2">
+                  <div className="text-sm font-medium text-muted-foreground">Response:</div>
+                  <pre className="mt-1 text-sm bg-muted p-2 rounded-md overflow-auto">
+                    {JSON.stringify(entry.responseFields, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </>
           )}
         </Card>
       ))}
@@ -106,15 +128,9 @@ export function RequestPanel({
   onError,
 }: RequestPanelProps) {
   const { toast } = useToast();
-  const [queryParams, setQueryParams] = useState<Parameter[]>([
-    { key: "", value: "", enabled: true }
-  ]);
-  const [pathParams, setPathParams] = useState<Parameter[]>([
-    { key: "", value: "", enabled: true }
-  ]);
-  const [headers, setHeaders] = useState<Parameter[]>([
-    { key: "", value: "", enabled: true }
-  ]);
+  const [queryParams, setQueryParams] = useState<Parameter[]>([]);
+  const [pathParams, setPathParams] = useState<Parameter[]>([]);
+  const [headers, setHeaders] = useState<Parameter[]>([]);
   const [bodyType, setBodyType] = useState<typeof BODY_TYPES[number]>("none");
   const [rawFormat, setRawFormat] = useState<typeof RAW_FORMATS[number]>("json");
   const [rawBody, setRawBody] = useState("");
@@ -129,7 +145,7 @@ export function RequestPanel({
       value: String(value),
       enabled: true
     }));
-    setQueryParams(qParams.length > 0 ? qParams : [{ key: "", value: "", enabled: true }]);
+    setQueryParams(qParams);
 
     // Path variables
     const pParams = Object.entries(request.pathVariables || {}).map(([key, value]) => ({
@@ -137,7 +153,7 @@ export function RequestPanel({
       value: String(value),
       enabled: true
     }));
-    setPathParams(pParams.length > 0 ? pParams : [{ key: "", value: "", enabled: true }]);
+    setPathParams(pParams);
 
     // Headers
     const hParams = Object.entries(request.headers || {}).map(([key, value]) => ({
@@ -145,7 +161,7 @@ export function RequestPanel({
       value: String(value),
       enabled: true
     }));
-    setHeaders(hParams.length > 0 ? hParams : [{ key: "", value: "", enabled: true }]);
+    setHeaders(hParams);
 
     // Request body
     if (request.requestBody && Object.keys(request.requestBody).length > 0) {
@@ -154,6 +170,24 @@ export function RequestPanel({
       setRawBody(JSON.stringify(request.requestBody, null, 2));
     }
   }, [request]);
+
+  // Handle environment change
+  const handleEnvironmentChange = (env: typeof ENVIRONMENTS[number]) => {
+    let baseUrl = request.baseUrl;
+
+    // Update URL based on environment
+    if (env !== 'dev') {
+      const envUrl = request[`${env}EnvUrl` as keyof Request];
+      if (envUrl) {
+        baseUrl = envUrl;
+      }
+    }
+
+    onRequestChange({
+      selectedEnvironment: env,
+      baseUrl
+    });
+  };
 
   const handleSend = async () => {
     onLoading(true);
@@ -178,11 +212,6 @@ export function RequestPanel({
         .forEach(h => {
           headersRecord[h.key] = h.value;
         });
-
-      // Add auth header
-      if (request.auth.type === "bearer" && request.auth.token) {
-        headersRecord["Authorization"] = `Bearer ${request.auth.token}`;
-      }
 
       // Process body
       let requestBody;
@@ -270,90 +299,6 @@ export function RequestPanel({
     });
   };
 
-  const handleAddParam = (
-    params: Parameter[],
-    setParams: React.Dispatch<React.SetStateAction<Parameter[]>>
-  ) => {
-    setParams([...params, { key: "", value: "", enabled: true }]);
-  };
-
-  const handleRemoveParam = (
-    index: number,
-    params: Parameter[],
-    setParams: React.Dispatch<React.SetStateAction<Parameter[]>>
-  ) => {
-    setParams(params.filter((_, i) => i !== index));
-  };
-
-  const handleUpdateParam = (
-    index: number,
-    field: keyof Parameter,
-    value: string | boolean,
-    params: Parameter[],
-    setParams: React.Dispatch<React.SetStateAction<Parameter[]>>
-  ) => {
-    const newParams = [...params];
-    newParams[index] = { ...newParams[index], [field]: value };
-    setParams(newParams);
-  };
-
-  const ParametersSection = ({
-    title,
-    parameters,
-    setParameters
-  }: {
-    title: string;
-    parameters: Parameter[];
-    setParameters: React.Dispatch<React.SetStateAction<Parameter[]>>;
-  }) => (
-    <div className="space-y-2">
-      <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-      <div className="space-y-2">
-        {parameters.map((param, index) => (
-          <div key={index} className="flex items-center gap-2">
-            <Checkbox
-              checked={param.enabled}
-              onCheckedChange={(checked) =>
-                handleUpdateParam(index, "enabled", checked === true, parameters, setParameters)
-              }
-            />
-            <Input
-              placeholder="Key"
-              value={param.key}
-              onChange={(e) =>
-                handleUpdateParam(index, "key", e.target.value, parameters, setParameters)
-              }
-              className="flex-1"
-            />
-            <Input
-              placeholder="Value"
-              value={param.value}
-              onChange={(e) =>
-                handleUpdateParam(index, "value", e.target.value, parameters, setParameters)
-              }
-              className="flex-1"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleRemoveParam(index, parameters, setParameters)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-        <Button
-          onClick={() => handleAddParam(parameters, setParameters)}
-          variant="outline"
-          size="sm"
-          className="w-full"
-        >
-          Add {title.replace('Parameters', '').trim()}
-        </Button>
-      </div>
-    </div>
-  );
-
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
@@ -368,6 +313,22 @@ export function RequestPanel({
             {Object.keys(METHOD_COLORS).map((method) => (
               <SelectItem key={method} value={method}>
                 {method}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={request.selectedEnvironment || 'qa01'}
+          onValueChange={handleEnvironmentChange}
+        >
+          <SelectTrigger className="w-[100px]">
+            <SelectValue placeholder="Environment" />
+          </SelectTrigger>
+          <SelectContent>
+            {ENVIRONMENTS.map((env) => (
+              <SelectItem key={env} value={env}>
+                {env.toUpperCase()}
               </SelectItem>
             ))}
           </SelectContent>
@@ -524,7 +485,6 @@ export function RequestPanel({
               onRequestChange({
                 auth: {
                   type: value,
-                  token: value === "bearer" ? request.auth.token || "" : undefined,
                   basic: value === "basic" ? { username: "", password: "" } : undefined
                 }
               });
@@ -536,7 +496,6 @@ export function RequestPanel({
             <SelectContent>
               <SelectItem value="none">No Auth</SelectItem>
               <SelectItem value="basic">Basic Auth</SelectItem>
-              <SelectItem value="bearer">Bearer Token</SelectItem>
               <SelectItem value="bearer-tiaa">Bearer Token (TIAA)</SelectItem>
             </SelectContent>
           </Select>
@@ -570,19 +529,6 @@ export function RequestPanel({
                 }
               />
             </div>
-          )}
-
-          {request.auth.type === "bearer" && (
-            <Input
-              type="text"
-              placeholder="Bearer Token"
-              value={request.auth.token || ""}
-              onChange={(e) =>
-                onRequestChange({
-                  auth: { ...request.auth, token: e.target.value }
-                })
-              }
-            />
           )}
 
           {request.auth.type === "bearer-tiaa" && (
