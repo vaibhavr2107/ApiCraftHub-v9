@@ -16,8 +16,6 @@ import type { Request, RequestHistory } from "@shared/schema";
 import { RequestPanel } from "./request-panel";
 import { ResponsePanel } from "./response-panel";
 
-let newRequestVersion = 1;
-
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
   const [requests, setRequests] = useState<Request[]>([]);
@@ -32,12 +30,10 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const routeId = useMemo(() => location.split('/').pop(), [location]);
 
   const createDefaultRequest = useCallback(() => {
-    const id = nanoid();
-    const routeId = generateRouteId(`new-request-v${newRequestVersion}`);
-    newRequestVersion++;
+    const routeId = generateRouteId(`new-request`);
 
     const newRequest: Request = {
-      requestId: id,
+      requestId: routeId,
       routeId,
       name: "New Request",
       method: "GET",
@@ -50,7 +46,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
         'User-Agent': 'API-Tester/1.0',
         'Content-Type': 'application/json'
       },
-      historyId: `history-${id}`,
+      historyId: `history-${routeId}`,
       historyRequests: [],
       responseFields: {},
       requestBody: {},
@@ -62,39 +58,18 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       selectedEnvironment: "qa01"
     };
 
-    setRequests(prev => [...prev, newRequest]);
+    setRequests([newRequest]);
     setLocation(`/request/${routeId}`);
     return newRequest;
   }, [setLocation]);
 
-  // Initialize requests from server or create default
+  // Initialize with a single new request
   useEffect(() => {
-    const initializeRequests = async () => {
-      if (initialized.current) return;
+    if (!initialized.current) {
       initialized.current = true;
-
-      try {
-        const serverRequests = await loadRequests();
-        if (serverRequests && serverRequests.length > 0) {
-          setRequests(serverRequests);
-          localStorage.setItem("saved_requests", JSON.stringify(serverRequests));
-
-          // If we're at root, select the first request
-          if (location === "/") {
-            setLocation(`/request/${serverRequests[0].routeId}`);
-          }
-        } else {
-          // Only create default if no requests exist
-          createDefaultRequest();
-        }
-      } catch (error) {
-        console.error('Error loading requests:', error);
-        createDefaultRequest();
-      }
-    };
-
-    initializeRequests();
-  }, [location, createDefaultRequest]);
+      createDefaultRequest();
+    }
+  }, [createDefaultRequest]);
 
   // Find active request
   const activeRequest = useMemo(() => 
@@ -113,17 +88,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       const updatedRequests = prev.filter(req => req.requestId !== requestId);
 
       if (requestId === activeRequest.requestId) {
-        const nextTab = updatedRequests[0];
-        if (nextTab) {
-          setLocation(`/request/${nextTab.routeId}`);
-        } else {
-          createDefaultRequest();
-        }
+        createDefaultRequest();
       }
 
       return updatedRequests;
     });
-  }, [activeRequest, setLocation, createDefaultRequest]);
+  }, [activeRequest, createDefaultRequest]);
 
   const handleTabChange = useCallback((value: string) => {
     const request = requests.find(r => r.requestId === value);
@@ -187,13 +157,13 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   };
 
   // Don't render until we have an active request
-  if (!activeRequest && !initialized.current) {
+  if (!activeRequest) {
     return null;
   }
 
   return (
     <div className="container py-6 max-w-[1400px]">
-      <Tabs value={activeRequest?.requestId} onValueChange={handleTabChange} className="w-full">
+      <Tabs value={activeRequest.requestId} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center gap-2 mb-4">
           <div ref={tabsContainerRef} className="flex-1 overflow-x-auto">
             <TabsList className="flex w-max space-x-1">
@@ -202,14 +172,14 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                   key={request.requestId}
                   className={cn(
                     "flex items-center mx-1 rounded-md transition-colors",
-                    activeRequest?.requestId === request.requestId ? "bg-muted" : "bg-transparent"
+                    activeRequest.requestId === request.requestId ? "bg-muted" : "bg-transparent"
                   )}
                 >
                   <TabsTrigger
                     value={request.requestId}
                     className={cn(
                       "w-[160px] justify-start text-left truncate",
-                      activeRequest?.requestId === request.requestId ? "bg-muted" : ""
+                      activeRequest.requestId === request.requestId ? "bg-muted" : ""
                     )}
                   >
                     {request.name}
@@ -220,7 +190,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                       size="icon"
                       className={cn(
                         "h-8 w-8",
-                        activeRequest?.requestId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
+                        activeRequest.requestId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
