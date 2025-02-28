@@ -22,25 +22,21 @@ async function loadRequestFile(filePath: string): Promise<Request | null> {
     const content = await fs.readFile(filePath, 'utf-8');
     const request = JSON.parse(content);
 
-    // Extract collection info from file name
-    const fileName = path.basename(filePath, '.json');
-    const parts = fileName.split('-');
+    // If file exists but doesn't have collection info, extract from filename
+    if (!request.collectionId || !request.collectionName) {
+      const fileName = path.basename(filePath, '.json');
+      const parts = fileName.split('-');
 
-    console.log('Parsed file name parts:', parts);
+      // Assuming format: collection-name-request-name.json
+      const collectionParts = parts.slice(0, -1); // All parts except last one for collection
+      const collectionId = collectionParts.join('-');
+      const collectionName = collectionParts.join(' ').replace(/\b\w/g, l => l.toUpperCase());
 
-    // Assuming format: box-platform-api-action-v1.json
-    const collectionId = parts[0] + '-' + parts[1] + '-api';
-    const collectionName = (parts[0] + ' ' + parts[1] + ' API').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      request.collectionId = request.collectionId || collectionId;
+      request.collectionName = request.collectionName || collectionName;
+    }
 
-    // Merge with request data
-    const requestWithCollection = {
-      ...request,
-      collectionId,
-      collectionName
-    };
-
-    console.log('Processing request:', requestWithCollection);
-    return RequestSchema.parse(requestWithCollection);
+    return RequestSchema.parse(request);
   } catch (error) {
     console.error(`Error loading request file ${filePath}:`, error);
     return null;
@@ -79,16 +75,23 @@ router.get('/requests', async (req, res) => {
 // GET request file
 router.get('/requests/:routeId', async (req, res) => {
   try {
-    console.log('Loading request:', req.params.routeId);
     const { routeId } = req.params;
-    const filePath = path.join(API_FOLDER, `${routeId}.json`);
+    console.log('Loading request by routeId:', routeId);
 
-    const request = await loadRequestFile(filePath);
-    if (!request) {
-      throw new Error('Request not found');
+    // Read all files and find the one matching routeId
+    const files = await fs.readdir(API_FOLDER);
+
+    for (const file of files) {
+      const filePath = path.join(API_FOLDER, file);
+      const request = await loadRequestFile(filePath);
+
+      if (request && request.routeId === routeId) {
+        console.log('Found matching request:', request);
+        return res.json(request);
+      }
     }
 
-    res.json(request);
+    throw new Error('Request not found');
   } catch (error) {
     console.error('Error loading request:', error);
     res.status(404).json({ 
