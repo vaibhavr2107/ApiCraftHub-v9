@@ -73,12 +73,17 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const requestCounter = useRef(0);
 
   // Get route ID
-  const routeId = useMemo(() => location.split('/').pop(), [location]);
+  const routeId = useMemo(() => {
+    const id = location.split('/').pop();
+    console.log('RequestTabs: Current routeId from location:', id);
+    return id;
+  }, [location]);
 
   const createDefaultRequest = useCallback(() => {
     const timestamp = Date.now();
     const counter = requestCounter.current++;
     const newId = generateRouteId(`new-request-${timestamp}-${counter}`);
+    console.log('RequestTabs: Creating new default request with ID:', newId);
 
     const newRequest: Request = {
       requestId: newId,
@@ -106,24 +111,24 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       selectedEnvironment: "qa01"
     };
 
-    console.log('Creating new request:', newRequest);
+    console.log('RequestTabs: Adding new request to active requests:', newRequest);
     setActiveRequests(prev => [...prev, newRequest]);
     return newRequest;
   }, []);
 
   // Handle route changes and request loading
   useEffect(() => {
-    console.log('Route changed:', routeId);
-    if (!routeId) return;
+    if (!routeId) {
+      console.log('RequestTabs: No routeId present, skipping effect');
+      return;
+    }
+
+    console.log('RequestTabs: Processing route change for routeId:', routeId);
 
     // Check if request is already in active requests
     const existingRequest = activeRequests.find(r => r.routeId === routeId);
     if (existingRequest) {
-      console.log('Request already in active tabs');
-      // Make sure it's the active request
-      if (activeRequest?.requestId !== existingRequest.requestId) {
-        setActiveRequest(existingRequest);
-      }
+      console.log('RequestTabs: Request already in active tabs:', existingRequest);
       return;
     }
 
@@ -134,18 +139,18 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
         const requests = JSON.parse(savedRequests);
         const request = requests.find((r: Request) => r.routeId === routeId);
         if (request) {
-          console.log('Found request in localStorage:', request);
+          console.log('RequestTabs: Found request in localStorage:', request);
           setActiveRequests(prev => [...prev, request]);
           return;
         }
       } catch (error) {
-        console.error('Error loading from localStorage:', error);
+        console.error('RequestTabs: Error loading from localStorage:', error);
       }
     }
 
     // If not in localStorage and not a new request, try API
     if (!routeId.startsWith('new-request-')) {
-      console.log('Loading request from API:', routeId);
+      console.log('RequestTabs: Loading request from API:', routeId);
       fetch(`/api/requests/${routeId}`, {
         headers: {
           'Accept': 'application/json'
@@ -158,15 +163,11 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
           return response.json();
         })
         .then(request => {
-          console.log('Loaded request from API:', request);
-          // Check if request is already in active requests
-          const existingRequestIndex = activeRequests.findIndex(r => r.routeId === request.routeId);
-          if (existingRequestIndex === -1) {
-            setActiveRequests(prev => [...prev, request]);
-          }
+          console.log('RequestTabs: Successfully loaded request from API:', request);
+          setActiveRequests(prev => [...prev, request]);
         })
         .catch(error => {
-          console.error('Error loading request:', error);
+          console.error('RequestTabs: Error loading request:', error);
           toast({
             variant: "destructive",
             title: "Error",
@@ -174,18 +175,23 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
           });
           // Create a new request if loading fails
           const newRequest = createDefaultRequest();
-          // Update the location to match the new request
           setLocation(`/request/${newRequest.routeId}`);
         });
-    } else {
-      // For new requests, just create them if they don't already exist
-      const existingNewRequest = activeRequests.find(r => r.routeId === routeId);
-      if (!existingNewRequest) {
-        console.log('Creating new request from route');
-        createDefaultRequest();
-      }
+    } else if (!existingRequest) {
+      console.log('RequestTabs: Creating new request for route:', routeId);
+      createDefaultRequest();
     }
-  }, [routeId, setLocation, toast, createDefaultRequest]);
+  }, [routeId, activeRequests, createDefaultRequest, setLocation, toast]);
+
+  // Initialize with a default request if no active requests
+  useEffect(() => {
+    if (!initialized.current && activeRequests.length === 0) {
+      console.log('RequestTabs: Initializing with default request');
+      initialized.current = true;
+      const newRequest = createDefaultRequest();
+      setLocation(`/request/${newRequest.routeId}`);
+    }
+  }, [createDefaultRequest, setLocation, activeRequests.length]);
 
   const handleSaveRequest = useCallback((request: Request) => {
     setRequestToSave(request);
@@ -300,7 +306,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
   return (
     <div className="container py-6 max-w-[1400px]">
-      <Tabs value={activeRequest?.requestId} onValueChange={handleTabChange} className="w-full">
+      <Tabs value={routeId} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center gap-2 mb-4">
           <div ref={tabsContainerRef} className="flex-1 overflow-x-auto">
             <TabsList className="flex w-max space-x-1">

@@ -2,13 +2,25 @@ import { RequestTabs } from "@/components/request-tabs";
 import { Sidebar } from "@/components/sidebar";
 import { Request } from "@shared/schema";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
+import { generateRouteId } from "@/lib/utils";
 
 export default function Home() {
   const [location, setLocation] = useLocation();
 
+  // Create and open a default request on component mount
+  useEffect(() => {
+    console.log('Home: Checking if we need to create a default request');
+    const routeId = location.split('/').pop();
+    if (!routeId || routeId === '') {
+      console.log('Home: Creating default request as no route specified');
+      const newRequestId = generateRouteId(`new-request-${Date.now()}`);
+      setLocation(`/request/${newRequestId}`);
+    }
+  }, []);
+
   const handleRequestSelect = (request: Request) => {
-    console.log('Home: Request selected:', request);
-    // First change location, which will trigger the tab creation
+    console.log('Home: Request selected from sidebar:', request);
     setLocation(`/request/${request.routeId}`);
   };
 
