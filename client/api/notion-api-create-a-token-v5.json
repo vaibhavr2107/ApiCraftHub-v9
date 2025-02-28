@@ -1,0 +1,27 @@
+{
+  "requestId": "notion-api-create-a-token",
+  "routeId": "notion-api-create-a-token",
+  "name": "Create a token",
+  "method": "POST",
+  "baseUrl": "https://api.notion.com/v1/oauth/token",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-notion-api-token-generateaccess",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Token"
+  ],
+  "collectionId": "notion-api",
+  "collectionName": "Notion API",
+  "createdAt": "2025-02-28T19:27:37.302Z",
+  "updatedAt": "2025-02-28T19:27:37.302Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

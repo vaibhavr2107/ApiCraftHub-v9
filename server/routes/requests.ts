@@ -20,6 +20,12 @@ async function loadRequestFile(filePath: string): Promise<Request | null> {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
     const request = JSON.parse(content);
+    // Add collectionId and name if not present
+    if (!request.collectionId && request.routeId) {
+      const parts = request.routeId.split('-');
+      request.collectionId = parts[0];
+      request.collectionName = parts[0].split('/').pop();
+    }
     return RequestSchema.parse(request);
   } catch (error) {
     console.error(`Error loading request file ${filePath}:`, error);
@@ -34,6 +40,8 @@ router.get('/requests', async (req, res) => {
     const files = await fs.readdir(API_FOLDER);
     const jsonFiles = files.filter(file => file.endsWith('.json'));
 
+    console.log('Found JSON files:', jsonFiles);
+
     const requests: Request[] = [];
     for (const file of jsonFiles) {
       const filePath = path.join(API_FOLDER, file);
@@ -43,21 +51,25 @@ router.get('/requests', async (req, res) => {
       }
     }
 
+    console.log('Loaded requests:', requests);
+
     // Group requests by collection
     const grouped = requests.reduce((acc, request) => {
-      if (request.collectionId) {
-        if (!acc[request.collectionId]) {
-          acc[request.collectionId] = {
-            id: request.collectionId,
-            name: request.collectionName || 'Unnamed Collection',
-            requests: []
-          };
-        }
-        acc[request.collectionId].requests.push(request);
+      const collectionId = request.collectionId || 'ungrouped';
+      const collectionName = request.collectionName || 'Ungrouped Requests';
+
+      if (!acc[collectionId]) {
+        acc[collectionId] = {
+          id: collectionId,
+          name: collectionName,
+          requests: []
+        };
       }
+      acc[collectionId].requests.push(request);
       return acc;
     }, {} as Record<string, { id: string; name: string; requests: Request[] }>);
 
+    console.log('Grouped collections:', Object.values(grouped));
     res.json(Object.values(grouped));
   } catch (error) {
     console.error('Error loading requests:', error);
