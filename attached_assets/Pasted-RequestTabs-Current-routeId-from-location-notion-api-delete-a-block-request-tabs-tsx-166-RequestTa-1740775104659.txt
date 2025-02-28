@@ -1,0 +1,232 @@
+RequestTabs: Current routeId from location: notion-api-delete-a-block
+request-tabs.tsx:166 RequestTabs: Processing route change for routeId: notion-api-delete-a-block
+request-tabs.tsx:177 RequestTabs: Loading request from API: notion-api-delete-a-block
+request-tabs.tsx:186 RequestTabs: Response content type: text/html; charset=utf-8
+request-tabs.tsx:196 RequestTabs: Unexpected response type: text/html; charset=utf-8
+(anonymous) @ request-tabs.tsx:196
+Promise.then
+(anonymous) @ request-tabs.tsx:184
+commitHookEffectListMount @ chunk-WERSD76P.js?v=9a6e368f:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=9a6e368f:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=9a6e368f:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=9a6e368f:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=9a6e368f:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=9a6e368f:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=9a6e368f:19447
+commitRootImpl @ chunk-WERSD76P.js?v=9a6e368f:19416
+commitRoot @ chunk-WERSD76P.js?v=9a6e368f:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=9a6e368f:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=9a6e368f:9119
+(anonymous) @ chunk-WERSD76P.js?v=9a6e368f:18627Understand this errorAI
+request-tabs.tsx:197 RequestTabs: Response body: <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <style data-vite-theme="" data-inject-first="">:root {
+      --background: 0 0% 100%;
+--foreground: 20 14.3% 4.1%;
+--muted: 60 4.8% 95.9%;
+--muted-foreground: 25 5.3% 44.7%;
+--popover: 0 0% 100%;
+--popover-foreground: 20 14.3% 4.1%;
+--card: 0 0% 100%;
+--card-foreground: 20 14.3% 4.1%;
+--border: 20 5.9% 90%;
+--input: 20 5.9% 90%;
+--primary: 222 47% 11%;
+--primary-foreground: 221 8% 97%;
+--secondary: 60 4.8% 95.9%;
+--secondary-foreground: 24 9.8% 10%;
+--accent: 60 4.8% 95.9%;
+--accent-foreground: 24 9.8% 10%;
+--destructive: 0 84.2% 60.2%;
+--destructive-foreground: 60 9.1% 97.8%;
+--ring: 20 14.3% 4.1%;
+--radius: 0.5rem;
+  }
+  .dark {
+      --background: 240 10% 3.9%;
+--foreground: 0 0% 98%;
+--muted: 240 3.7% 15.9%;
+--muted-foreground: 240 5% 64.9%;
+--popover: 240 10% 3.9%;
+--popover-foreground: 0 0% 98%;
+--card: 240 10% 3.9%;
+--card-foreground: 0 0% 98%;
+--border: 240 3.7% 15.9%;
+--input: 240 3.7% 15.9%;
+--primary: 222 47% 11%;
+--primary-foreground: 221 8% 97%;
+--secondary: 240 3.7% 15.9%;
+--secondary-foreground: 0 0% 98%;
+--accent: 240 3.7% 15.9%;
+--accent-foreground: 0 0% 98%;
+--destructive: 0 62.8% 30.6%;
+--destructive-foreground: 0 0% 98%;
+--ring: 240 4.9% 83.9%;
+--radius: 0.5rem;
+  }</style>
+
+    <script type="module">
+import { createHotContext } from "/@vite/client";
+const hot = createHotContext("/__dummy__runtime-error-plugin");
+
+function sendError(error) {
+  if (!(error instanceof Error)) {
+    error = new Error("(unknown runtime error)");
+  }
+  const serialized = {
+    message: error.message,
+    stack: error.stack,
+  };
+  hot.send("runtime-error-plugin:error", serialized);
+}
+
+window.addEventListener("error", (evt) => {
+  sendError(evt.error);
+});
+
+window.addEventListener("unhandledrejection", (evt) => {
+  sendError(evt.reason);
+});
+</script>
+
+    <script type="module">
+import RefreshRuntime from "/@react-refresh"
+RefreshRuntime.injectIntoGlobalHook(window)
+window.$RefreshReg$ = () => {}
+window.$RefreshSig$ = () => (type) => type
+window.__vite_plugin_react_preamble_installed__ = true
+</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <script type="module">"use strict";(()=>{var t={HIGHLIGHT_COLOR:"#8B5CF6",HIGHLIGHT_BG:"#8B5CF610",Z_INDEX:{BASE:1e4,OVERLAY:10001,TOOLTIP:10002,CONTENT:10003},HOVERED_ATTR:"data-replit-hovered",SELECTED_ATTR:"data-replit-selected",TOOLTIP_OFFSET:25,MAX_TOOLTIP_WIDTH:200,ALLOWED_DOMAIN:".replit.dev"},s=`
+  .replit-beacon-tooltip {
+    position: fixed;
+    z-index: ${t.Z_INDEX.TOOLTIP};
+    pointer-events: none;
+    background-color: ${t.HIGHLIGHT_COLOR};
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    line-height: 1;
+    white-space: nowrap;
+    display: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: opacity 0.2s ease-in-out;
+    margin: 0;
+  }
+
+  /* Base positioning for highlighted elements */
+  [${t.HOVERED_ATTR}],
+  [${t.SELECTED_ATTR}] {
+    position: relative !important;
+    z-index: ${t.Z_INDEX.BASE} !important;
+  }
+
+  /* Common overlay styles */
+  [${t.HOVERED_ATTR}]::before,
+  [${t.SELECTED_ATTR}]::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: ${t.Z_INDEX.OVERLAY};
+    transition: none !important;
+    box-sizing: border-box;
+  }
+
+  /* Hover state */
+  [${t.HOVERED_ATTR}]::before {
+    background-color: ${t.HIGHLIGHT_BG};
+    border: 2px dashed ${t.HIGHLIGHT_COLOR};
+  }
+
+  /* Selected state - we can add dotted border, removed due to visual bugs and inconsistencies across different element types */
+  [${t.SELECTED_ATTR}]::before {
+    background-color: ${t.HIGHLIGHT_BG};
+  }
+
+  /* Preserve child element positioning */
+  [${t.HOVERED_ATTR}] > *,
+  [${t.SELECTED_ATTR}] > * {
+    position: relative;
+    z-index: ${t.Z_INDEX.CONTENT};
+  }
+
+  /* Special handling for images */
+  img[${t.HOVERED_ATTR}],
+  img[${t.SELECTED_ATTR}] {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+
+  /* Prevent nested highlights */
+  [${t.HOVERED_ATTR}] [${t.HOVERED_ATTR}]::before,
+  [${t.SELECTED_ATTR}] [${t.SELECTED_ATTR}]::before,
+  [${t.HOVERED_ATTR}] [${t.SELECTED_ATTR}]::before,
+  [${t.SELECTED_ATTR}] [${t.HOVERED_ATTR}]::before {
+    display: none;
+  }
+
+  /* Fix for absolutely positioned elements */
+  [${t.HOVERED_ATTR}] [class*="absolute"],
+  [${t.SELECTED_ATTR}] [class*="absolute"] {
+    z-index: ${t.Z_INDEX.CONTENT} !important;
+  }
+
+  /* Fix for flex and grid layouts */
+  [${t.HOVERED_ATTR}].flex,
+  [${t.SELECTED_ATTR}].flex,
+  [${t.HOVERED_ATTR}].grid,
+  [${t.SELECTED_ATTR}].grid {
+    display: flex !important;
+  }
+
+  /* Prevent transition jumps */
+  [${t.HOVERED_ATTR}],
+  [${t.SELECTED_ATTR}],
+  [${t.HOVERED_ATTR}] *,
+  [${t.SELECTED_ATTR}] * {
+    transition: none !important;
+    animation: none !important;
+
+(anonymous) @ request-tabs.tsx:197
+Promise.then
+(anonymous) @ request-tabs.tsx:184
+commitHookEffectListMount @ chunk-WERSD76P.js?v=9a6e368f:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=9a6e368f:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=9a6e368f:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=9a6e368f:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=9a6e368f:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=9a6e368f:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=9a6e368f:19447
+commitRootImpl @ chunk-WERSD76P.js?v=9a6e368f:19416
+commitRoot @ chunk-WERSD76P.js?v=9a6e368f:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=9a6e368f:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=9a6e368f:9119
+(anonymous) @ chunk-WERSD76P.js?v=9a6e368f:18627Understand this errorAI
+request-tabs.tsx:208 RequestTabs: Error loading request: Error: Expected JSON response but got text/html; charset=utf-8
+    at request-tabs.tsx:198:19
+(anonymous) @ request-tabs.tsx:208
+Promise.catch
+(anonymous) @ request-tabs.tsx:207
+commitHookEffectListMount @ chunk-WERSD76P.js?v=9a6e368f:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=9a6e368f:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=9a6e368f:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=9a6e368f:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=9a6e368f:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=9a6e368f:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=9a6e368f:19447
+commitRootImpl @ chunk-WERSD76P.js?v=9a6e368f:19416
+commitRoot @ chunk-WERSD76P.js?v=9a6e368f:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=9a6e368f:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=9a6e368f:9119
+(anonymous) @ chunk-WERSD76P.js?v=9a6e368f:18627Understand this errorAI
+sidebar.tsx:37 Grouped collections: [{…}]
+sidebar.tsx:37 Grouped collections: [{…}]
