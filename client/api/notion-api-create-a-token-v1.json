@@ -3,16 +3,34 @@
   "routeId": "notion-api-create-a-token",
   "name": "Create a token",
   "method": "POST",
-  "baseUrl": "https://api.notion.com/v1/oauth/token",
+  "baseUrl": "https://api.notion.com/v1/oauth/token8989",
   "queryParams": {},
   "pathVariables": {},
   "auth": {
-    "type": "bearer-tiaa"
+    "type": "bearer",
+    "bearer": {
+      "token": ""
+    }
   },
   "headers": {},
   "historyId": "history-notion-api-token-generateaccess",
-  "historyRequests": [],
-  "responseFields": {},
+  "historyRequests": [
+    {
+      "method": "POST",
+      "url": "https://api.notion.com/v1/oauth/token",
+      "requestBody": {},
+      "responseFields": {
+        "error": "invalid_client",
+        "request_id": "f0faee84-cfb2-463c-b1a7-6758d5498247"
+      },
+      "timestamp": "2025-02-28T22:33:03.596Z",
+      "responseTime": 1243.5999999996275
+    }
+  ],
+  "responseFields": {
+    "error": "invalid_client",
+    "request_id": "f0faee84-cfb2-463c-b1a7-6758d5498247"
+  },
   "requestBody": {},
   "exampleResponseBody": {},
   "tags": [
@@ -21,7 +39,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-02-28T21:39:02.537Z",
+  "updatedAt": "2025-02-28T22:33:22.537Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }

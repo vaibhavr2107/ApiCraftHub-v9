@@ -282,11 +282,14 @@ export function RequestTabs() {
                 setErrors(prev => ({ ...prev, [request.routeId]: error }));
               }}
             />
-            <ResponsePanel
-              response={responses[request.routeId]}
-              isLoading={loading[request.routeId]}
-              error={errors[request.routeId]}
-            />
+            <div className="mt-8">
+              <ResponsePanel
+                response={responses[request.routeId]}
+                isLoading={loading[request.routeId]}
+                error={errors[request.routeId]}
+                exampleResponse={request.exampleResponseBody}
+              />
+            </div>
           </TabsContent>
         ))}
       </Tabs>
