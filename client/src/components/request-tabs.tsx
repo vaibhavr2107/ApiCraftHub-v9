@@ -62,7 +62,7 @@ function SaveDialog({ isOpen, onClose, onSave, defaultName }: SaveDialogProps) {
   );
 }
 
-export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
+export function RequestTabs({ onRequestComplete, selectedRequest }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
   const [activeRequests, setActiveRequests] = useState<Request[]>([]);
   const [responses, setResponses] = useState<Record<string, any>>({});
@@ -115,7 +115,6 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       name: "New Request",
       method: "GET",
       baseUrl: "https://api.restful-api.dev/objects",
-      // Initialize environment URLs
       devUrl: "",
       qa01Url: "",
       qa02Url: "",
@@ -173,32 +172,18 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
     // Handle incoming request from sidebar
     if (!routeId.startsWith('new-request')) {
-      // Attempt to find the request in localStorage first
-      const savedRequests = localStorage.getItem(ACTIVE_REQUESTS_KEY);
-      let savedRequest: Request | undefined;
-
-      if (savedRequests) {
-        try {
-          const requests = JSON.parse(savedRequests);
-          savedRequest = requests.find((r: Request) => r.routeId === routeId);
-        } catch (error) {
-          console.error('Error parsing saved requests:', error);
-        }
-      }
-
-      // If we have a saved request with full data, use that
-      if (savedRequest) {
-        setActiveRequests(prev => [...prev, savedRequest!]);
+      // Use the selected request data from the sidebar if available
+      if (selectedRequest?.routeId === routeId) {
+        console.log('RequestTabs: Using request data from sidebar:', selectedRequest);
+        setActiveRequests(prev => [...prev, selectedRequest]);
       } else {
-        // If no saved request, create a new request with the routeId
-        // The sidebar component will update this with full data
+        // If no selected request, create a placeholder
         const sidebarRequest: Request = {
           requestId: routeId,
           routeId: routeId,
-          name: routeId, // Use routeId as name until updated
+          name: routeId,
           method: "GET",
           baseUrl: "",
-          // Initialize environment URLs
           devUrl: "",
           qa01Url: "",
           qa02Url: "",
@@ -219,31 +204,10 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
           version: 1,
           selectedEnvironment: "qa01"
         };
-
-        // Add to active requests and trigger fetch of full data
         setActiveRequests(prev => [...prev, sidebarRequest]);
-
-        // Fetch the full request data
-        fetch(`/api/requests/${routeId}`)
-          .then(response => response.json())
-          .then(fullRequest => {
-            setActiveRequests(prev =>
-              prev.map(req =>
-                req.routeId === routeId ? { ...fullRequest, routeId } : req
-              )
-            );
-          })
-          .catch(error => {
-            console.error('Error fetching request data:', error);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Failed to load request data"
-            });
-          });
       }
     }
-  }, [routeId, activeRequests, toast, initialized.current]);
+  }, [routeId, activeRequests, selectedRequest, initialized.current]);
 
   const handleSaveRequest = useCallback((request: Request) => {
     setRequestToSave(request);
@@ -424,4 +388,5 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
 interface RequestTabsProps {
   onRequestComplete?: (request: Request, response: any) => void;
+  selectedRequest?: Request;
 }
