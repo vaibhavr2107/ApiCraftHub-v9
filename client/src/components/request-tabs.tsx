@@ -18,13 +18,31 @@ import { openRequest, updateRequest } from "@/lib/api";
 // Local storage key for active requests
 const ACTIVE_REQUESTS_KEY = 'active_requests';
 
-// Create default request helper
+// Create default request helper with version handling
 function createDefaultRequest(): Request {
-  const routeId = generateRouteId('new-request');
+  // Get existing requests to determine next version number
+  const savedRequests = localStorage.getItem(ACTIVE_REQUESTS_KEY);
+  let nextVersion = 1;
+
+  if (savedRequests) {
+    const requests = JSON.parse(savedRequests);
+    // Find highest version number from existing "New Request" items
+    const versionRegex = /New Request v(\d+)/;
+    nextVersion = requests.reduce((max: number, req: Request) => {
+      const match = req.name.match(versionRegex);
+      if (match) {
+        const version = parseInt(match[1], 10);
+        return Math.max(max, version + 1);
+      }
+      return max;
+    }, 1);
+  }
+
+  const routeId = generateRouteId(`new-request-v${nextVersion}`);
   return {
     requestId: routeId,
     routeId,
-    name: "New Request",
+    name: `New Request v${nextVersion}`,
     method: "GET",
     baseUrl: "",
     devUrl: "",
@@ -47,7 +65,7 @@ function createDefaultRequest(): Request {
     tags: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    version: 1,
+    version: nextVersion,
     selectedEnvironment: "qa01"
   };
 }
@@ -94,12 +112,20 @@ export function RequestTabs() {
 
     // Check if request is already in active tabs
     const existingRequest = activeRequests.find(r => r.routeId === routeId);
-    if (existingRequest) return;
+    if (existingRequest) {
+      // If already exists, just focus on it
+      setLocation(`/request/${existingRequest.routeId}`);
+      return;
+    }
 
-    // If it's a new request, create it
+    // If it's a new request
     if (routeId.startsWith('new-request')) {
       const newRequest = createDefaultRequest();
-      setActiveRequests(prev => [...prev, newRequest]);
+      // Check if a request with same name already exists
+      const isDuplicate = activeRequests.some(r => r.name === newRequest.name);
+      if (!isDuplicate) {
+        setActiveRequests(prev => [...prev, newRequest]);
+      }
       return;
     }
 
@@ -109,8 +135,10 @@ export function RequestTabs() {
     openRequest(routeId)
       .then(request => {
         setActiveRequests(prev => {
-          // Check for duplicates again before adding
-          if (prev.some(r => r.routeId === routeId)) return prev;
+          // Check for duplicates before adding
+          if (prev.some(r => r.routeId === routeId || r.name === request.name)) {
+            return prev;
+          }
           return [...prev, request];
         });
       })
@@ -124,7 +152,11 @@ export function RequestTabs() {
 
         // Create a new request if we can't load the existing one
         const newRequest = createDefaultRequest();
-        setActiveRequests(prev => [...prev, newRequest]);
+        setActiveRequests(prev => {
+          // Final duplication check before adding
+          if (prev.some(r => r.name === newRequest.name)) return prev;
+          return [...prev, newRequest];
+        });
         setLocation(`/request/${newRequest.routeId}`);
       })
       .finally(() => {
@@ -188,6 +220,16 @@ export function RequestTabs() {
     }
   };
 
+  const handleNewRequest = () => {
+    const newRequest = createDefaultRequest();
+    setActiveRequests(prev => {
+      // Check for duplicates before adding
+      if (prev.some(r => r.name === newRequest.name)) return prev;
+      return [...prev, newRequest];
+    });
+    setLocation(`/request/${newRequest.routeId}`);
+  };
+
   if (!initialized.current) {
     return null;
   }
@@ -218,11 +260,7 @@ export function RequestTabs() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              const newRequest = createDefaultRequest();
-              setActiveRequests(prev => [...prev, newRequest]);
-              setLocation(`/request/${newRequest.routeId}`);
-            }}
+            onClick={handleNewRequest}
           >
             <Plus className="h-4 w-4" />
             New Request

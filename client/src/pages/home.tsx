@@ -8,19 +8,26 @@ import { generateRouteId } from "@/lib/utils";
 export default function Home() {
   const [location, setLocation] = useLocation();
 
-  // Create and open a default request only if we're at root
+  // Create and open a default request only if we're at root and no requests are open
   useEffect(() => {
     console.log('Home: Checking current route');
     if (location === '/') {
-      console.log('Home: At root, redirecting to new request');
-      const newRequestId = generateRouteId('new-request');
-      setLocation(`/request/${newRequestId}`);
+      console.log('Home: At root, checking for existing requests');
+      const savedRequests = localStorage.getItem('active_requests');
+      if (!savedRequests || JSON.parse(savedRequests).length === 0) {
+        console.log('Home: No existing requests, creating new request');
+        const newRequestId = generateRouteId('new-request-v1');
+        setLocation(`/request/${newRequestId}`);
+      } else {
+        console.log('Home: Using existing requests');
+        const requests = JSON.parse(savedRequests);
+        setLocation(`/request/${requests[0].routeId}`);
+      }
     }
-  }, []);
+  }, [location, setLocation]);
 
   const handleRequestSelect = (request: Request) => {
     console.log('Home: Request selected from sidebar:', request);
-    // Change location to trigger the tab creation in RequestTabs
     setLocation(`/request/${request.routeId}`);
   };
 
