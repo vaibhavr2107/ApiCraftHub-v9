@@ -10,14 +10,20 @@ import { Collection } from "./sidebar";
 interface ApiCatalogProps {
   onRequestSelect: (request: any) => void;
   onCollectionSelect: (collection: Collection) => void;
+  setLocation: (location: string) => void;
 }
 
-export function ApiCatalog({ onRequestSelect, onCollectionSelect }: ApiCatalogProps) {
+export function ApiCatalog({ onRequestSelect, onCollectionSelect, setLocation }: ApiCatalogProps) {
   const { toast } = useToast();
   const [collections, setCollections] = useState<Collection[]>(() => {
     const saved = localStorage.getItem("collections");
     return saved ? JSON.parse(saved) : [];
   });
+
+  const handleRequestSelect = (request: any) => {
+    onRequestSelect(request);
+    setLocation(`/request/${request.routeId}`);
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -32,7 +38,7 @@ export function ApiCatalog({ onRequestSelect, onCollectionSelect }: ApiCatalogPr
         const content = await file.text();
         if (file.name.endsWith('.json')) {
           const json = JSON.parse(content);
-          const collection = json; // You'll need to parse this based on your collection structure
+          const collection = json;
 
           if (existingCollections.has(collection.name.toLowerCase())) {
             toast({
