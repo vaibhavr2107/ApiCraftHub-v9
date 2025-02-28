@@ -1,4 +1,4 @@
-import { Request } from '@shared/schema';
+import { Request, RequestSchema } from '@shared/schema';
 import express from 'express';
 import fs from 'fs/promises';
 import path from 'path';
@@ -15,6 +15,56 @@ async function ensureApiFolder() {
   }
 }
 
+// Helper to load and parse a request file
+async function loadRequestFile(filePath: string): Promise<Request | null> {
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    const request = JSON.parse(content);
+    return RequestSchema.parse(request);
+  } catch (error) {
+    console.error(`Error loading request file ${filePath}:`, error);
+    return null;
+  }
+}
+
+// GET all requests from API folder
+router.get('/requests', async (req, res) => {
+  try {
+    await ensureApiFolder();
+    const files = await fs.readdir(API_FOLDER);
+    const jsonFiles = files.filter(file => file.endsWith('.json'));
+
+    const requests: Request[] = [];
+    for (const file of jsonFiles) {
+      const filePath = path.join(API_FOLDER, file);
+      const request = await loadRequestFile(filePath);
+      if (request) {
+        requests.push(request);
+      }
+    }
+
+    // Group requests by collection
+    const grouped = requests.reduce((acc, request) => {
+      if (request.collectionId) {
+        if (!acc[request.collectionId]) {
+          acc[request.collectionId] = {
+            id: request.collectionId,
+            name: request.collectionName || 'Unnamed Collection',
+            requests: []
+          };
+        }
+        acc[request.collectionId].requests.push(request);
+      }
+      return acc;
+    }, {} as Record<string, { id: string; name: string; requests: Request[] }>);
+
+    res.json(Object.values(grouped));
+  } catch (error) {
+    console.error('Error loading requests:', error);
+    res.status(500).json({ error: 'Failed to load requests' });
+  }
+});
+
 // GET request file
 router.get('/requests/:routeId', async (req, res) => {
   try {
@@ -22,14 +72,14 @@ router.get('/requests/:routeId', async (req, res) => {
     const { routeId } = req.params;
     const filePath = path.join(API_FOLDER, `${routeId}.json`);
 
-    const data = await fs.readFile(filePath, 'utf-8');
-    console.log('Found request file:', data);
+    const request = await loadRequestFile(filePath);
+    if (!request) {
+      throw new Error('Request not found');
+    }
 
-    res.setHeader('Content-Type', 'application/json');
-    res.send(data);
+    res.json(request);
   } catch (error) {
     console.error('Error loading request:', error);
-    // Always return JSON, even for errors
     res.status(404).json({ 
       error: 'Request not found',
       routeId: req.params.routeId 
@@ -43,7 +93,7 @@ router.post('/requests', async (req, res) => {
     console.log('Saving request:', req.body);
     await ensureApiFolder();
 
-    const request: Request = req.body;
+    const request: Request = RequestSchema.parse(req.body);
     if (!request.routeId) {
       throw new Error('Request must have a routeId');
     }
@@ -73,20 +123,6 @@ router.post('/requests', async (req, res) => {
   } catch (error) {
     console.error('Error saving request:', error);
     res.status(500).json({ error: 'Failed to save request' });
-  }
-});
-
-// List all request files
-router.get('/requests/files', async (req, res) => {
-  try {
-    await ensureApiFolder();
-    const files = await fs.readdir(API_FOLDER);
-    const jsonFiles = files.filter(file => file.endsWith('.json'));
-    console.log('Listed request files:', jsonFiles);
-    res.json(jsonFiles);
-  } catch (error) {
-    console.error('Error listing request files:', error);
-    res.status(500).json({ error: 'Failed to list request files' });
   }
 });
 

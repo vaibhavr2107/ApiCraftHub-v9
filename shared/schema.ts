@@ -47,7 +47,7 @@ export const RequestSchema = z.object({
   tags: z.array(z.string()).default([]),
   teamName: z.string().optional(),
   collectionId: z.string().optional(),
-  collectionName: z.string().optional(), // Added this field
+  collectionName: z.string().optional(),
   avgResponseTime: z.number().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -56,6 +56,16 @@ export const RequestSchema = z.object({
 });
 
 export type Request = z.infer<typeof RequestSchema>;
+
+// Collection schema for grouping requests
+export const CollectionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  requests: z.array(RequestSchema)
+});
+
+export type Collection = z.infer<typeof CollectionSchema>;
 
 // For creating new requests
 export const CreateRequestSchema = RequestSchema.omit({
