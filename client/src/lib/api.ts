@@ -65,13 +65,36 @@ export async function saveRequest(request: Request): Promise<{ request: Request;
       throw new Error('Invalid request data: routeId and name are required');
     }
 
+    // Get existing request if any
+    let existingRequest: Request | null = null;
+    try {
+      const response = await fetch(`/api/requests/${request.routeId}`);
+      if (response.ok) {
+        existingRequest = await response.json();
+      }
+    } catch (error) {
+      console.log('No existing request found:', error);
+    }
+
+    // Merge with existing request if available
+    const updatedRequest = existingRequest ? {
+      ...existingRequest,
+      ...request,
+      historyRequests: [...(request.historyRequests || []), ...(existingRequest.historyRequests || [])].slice(0, 5),
+      updatedAt: new Date().toISOString()
+    } : {
+      ...request,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
     // Save the request
     const saveResponse = await fetch('/api/requests', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(request)
+      body: JSON.stringify(updatedRequest)
     });
 
     if (!saveResponse.ok) {
@@ -95,25 +118,76 @@ export async function saveRequest(request: Request): Promise<{ request: Request;
   }
 }
 
+let loadedRequests: Collection[] | null = null;
+let isLoadingRequests = false;
+let loadRequestsPromise: Promise<Collection[]> | null = null;
+
 export async function loadRequests(): Promise<Collection[]> {
   try {
-    const response = await fetch('/api/requests');
-
-    if (!response.ok) {
-      throw new Error('Failed to load requests');
+    // Return cached requests if available
+    if (loadedRequests) {
+      return loadedRequests;
     }
 
-    return response.json();
+    // If already loading, wait for the existing promise
+    if (isLoadingRequests && loadRequestsPromise) {
+      return loadRequestsPromise;
+    }
+
+    // Start loading
+    isLoadingRequests = true;
+    loadRequestsPromise = fetch('/api/requests')
+      .then(async response => {
+        if (!response.ok) {
+          throw new Error('Failed to load requests');
+        }
+        const requests = await response.json();
+        loadedRequests = requests;
+        isLoadingRequests = false;
+        return requests;
+      })
+      .catch(error => {
+        isLoadingRequests = false;
+        loadRequestsPromise = null;
+        throw error;
+      });
+
+    return loadRequestsPromise;
   } catch (error) {
     console.error('Error loading requests:', error);
     throw error instanceof Error ? error : new Error('Failed to load requests');
   }
 }
 
+export async function findRequestByRouteId(routeId: string): Promise<Request | null> {
+  try {
+    // Wait for requests to load
+    const requests = await loadRequests();
+
+    // Search for the request in all collections
+    for (const collection of requests) {
+      const request = collection.requests.find(r => r.routeId === routeId);
+      if (request) {
+        return request;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('Error finding request:', error);
+    return null;
+  }
+}
+
 export async function getRequestByRouteId(routeId: string): Promise<Request> {
   try {
-    const response = await fetch(`/api/requests/${routeId}`);
+    // Try to find in loaded requests first
+    const existingRequest = await findRequestByRouteId(routeId);
+    if (existingRequest) {
+      return existingRequest;
+    }
 
+    // If not found, try to fetch from API
+    const response = await fetch(`/api/requests/${routeId}`);
     if (!response.ok) {
       throw new Error('Failed to load request');
     }
