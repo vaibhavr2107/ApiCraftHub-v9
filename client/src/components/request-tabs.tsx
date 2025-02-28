@@ -181,14 +181,23 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
           'Content-Type': 'application/json'
         }
       })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`Request failed with status ${response.status}`);
-          }
+        .then(async response => {
           const contentType = response.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Expected JSON response but got ' + contentType);
+          console.log('RequestTabs: Response content type:', contentType);
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('RequestTabs: API Error Response:', errorText);
+            throw new Error(`Request failed with status ${response.status}: ${errorText}`);
           }
+
+          if (!contentType || !contentType.includes('application/json')) {
+            const responseText = await response.text();
+            console.error('RequestTabs: Unexpected response type:', contentType);
+            console.error('RequestTabs: Response body:', responseText);
+            throw new Error(`Expected JSON response but got ${contentType}`);
+          }
+
           return response.json();
         })
         .then(request => {
@@ -200,7 +209,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
           toast({
             variant: "destructive",
             title: "Error",
-            description: "Failed to load request"
+            description: "Failed to load request: " + error.message
           });
         });
     }
