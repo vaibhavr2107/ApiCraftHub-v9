@@ -33,25 +33,26 @@ const substituteVariables = (str: string, collection: any): string => {
 
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
-  const [requests, setRequests] = useState<Request[]>(() => {
-    try {
-      const saved = localStorage.getItem("saved_requests");
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      console.error("Error loading saved requests:", e);
-      return [];
-    }
-  });
-
+  const [requests, setRequests] = useState<Request[]>([]);
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const { toast } = useToast();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const initialized = useRef(false);
 
   // Get route ID and active request once
   const routeId = useMemo(() => location.split('/').pop(), [location]);
   const activeRequest = useMemo(() => requests.find(r => r.routeId === routeId), [requests, routeId]);
+
+  // Initialize with a new request if at root path
+  useEffect(() => {
+    if (!initialized.current && (location === "/" || !routeId)) {
+      console.log("Initializing with new request");
+      initialized.current = true;
+      handleNewTab();
+    }
+  }, [location, routeId]);
 
   // Load requests from server on mount
   useEffect(() => {
@@ -70,38 +71,9 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     loadSavedRequests();
   }, []);
 
-  // Update request history after successful request
-  const updateRequestHistory = async (request: Request, response: any) => {
-    if (response.status >= 200 && response.status < 300) {
-      const historyEntry: RequestHistory = {
-        method: request.method,
-        url: request.baseUrl,
-        requestBody: request.requestBody,
-        responseFields: response.data,
-        timestamp: new Date().toISOString(),
-        responseTime: response.time
-      };
-
-      const updatedRequest = {
-        ...request,
-        historyRequests: [
-          historyEntry,
-          ...(request.historyRequests || []).slice(0, 4) // Keep only last 5 entries
-        ]
-      };
-
-      try {
-        await saveRequest(updatedRequest);
-        setRequests(prev =>
-          prev.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
-        );
-      } catch (error) {
-        console.error('Error saving request history:', error);
-      }
-    }
-  };
 
   const handleNewTab = useCallback(() => {
+    console.log("Creating new tab");
     const id = nanoid();
     const routeId = generateRouteId(`new-request-v${newRequestVersion}`);
     newRequestVersion++; // Increment version for next new request
@@ -124,7 +96,8 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       tags: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      version: 1
+      version: 1,
+      selectedEnvironment: "dev"
     };
 
     setRequests(prev => [...prev, newRequest]);
@@ -178,38 +151,49 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     }
   }, [requests, onRequestComplete]);
 
-  // Create initial tab if needed
-  useEffect(() => {
-    if (requests.length === 0) {
-      handleNewTab();
+  // Update request history after successful request
+  const updateRequestHistory = async (request: Request, response: any) => {
+    if (response.status >= 200 && response.status < 300) {
+      const historyEntry: RequestHistory = {
+        method: request.method,
+        url: request.baseUrl,
+        requestBody: request.requestBody,
+        responseFields: response.data,
+        timestamp: new Date().toISOString(),
+        responseTime: response.time
+      };
+
+      const updatedRequest = {
+        ...request,
+        historyRequests: [
+          historyEntry,
+          ...(request.historyRequests || []).slice(0, 4) // Keep only last 5 entries
+        ]
+      };
+
+      try {
+        await saveRequest(updatedRequest);
+        setRequests(prev =>
+          prev.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
+        );
+      } catch (error) {
+        console.error('Error saving request history:', error);
+      }
     }
-  }, [requests.length, handleNewTab]);
+  };
 
   if (!activeRequest) {
+    console.log("No active request, returning null");
     return null;
   }
+
+  console.log("Rendering with active request:", activeRequest);
 
   return (
     <div className="container py-6 max-w-[1400px]">
       <Tabs value={activeRequest.requestId} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center gap-2 mb-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            onClick={() => {
-              if (tabsContainerRef.current) {
-                tabsContainerRef.current.scrollLeft -= 200;
-              }
-            }}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-
-          <div
-            ref={tabsContainerRef}
-            className="flex-1 overflow-x-auto relative"
-          >
+          <div ref={tabsContainerRef} className="flex-1 overflow-x-auto">
             <TabsList className="flex w-max space-x-1">
               {requests.map((request) => (
                 <div
@@ -249,30 +233,8 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             </TabsList>
           </div>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0"
-            onClick={() => {
-              if (tabsContainerRef.current) {
-                tabsContainerRef.current.scrollLeft += 200;
-              }
-            }}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-
           <Button variant="outline" size="icon" onClick={handleNewTab}>
             <Plus className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setRequests([])}
-            className="ml-2"
-          >
-            Close All
           </Button>
         </div>
 
