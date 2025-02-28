@@ -29,8 +29,8 @@ async function loadRequestFile(filePath: string): Promise<Request | null> {
     console.log('Parsed file name parts:', parts);
 
     // Assuming format: box-platform-api-action-v1.json
-    const collectionId = 'box-platform-api';
-    const collectionName = 'Box Platform API';
+    const collectionId = parts[0] + '-' + parts[1] + '-api';
+    const collectionName = (parts[0] + ' ' + parts[1] + ' API').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 
     // Merge with request data
     const requestWithCollection = {
@@ -59,34 +59,32 @@ router.get('/requests', async (req, res) => {
     const jsonFiles = files.filter(file => file.endsWith('.json'));
     console.log('JSON files found:', jsonFiles);
 
-    const requests: Request[] = [];
+    const collectionMap = new Map<string, {
+      id: string;
+      name: string;
+      requests: Request[];
+    }>();
+
+    // Process each file and group into collections
     for (const file of jsonFiles) {
       const filePath = path.join(API_FOLDER, file);
       const request = await loadRequestFile(filePath);
-      if (request) {
-        requests.push(request);
+
+      if (request && request.collectionId) {
+        if (!collectionMap.has(request.collectionId)) {
+          collectionMap.set(request.collectionId, {
+            id: request.collectionId,
+            name: request.collectionName || 'Unnamed Collection',
+            requests: []
+          });
+        }
+
+        const collection = collectionMap.get(request.collectionId)!;
+        collection.requests.push(request);
       }
     }
 
-    console.log('Total requests loaded:', requests.length);
-
-    // Group requests by collection
-    const grouped = requests.reduce((acc, request) => {
-      const collectionId = request.collectionId || 'ungrouped';
-      const collectionName = request.collectionName || 'Ungrouped Requests';
-
-      if (!acc[collectionId]) {
-        acc[collectionId] = {
-          id: collectionId,
-          name: collectionName,
-          requests: []
-        };
-      }
-      acc[collectionId].requests.push(request);
-      return acc;
-    }, {} as Record<string, { id: string; name: string; requests: Request[] }>);
-
-    const collections = Object.values(grouped);
+    const collections = Array.from(collectionMap.values());
     console.log('Final collections structure:', JSON.stringify(collections, null, 2));
 
     res.json(collections);
