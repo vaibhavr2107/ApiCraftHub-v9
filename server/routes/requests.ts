@@ -1,4 +1,4 @@
-import { Request, RequestSchema } from '@shared/schema';
+import { Request, RequestSchema, CollectionSchema } from '@shared/schema';
 import express from 'express';
 import fs from 'fs/promises';
 import path from 'path';
@@ -87,7 +87,10 @@ router.get('/requests', async (req, res) => {
     const collections = Array.from(collectionMap.values());
     console.log('Final collections structure:', JSON.stringify(collections, null, 2));
 
-    res.json(collections);
+    // Validate against CollectionSchema before sending
+    const validatedCollections = collections.map(collection => CollectionSchema.parse(collection));
+
+    res.json(validatedCollections);
   } catch (error) {
     console.error('Error loading requests:', error);
     res.status(500).json({ error: 'Failed to load requests' });
