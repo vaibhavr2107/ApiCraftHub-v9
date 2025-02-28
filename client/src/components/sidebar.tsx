@@ -32,6 +32,7 @@ export interface RequestFolder {
 
 interface SidebarProps {
   onRequestSelect: (request: Request) => void;
+  setLocation: (location: string) => void; // Added setLocation prop
 }
 
 const saveRequest = async (request: Request) => {
@@ -55,7 +56,7 @@ const saveRequest = async (request: Request) => {
   }
 };
 
-export function Sidebar({ onRequestSelect }: SidebarProps) {
+export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) { // Added setLocation to props
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -326,6 +327,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
         const localRequest = requests.find((r: Request) => r.routeId === request.routeId);
         if (localRequest) {
           onRequestSelect(localRequest);
+          setLocation(`/request/${localRequest.routeId}`);
           return;
         }
       } catch (error) {
@@ -353,6 +355,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
         localStorage.setItem("saved_requests", JSON.stringify(currentRequests));
 
         onRequestSelect(loadedRequest);
+        setLocation(`/request/${loadedRequest.routeId}`);
       })
       .catch(error => {
         console.error('Error loading request:', error);

@@ -75,23 +75,23 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const routeId = useMemo(() => location.split('/').pop(), [location]);
 
   const createDefaultRequest = useCallback(() => {
-    const routeId = generateRouteId('new-request');
+    const newId = generateRouteId('new-request');
 
     const newRequest: Request = {
-      requestId: routeId,
-      routeId,
+      requestId: newId,
+      routeId: newId,
       name: "New Request",
       method: "GET",
       baseUrl: "https://api.restful-api.dev/objects",
       queryParams: {},
       pathVariables: {},
-      auth: { type: "bearer-tiaa" },
+      auth: { type: "none" },
       headers: {
         'Accept': '*/*',
         'User-Agent': 'API-Tester/1.0',
         'Content-Type': 'application/json'
       },
-      historyId: `history-${routeId}`,
+      historyId: `history-${newId}`,
       historyRequests: [],
       responseFields: {},
       requestBody: {},
@@ -103,9 +103,8 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       selectedEnvironment: "qa01"
     };
 
-    setActiveRequests([newRequest]);
-    setLocation(`/request/${routeId}`);
-    return newRequest;
+    setActiveRequests(prev => [...prev, newRequest]);
+    setLocation(`/request/${newId}`);
   }, [setLocation]);
 
   // Initialize with a new request on first load
@@ -269,7 +268,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   }, [activeRequests]);
 
   // Find active request
-  const activeRequest = useMemo(() => 
+  const activeRequest = useMemo(() =>
     activeRequests.find(r => r.routeId === routeId),
     [activeRequests, routeId]
   );
@@ -301,7 +300,21 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                   >
                     {request.name}
                   </TabsTrigger>
-                  <div className="flex items-center">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-8 w-8",
+                      activeRequest?.requestId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSaveRequest(request);
+                    }}
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                  {activeRequests.length > 1 && (
                     <Button
                       variant="ghost"
                       size="icon"
@@ -311,28 +324,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleSaveRequest(request);
+                        handleCloseTab(request.requestId);
                       }}
                     >
-                      <Save className="h-4 w-4" />
+                      <X className="h-4 w-4" />
                     </Button>
-                    {activeRequests.length > 1 && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "h-8 w-8",
-                          activeRequest?.requestId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
-                        )}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCloseTab(request.requestId);
-                        }}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </div>
               ))}
             </TabsList>
