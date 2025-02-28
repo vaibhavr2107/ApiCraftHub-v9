@@ -29,7 +29,11 @@ router.get('/requests/:routeId', async (req, res) => {
     res.send(data);
   } catch (error) {
     console.error('Error loading request:', error);
-    res.status(404).json({ error: 'Request not found' });
+    // Always return JSON, even for errors
+    res.status(404).json({ 
+      error: 'Request not found',
+      routeId: req.params.routeId 
+    });
   }
 });
 

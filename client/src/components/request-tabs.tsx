@@ -75,54 +75,6 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   // Get route ID
   const routeId = useMemo(() => location.split('/').pop(), [location]);
 
-  // Handle route changes
-  useEffect(() => {
-    console.log('Route changed:', routeId);
-    if (routeId && !activeRequests.some(r => r.routeId === routeId)) {
-      // Try to load the request from localStorage first
-      const savedRequests = localStorage.getItem("saved_requests");
-      if (savedRequests) {
-        try {
-          const requests = JSON.parse(savedRequests);
-          const request = requests.find((r: Request) => r.routeId === routeId);
-          if (request) {
-            console.log('Found request in localStorage, adding to tabs:', request);
-            setActiveRequests(prev => [...prev, request]);
-            return;
-          }
-        } catch (error) {
-          console.error('Error loading from localStorage:', error);
-        }
-      }
-
-      // If not in localStorage, try loading from API
-      console.log('Loading request from API:', routeId);
-      fetch(`/api/requests/${routeId}`, {
-        headers: {
-          'Accept': 'application/json'
-        }
-      })
-        .then(response => {
-          if (!response.ok) throw new Error('Request not found');
-          return response.json();
-        })
-        .then(request => {
-          console.log('Loaded request from API:', request);
-          setActiveRequests(prev => [...prev, request]);
-        })
-        .catch(error => {
-          console.error('Error loading request:', error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to load request"
-          });
-          // If loading fails, create a new request
-          createDefaultRequest();
-        });
-    }
-  }, [routeId, toast]);
-
   const createDefaultRequest = useCallback(() => {
     const timestamp = Date.now();
     const counter = requestCounter.current++;
@@ -156,16 +108,72 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
     console.log('Creating new request:', newRequest);
     setActiveRequests(prev => [...prev, newRequest]);
-    setLocation(`/request/${newId}`);
-  }, [setLocation]);
+    return newRequest;
+  }, []);
 
-  // Initialize with a new request on first load
+  // Handle route changes and request loading
   useEffect(() => {
-    if (!initialized.current && !routeId) {
-      initialized.current = true;
+    console.log('Route changed:', routeId);
+    if (!routeId) return;
+
+    // Check if request is already in active requests
+    if (activeRequests.some(r => r.routeId === routeId)) {
+      console.log('Request already in active tabs');
+      return;
+    }
+
+    // Try to load from localStorage first
+    const savedRequests = localStorage.getItem("saved_requests");
+    if (savedRequests) {
+      try {
+        const requests = JSON.parse(savedRequests);
+        const request = requests.find((r: Request) => r.routeId === routeId);
+        if (request) {
+          console.log('Found request in localStorage:', request);
+          setActiveRequests(prev => [...prev, request]);
+          return;
+        }
+      } catch (error) {
+        console.error('Error loading from localStorage:', error);
+      }
+    }
+
+    // If not in localStorage and not a new request, try API
+    if (!routeId.startsWith('new-request-')) {
+      console.log('Loading request from API:', routeId);
+      fetch(`/api/requests/${routeId}`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Request not found');
+          }
+          return response.json();
+        })
+        .then(request => {
+          console.log('Loaded request from API:', request);
+          setActiveRequests(prev => [...prev, request]);
+        })
+        .catch(error => {
+          console.error('Error loading request:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load request"
+          });
+          // Create a new request if loading fails
+          const newRequest = createDefaultRequest();
+          // Update the location to match the new request
+          setLocation(`/request/${newRequest.routeId}`);
+        });
+    } else {
+      // For new requests, just create them
+      console.log('Creating new request from route');
       createDefaultRequest();
     }
-  }, [createDefaultRequest, routeId]);
+  }, [routeId, setLocation, toast, createDefaultRequest]);
 
   const handleSaveRequest = useCallback((request: Request) => {
     setRequestToSave(request);
