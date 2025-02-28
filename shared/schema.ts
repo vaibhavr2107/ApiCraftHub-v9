@@ -16,7 +16,7 @@ export type RequestHistory = z.infer<typeof RequestHistorySchema>;
 export const RequestSchema = z.object({
   requestId: z.string(), // method + requestname
   routeId: z.string(), // method + requestname
-  name: z.string(), // Add name field that was missing
+  name: z.string(),
   method: z.string(),
   baseUrl: z.string(),
   queryParams: z.record(z.any()).default({}),
@@ -28,7 +28,7 @@ export const RequestSchema = z.object({
   perfEnvUrl: z.string().optional(),
   auth: z.object({
     type: z.string(),
-    token: z.string().optional(), // Make token optional
+    token: z.string().optional(),
     basic: z.object({
       username: z.string(),
       password: z.string()
@@ -37,21 +37,22 @@ export const RequestSchema = z.object({
       token: z.string()
     }).optional(),
     oauth2: z.any().optional()
-  }).default({ type: "bearer", token: "tiaa" }),
+  }).default({ type: "bearer-tiaa" }),
   headers: z.record(z.string()).default({}),
-  historyId: z.string(), // "history" + requestId
+  historyId: z.string(),
   historyRequests: z.array(RequestHistorySchema).max(5).default([]),
-  responseFields: z.any().default({}), // Allow any type of response
+  responseFields: z.any().default({}),
   requestBody: z.record(z.any()).default({}),
   exampleResponseBody: z.record(z.any()).default({}),
   tags: z.array(z.string()).default([]),
   teamName: z.string().optional(),
   collectionId: z.string().optional(),
+  collectionName: z.string().optional(), // Added this field
   avgResponseTime: z.number().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  version: z.number().default(1), // For handling duplicate request/route IDs
-  selectedEnvironment: z.string().optional() // Add selectedEnvironment field
+  version: z.number().default(1),
+  selectedEnvironment: z.string().default("qa01")
 });
 
 export type Request = z.infer<typeof RequestSchema>;
