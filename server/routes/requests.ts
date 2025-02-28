@@ -18,6 +18,7 @@ async function ensureApiFolder() {
 // Helper to load and parse a request file
 async function loadRequestFile(filePath: string): Promise<Request | null> {
   try {
+    console.log('Loading request file:', filePath);
     const content = await fs.readFile(filePath, 'utf-8');
     const request = JSON.parse(content);
 
@@ -25,9 +26,11 @@ async function loadRequestFile(filePath: string): Promise<Request | null> {
     const fileName = path.basename(filePath, '.json');
     const parts = fileName.split('-');
 
-    // Assuming format: collection-name-action-v1.json
-    const collectionId = parts[0] + '-' + parts[1] + '-api';
-    const collectionName = (parts[0] + ' ' + parts[1] + ' API').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    console.log('Parsed file name parts:', parts);
+
+    // Assuming format: box-platform-api-action-v1.json
+    const collectionId = 'box-platform-api';
+    const collectionName = 'Box Platform API';
 
     // Merge with request data
     const requestWithCollection = {
@@ -36,7 +39,7 @@ async function loadRequestFile(filePath: string): Promise<Request | null> {
       collectionName
     };
 
-    console.log('Processed request:', requestWithCollection);
+    console.log('Processing request:', requestWithCollection);
     return RequestSchema.parse(requestWithCollection);
   } catch (error) {
     console.error(`Error loading request file ${filePath}:`, error);
@@ -47,11 +50,14 @@ async function loadRequestFile(filePath: string): Promise<Request | null> {
 // GET all requests from API folder
 router.get('/requests', async (req, res) => {
   try {
+    console.log('Starting /requests endpoint');
     await ensureApiFolder();
-    const files = await fs.readdir(API_FOLDER);
-    const jsonFiles = files.filter(file => file.endsWith('.json'));
 
-    console.log('Found JSON files:', jsonFiles);
+    const files = await fs.readdir(API_FOLDER);
+    console.log('All files in API folder:', files);
+
+    const jsonFiles = files.filter(file => file.endsWith('.json'));
+    console.log('JSON files found:', jsonFiles);
 
     const requests: Request[] = [];
     for (const file of jsonFiles) {
@@ -62,7 +68,7 @@ router.get('/requests', async (req, res) => {
       }
     }
 
-    console.log('Loaded requests:', requests);
+    console.log('Total requests loaded:', requests.length);
 
     // Group requests by collection
     const grouped = requests.reduce((acc, request) => {
@@ -80,8 +86,10 @@ router.get('/requests', async (req, res) => {
       return acc;
     }, {} as Record<string, { id: string; name: string; requests: Request[] }>);
 
-    console.log('Grouped collections:', Object.values(grouped));
-    res.json(Object.values(grouped));
+    const collections = Object.values(grouped);
+    console.log('Final collections structure:', JSON.stringify(collections, null, 2));
+
+    res.json(collections);
   } catch (error) {
     console.error('Error loading requests:', error);
     res.status(500).json({ error: 'Failed to load requests' });
