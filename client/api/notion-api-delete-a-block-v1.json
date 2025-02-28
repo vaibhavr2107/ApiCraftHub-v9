@@ -4,7 +4,9 @@
   "name": "Delete a block",
   "method": "DELETE",
   "baseUrl": "https://api.notion.com/v1/blocks/{block_id}",
-  "queryParams": {},
+  "queryParams": {
+    "ghghg": "121212"
+  },
   "pathVariables": {},
   "auth": {
     "type": "bearer-tiaa"
@@ -21,7 +23,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-02-28T21:39:02.537Z",
+  "updatedAt": "2025-02-28T22:38:06.595Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }
