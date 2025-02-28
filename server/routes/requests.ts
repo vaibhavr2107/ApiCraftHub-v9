@@ -27,6 +27,16 @@ async function loadRequestFile(filePath: string): Promise<Request | null> {
       request.routeId = request.requestId || path.basename(filePath, '.json');
     }
 
+    // Ensure environment URLs exist
+    request.devUrl = request.devUrl || '';
+    request.qa01Url = request.qa01Url || '';
+    request.qa02Url = request.qa02Url || '';
+    request.qa03Url = request.qa03Url || '';
+    request.perfUrl = request.perfUrl || '';
+
+    // Ensure history exists
+    request.historyRequests = request.historyRequests || [];
+
     // Validate against schema
     return RequestSchema.parse(request);
   } catch (error) {
@@ -134,6 +144,11 @@ router.post('/requests', async (req, res) => {
     request.routeId = `${baseFileName}-v${version}`;
     request.requestId = request.routeId;
     request.version = version;
+
+    // Manage history - keep only last 5 entries
+    if (request.historyRequests && request.historyRequests.length > 5) {
+      request.historyRequests = request.historyRequests.slice(-5);
+    }
 
     const filePath = path.join(API_FOLDER, `${request.routeId}.json`);
     await fs.writeFile(filePath, JSON.stringify(request, null, 2));

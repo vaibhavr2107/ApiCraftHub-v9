@@ -1,0 +1,145 @@
+Grouped collections: []
+request-tabs.tsx:80 RequestTabs: Current routeId from location: notion-api-retrieve-block-children
+sidebar.tsx:28 Fetching requests from API...
+request-tabs.tsx:164 RequestTabs: Processing route change for routeId: notion-api-retrieve-block-children
+home.tsx:14 Home: Checking current route
+2chunk-WERSD76P.js?v=9a6e368f:521 Warning: Encountered two children with the same key, `notion-api-retrieve-block-children`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GPVWVTJC.js?v=9a6e368f:41:13
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=9a6e368f:52:11
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=9a6e368f:33:11
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GPVWVTJC.js?v=9a6e368f:41:13
+    at Provider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TVXK33GU.js?v=9a6e368f:46:15)
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TVXK33GU.js?v=9a6e368f:116:5
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=9a6e368f:52:11
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=9a6e368f:33:11
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FIACSFZ6.js?v=9a6e368f:98:15
+    at Provider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FIACSFZ6.js?v=9a6e368f:28:15)
+    at CollectionProvider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FIACSFZ6.js?v=9a6e368f:89:13)
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TVXK33GU.js?v=9a6e368f:110:77
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=9a6e368f:93:13
+    at _c (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/components/ui/tabs.tsx:22:11)
+    at div
+    at div
+    at div
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GPVWVTJC.js?v=9a6e368f:41:13
+    at Provider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-SDAYBGFR.js?v=9a6e368f:48:15)
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=9a6e368f:51:7
+    at div
+    at RequestTabs (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/components/request-tabs.tsx:115:31)
+    at main
+    at div
+    at div
+    at Home (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/pages/home.tsx:25:35)
+    at Route (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=9a6e368f:323:16)
+    at Switch (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=9a6e368f:379:17)
+    at Router
+    at div
+    at ThemeProvider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/components/theme-provider.tsx:25:3)
+    at QueryClientProvider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=9a6e368f:2805:3)
+    at App
+printWarning @ chunk-WERSD76P.js?v=9a6e368f:521
+error @ chunk-WERSD76P.js?v=9a6e368f:505
+warnOnInvalidKey @ chunk-WERSD76P.js?v=9a6e368f:10219
+reconcileChildrenArray @ chunk-WERSD76P.js?v=9a6e368f:10235
+reconcileChildFibers2 @ chunk-WERSD76P.js?v=9a6e368f:10559
+reconcileChildren @ chunk-WERSD76P.js?v=9a6e368f:14290
+updateHostComponent @ chunk-WERSD76P.js?v=9a6e368f:14807
+beginWork @ chunk-WERSD76P.js?v=9a6e368f:15935
+beginWork$1 @ chunk-WERSD76P.js?v=9a6e368f:19753
+performUnitOfWork @ chunk-WERSD76P.js?v=9a6e368f:19198
+workLoopSync @ chunk-WERSD76P.js?v=9a6e368f:19137
+renderRootSync @ chunk-WERSD76P.js?v=9a6e368f:19116
+performConcurrentWorkOnRoot @ chunk-WERSD76P.js?v=9a6e368f:18678
+workLoop @ chunk-WERSD76P.js?v=9a6e368f:197
+flushWork @ chunk-WERSD76P.js?v=9a6e368f:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=9a6e368f:384Understand this errorAI
+2chunk-WERSD76P.js?v=9a6e368f:521 Warning: Encountered two children with the same key, `notion-api-retrieve-block-children`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GPVWVTJC.js?v=9a6e368f:41:13
+    at Provider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-SDAYBGFR.js?v=9a6e368f:48:15)
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=9a6e368f:51:7
+    at div
+    at RequestTabs (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/components/request-tabs.tsx:115:31)
+    at main
+    at div
+    at div
+    at Home (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/pages/home.tsx:25:35)
+    at Route (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=9a6e368f:323:16)
+    at Switch (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=9a6e368f:379:17)
+    at Router
+    at div
+    at ThemeProvider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/components/theme-provider.tsx:25:3)
+    at QueryClientProvider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=9a6e368f:2805:3)
+    at App
+printWarning @ chunk-WERSD76P.js?v=9a6e368f:521
+error @ chunk-WERSD76P.js?v=9a6e368f:505
+warnOnInvalidKey @ chunk-WERSD76P.js?v=9a6e368f:10219
+reconcileChildrenArray @ chunk-WERSD76P.js?v=9a6e368f:10235
+reconcileChildFibers2 @ chunk-WERSD76P.js?v=9a6e368f:10559
+reconcileChildren @ chunk-WERSD76P.js?v=9a6e368f:14290
+updateFragment @ chunk-WERSD76P.js?v=9a6e368f:14522
+beginWork @ chunk-WERSD76P.js?v=9a6e368f:15949
+beginWork$1 @ chunk-WERSD76P.js?v=9a6e368f:19753
+performUnitOfWork @ chunk-WERSD76P.js?v=9a6e368f:19198
+workLoopSync @ chunk-WERSD76P.js?v=9a6e368f:19137
+renderRootSync @ chunk-WERSD76P.js?v=9a6e368f:19116
+performConcurrentWorkOnRoot @ chunk-WERSD76P.js?v=9a6e368f:18678
+workLoop @ chunk-WERSD76P.js?v=9a6e368f:197
+flushWork @ chunk-WERSD76P.js?v=9a6e368f:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=9a6e368f:384Understand this errorAI
+request-tabs.tsx:164 RequestTabs: Processing route change for routeId: notion-api-retrieve-block-children
+request-tabs.tsx:169 RequestTabs: Request already in active tabs: {requestId: 'notion-api-retrieve-block-children', routeId: 'notion-api-retrieve-block-children', name: 'notion-api-retrieve-block-children', method: 'POST', baseUrl: '', …}
+2chunk-WERSD76P.js?v=9a6e368f:521 Warning: Encountered two children with the same key, `notion-api-retrieve-block-children`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.
+    at div
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GPVWVTJC.js?v=9a6e368f:41:13
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=9a6e368f:52:11
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=9a6e368f:33:11
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GPVWVTJC.js?v=9a6e368f:41:13
+    at Provider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TVXK33GU.js?v=9a6e368f:46:15)
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TVXK33GU.js?v=9a6e368f:116:5
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=9a6e368f:52:11
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TQG5UYZM.js?v=9a6e368f:33:11
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FIACSFZ6.js?v=9a6e368f:98:15
+    at Provider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FIACSFZ6.js?v=9a6e368f:28:15)
+    at CollectionProvider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-FIACSFZ6.js?v=9a6e368f:89:13)
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-TVXK33GU.js?v=9a6e368f:110:77
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=9a6e368f:93:13
+    at _c (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/components/ui/tabs.tsx:22:11)
+    at div
+    at div
+    at div
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-GPVWVTJC.js?v=9a6e368f:41:13
+    at Provider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-SDAYBGFR.js?v=9a6e368f:48:15)
+    at https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tabs.js?v=9a6e368f:51:7
+    at div
+    at RequestTabs (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/components/request-tabs.tsx:115:31)
+    at main
+    at div
+    at div
+    at Home (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/pages/home.tsx:25:35)
+    at Route (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=9a6e368f:323:16)
+    at Switch (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=9a6e368f:379:17)
+    at Router
+    at div
+    at ThemeProvider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/src/components/theme-provider.tsx:25:3)
+    at QueryClientProvider (https://a9e66399-ae51-4c63-8027-38edd31d40f4-00-2ghtjjyb6pq5x.sisko.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=9a6e368f:2805:3)
+    at App
+printWarning @ chunk-WERSD76P.js?v=9a6e368f:521
+error @ chunk-WERSD76P.js?v=9a6e368f:505
+warnOnInvalidKey @ chunk-WERSD76P.js?v=9a6e368f:10219
+reconcileChildrenArray @ chunk-WERSD76P.js?v=9a6e368f:10235
+reconcileChildFibers2 @ chunk-WERSD76P.js?v=9a6e368f:10559
+reconcileChildren @ chunk-WERSD76P.js?v=9a6e368f:14292
+updateHostComponent @ chunk-WERSD76P.js?v=9a6e368f:14807
+beginWork @ chunk-WERSD76P.js?v=9a6e368f:15935
+beginWork$1 @ chunk-WERSD76P.js?v=9a6e368f:19753
+performUnitOfWork @ chunk-WERSD76P.js?v=9a6e368f:19198
+workLoopSync @ chunk-WERSD76P.js?v=9a6e368f:19137
+renderRootSync @ chunk-WERSD76P.js?v=9a6e368f:19116
+performConcurrentWorkOnRoot @ chunk-WERSD76P.js?v=9a6e368f:18678
+workLoop @ chunk-WERSD76P.js?v=9a6e368f:197
+flushWork @ chunk-WERSD76P.js?v=9a6e368f:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=9a6e368f:384Understand this errorAI
+sidebar.tsx:30 Received requests from API: (7) [{…}, {…}, {…}, {…}, {…}, {…}, {…}]
+sidebar.tsx:37 Grouped collections: [{…}]

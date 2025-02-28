@@ -58,8 +58,13 @@ export async function makeRequest({
   }
 }
 
-export async function saveRequest(request: Request): Promise<{ fileName: string; version: number }> {
+export async function saveRequest(request: Request): Promise<{ request: Request; message: string }> {
   try {
+    // Validate request data
+    if (!request.routeId || !request.name) {
+      throw new Error('Invalid request data: routeId and name are required');
+    }
+
     // Save the request
     const saveResponse = await fetch('/api/requests', {
       method: 'POST',
@@ -70,43 +75,67 @@ export async function saveRequest(request: Request): Promise<{ fileName: string;
     });
 
     if (!saveResponse.ok) {
-      const errorText = await saveResponse.text();
-      throw new Error(errorText || 'Failed to save request');
+      const errorData = await saveResponse.json();
+      throw new Error(errorData.message || 'Failed to save request');
     }
 
-    return saveResponse.json();
+    const result = await saveResponse.json();
+
+    if (!result.request) {
+      throw new Error('Invalid response from server');
+    }
+
+    return {
+      request: result.request,
+      message: result.message || 'Request saved successfully'
+    };
   } catch (error) {
     console.error('Error saving request:', error);
-    throw error;
+    throw error instanceof Error ? error : new Error('Failed to save request');
   }
 }
 
 export async function loadRequests(): Promise<Collection[]> {
-  const response = await fetch('/api/requests');
+  try {
+    const response = await fetch('/api/requests');
 
-  if (!response.ok) {
-    throw new Error('Failed to load requests');
+    if (!response.ok) {
+      throw new Error('Failed to load requests');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error loading requests:', error);
+    throw error instanceof Error ? error : new Error('Failed to load requests');
   }
-
-  return response.json();
 }
 
 export async function getRequestByRouteId(routeId: string): Promise<Request> {
-  const response = await fetch(`/api/requests/${routeId}`);
+  try {
+    const response = await fetch(`/api/requests/${routeId}`);
 
-  if (!response.ok) {
-    throw new Error('Failed to load request');
+    if (!response.ok) {
+      throw new Error('Failed to load request');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error loading request:', error);
+    throw error instanceof Error ? error : new Error('Failed to load request');
   }
-
-  return response.json();
 }
 
 export async function listRequestFiles(): Promise<string[]> {
-  const response = await fetch('/api/requests/files');
+  try {
+    const response = await fetch('/api/requests/files');
 
-  if (!response.ok) {
-    throw new Error('Failed to list request files');
+    if (!response.ok) {
+      throw new Error('Failed to list request files');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('Error listing request files:', error);
+    throw error instanceof Error ? error : new Error('Failed to list request files');
   }
-
-  return response.json();
 }
