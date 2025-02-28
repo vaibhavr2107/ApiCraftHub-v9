@@ -8,20 +8,19 @@ import { generateRouteId } from "@/lib/utils";
 export default function Home() {
   const [location, setLocation] = useLocation();
 
-  // Create and open a default request on component mount
+  // Create and open a default request only if we're at root
   useEffect(() => {
-    console.log('Home: Checking if we need to create a default request');
-    const routeId = location.split('/').pop();
-    if (!routeId || routeId === '') {
-      console.log('Home: Creating default request as no route specified');
-      const newRequestId = generateRouteId(`new-request-${Date.now()}`);
+    console.log('Home: Checking current route');
+    if (location === '/') {
+      console.log('Home: At root, redirecting to new request');
+      const newRequestId = generateRouteId('new-request');
       setLocation(`/request/${newRequestId}`);
     }
   }, []);
 
   const handleRequestSelect = (request: Request) => {
     console.log('Home: Request selected from sidebar:', request);
-    // First change location, which will trigger the tab creation
+    // Change location to trigger the tab creation in RequestTabs
     setLocation(`/request/${request.routeId}`);
   };
 
