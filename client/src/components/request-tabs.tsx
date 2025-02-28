@@ -106,7 +106,6 @@ export function RequestTabs({ onRequestComplete, selectedRequest }: RequestTabsP
 
   const createDefaultRequest = useCallback(() => {
     const newId = generateRouteId('new-request');
-
     console.log('RequestTabs: Creating new default request with ID:', newId);
 
     const newRequest: Request = {
@@ -177,37 +176,66 @@ export function RequestTabs({ onRequestComplete, selectedRequest }: RequestTabsP
         console.log('RequestTabs: Using request data from sidebar:', selectedRequest);
         setActiveRequests(prev => [...prev, selectedRequest]);
       } else {
-        // If no selected request, create a placeholder
-        const sidebarRequest: Request = {
-          requestId: routeId,
-          routeId: routeId,
-          name: routeId,
-          method: "GET",
-          baseUrl: "",
-          devUrl: "",
-          qa01Url: "",
-          qa02Url: "",
-          qa03Url: "",
-          perfUrl: "",
-          queryParams: {},
-          pathVariables: {},
-          auth: { type: "none" },
-          headers: {},
-          historyId: `history-${routeId}`,
-          historyRequests: [],
-          responseFields: {},
-          requestBody: {},
-          exampleResponseBody: {},
-          tags: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          version: 1,
-          selectedEnvironment: "qa01"
-        };
-        setActiveRequests(prev => [...prev, sidebarRequest]);
+        // If no selected request, try to find it in all loaded requests
+        findRequestByRouteId(routeId)
+          .then(foundRequest => {
+            if (foundRequest) {
+              console.log('RequestTabs: Found request in loaded requests:', foundRequest);
+              setActiveRequests(prev => [...prev, foundRequest]);
+            } else {
+              console.log('RequestTabs: Creating placeholder request');
+              // Create a placeholder request while we wait for the full data
+              const placeholderRequest: Request = {
+                requestId: routeId,
+                routeId: routeId,
+                name: routeId,
+                method: "GET",
+                baseUrl: "",
+                devUrl: "",
+                qa01Url: "",
+                qa02Url: "",
+                qa03Url: "",
+                perfUrl: "",
+                queryParams: {},
+                pathVariables: {},
+                auth: { type: "none" },
+                headers: {},
+                historyId: `history-${routeId}`,
+                historyRequests: [],
+                responseFields: {},
+                requestBody: {},
+                exampleResponseBody: {},
+                tags: [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                version: 1,
+                selectedEnvironment: "qa01"
+              };
+              setActiveRequests(prev => [...prev, placeholderRequest]);
+
+              // Try to fetch the full request data
+              getRequestByRouteId(routeId)
+                .then(fullRequest => {
+                  console.log('RequestTabs: Loaded full request data:', fullRequest);
+                  setActiveRequests(prev =>
+                    prev.map(req =>
+                      req.routeId === routeId ? fullRequest : req
+                    )
+                  );
+                })
+                .catch(error => {
+                  console.error('RequestTabs: Error loading full request:', error);
+                  toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: "Failed to load request data"
+                  });
+                });
+            }
+          });
       }
     }
-  }, [routeId, activeRequests, selectedRequest, initialized.current]);
+  }, [routeId, activeRequests, selectedRequest, toast, initialized.current]);
 
   const handleSaveRequest = useCallback((request: Request) => {
     setRequestToSave(request);
@@ -389,4 +417,17 @@ export function RequestTabs({ onRequestComplete, selectedRequest }: RequestTabsP
 interface RequestTabsProps {
   onRequestComplete?: (request: Request, response: any) => void;
   selectedRequest?: Request;
+}
+
+// Placeholder functions -  These need to be implemented elsewhere in your application
+async function findRequestByRouteId(routeId: string): Promise<Request | undefined> {
+  // Implement your logic to find a request by routeId
+  // This might involve fetching from a database or other data source
+  return undefined; // Replace with your actual implementation
+}
+
+async function getRequestByRouteId(routeId: string): Promise<Request> {
+  // Implement your logic to fetch a request by routeId
+  // This might involve fetching from a database or other data source
+  throw new Error("Not implemented"); //Replace with your actual implementation
 }
