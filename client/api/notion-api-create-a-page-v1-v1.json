@@ -1,0 +1,26 @@
+{
+  "requestId": "notion-api-create-a-page-v1",
+  "routeId": "notion-api-create-a-page-v1",
+  "name": "Create a page",
+  "method": "POST",
+  "baseUrl": "https://api.notion.com/v1/pages",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-notion-api-page-createnewpage",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Page"
+  ],
+  "collectionId": "notion-api",
+  "createdAt": "2025-02-28T01:37:36.669Z",
+  "updatedAt": "2025-02-28T01:37:36.669Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

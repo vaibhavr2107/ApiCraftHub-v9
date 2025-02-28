@@ -1,0 +1,26 @@
+{
+  "requestId": "notion-api-retrieve-block-children-v1",
+  "routeId": "notion-api-retrieve-block-children-v1",
+  "name": "Retrieve block children",
+  "method": "GET",
+  "baseUrl": "https://api.notion.com/v1/blocks/{block_id}/children",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-notion-api-block-getchildren",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Block"
+  ],
+  "collectionId": "notion-api",
+  "createdAt": "2025-02-28T01:37:36.668Z",
+  "updatedAt": "2025-02-28T01:37:36.668Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}
