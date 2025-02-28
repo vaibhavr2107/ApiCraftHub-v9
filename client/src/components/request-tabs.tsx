@@ -11,14 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { saveRequest, loadRequests } from "@/lib/api";
+import { saveRequest } from "@/lib/api";
 import type { Request, RequestHistory } from "@shared/schema";
 import { RequestPanel } from "./request-panel";
 import { ResponsePanel } from "./response-panel";
 
 export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const [location, setLocation] = useLocation();
-  const [requests, setRequests] = useState<Request[]>([]);
+  const [activeRequests, setActiveRequests] = useState<Request[]>([]);
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string | null>>({});
@@ -30,7 +30,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const routeId = useMemo(() => location.split('/').pop(), [location]);
 
   const createDefaultRequest = useCallback(() => {
-    const routeId = generateRouteId(`new-request`);
+    const routeId = generateRouteId('new-request');
 
     const newRequest: Request = {
       requestId: routeId,
@@ -58,12 +58,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       selectedEnvironment: "qa01"
     };
 
-    setRequests([newRequest]);
+    setActiveRequests([newRequest]);
     setLocation(`/request/${routeId}`);
     return newRequest;
   }, [setLocation]);
 
-  // Initialize with a single new request
+  // Initialize with a new request on first load
   useEffect(() => {
     if (!initialized.current) {
       initialized.current = true;
@@ -71,55 +71,44 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     }
   }, [createDefaultRequest]);
 
-  // Find active request
-  const activeRequest = useMemo(() => 
-    requests.find(r => r.routeId === routeId),
-    [requests, routeId]
-  );
-
-  const handleNewTab = useCallback(() => {
-    createDefaultRequest();
-  }, [createDefaultRequest]);
+  const handleRequestSelect = useCallback((request: Request) => {
+    setActiveRequests(prev => {
+      // Check if request is already in active requests
+      if (prev.some(r => r.routeId === request.routeId)) {
+        return prev;
+      }
+      return [...prev, request];
+    });
+    setLocation(`/request/${request.routeId}`);
+  }, [setLocation]);
 
   const handleCloseTab = useCallback((requestId: string) => {
-    if (!activeRequest) return;
-
-    setRequests(prev => {
+    setActiveRequests(prev => {
       const updatedRequests = prev.filter(req => req.requestId !== requestId);
-
-      if (requestId === activeRequest.requestId) {
+      if (updatedRequests.length === 0) {
         createDefaultRequest();
+      } else if (requestId === routeId) {
+        // If closing active tab, switch to last tab
+        setLocation(`/request/${updatedRequests[updatedRequests.length - 1].routeId}`);
       }
-
       return updatedRequests;
     });
-  }, [activeRequest, createDefaultRequest]);
+  }, [routeId, createDefaultRequest, setLocation]);
 
   const handleTabChange = useCallback((value: string) => {
-    const request = requests.find(r => r.requestId === value);
+    const request = activeRequests.find(r => r.requestId === value);
     if (request && request.routeId !== routeId) {
       setLocation(`/request/${request.routeId}`);
     }
-  }, [requests, routeId, setLocation]);
+  }, [activeRequests, routeId, setLocation]);
 
   const handleUpdateRequest = useCallback((requestId: string, updates: Partial<Request>) => {
-    setRequests(prev =>
+    setActiveRequests(prev =>
       prev.map(req =>
         req.requestId === requestId ? { ...req, ...updates } : req
       )
     );
   }, []);
-
-  const handleResponse = useCallback((requestId: string, response: any) => {
-    setResponses(prev => ({ ...prev, [requestId]: response }));
-    const request = requests.find(req => req.requestId === requestId);
-    if (request) {
-      updateRequestHistory(request, response);
-      if (onRequestComplete) {
-        onRequestComplete(request, response);
-      }
-    }
-  }, [requests, onRequestComplete]);
 
   const updateRequestHistory = async (request: Request, response: any) => {
     if (response.status >= 200 && response.status < 300) {
@@ -142,9 +131,22 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
       try {
         await saveRequest(updatedRequest);
-        setRequests(prev =>
+
+        setActiveRequests(prev =>
           prev.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
         );
+
+        // Update localStorage for sidebar
+        const savedRequests = localStorage.getItem("saved_requests");
+        const allRequests = savedRequests ? JSON.parse(savedRequests) : [];
+        const updatedRequests = allRequests.map((r: Request) => 
+          r.routeId === updatedRequest.routeId ? updatedRequest : r
+        );
+        if (!allRequests.some((r: Request) => r.routeId === updatedRequest.routeId)) {
+          updatedRequests.push(updatedRequest);
+        }
+        localStorage.setItem("saved_requests", JSON.stringify(updatedRequests));
+
       } catch (error) {
         console.error('Error saving request history:', error);
         toast({
@@ -156,41 +158,54 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     }
   };
 
-  // Don't render until we have an active request
-  if (!activeRequest) {
+  const handleResponse = useCallback((requestId: string, response: any) => {
+    setResponses(prev => ({ ...prev, [requestId]: response }));
+    const request = activeRequests.find(req => req.requestId === requestId);
+    if (request) {
+      updateRequestHistory(request, response);
+    }
+  }, [activeRequests]);
+
+  // Find active request
+  const activeRequest = useMemo(() => 
+    activeRequests.find(r => r.routeId === routeId),
+    [activeRequests, routeId]
+  );
+
+  if (!activeRequest && !initialized.current) {
     return null;
   }
 
   return (
     <div className="container py-6 max-w-[1400px]">
-      <Tabs value={activeRequest.requestId} onValueChange={handleTabChange} className="w-full">
+      <Tabs value={activeRequest?.requestId} onValueChange={handleTabChange} className="w-full">
         <div className="flex items-center gap-2 mb-4">
           <div ref={tabsContainerRef} className="flex-1 overflow-x-auto">
             <TabsList className="flex w-max space-x-1">
-              {requests.map((request) => (
+              {activeRequests.map((request) => (
                 <div
                   key={request.requestId}
                   className={cn(
                     "flex items-center mx-1 rounded-md transition-colors",
-                    activeRequest.requestId === request.requestId ? "bg-muted" : "bg-transparent"
+                    activeRequest?.requestId === request.requestId ? "bg-muted" : "bg-transparent"
                   )}
                 >
                   <TabsTrigger
                     value={request.requestId}
                     className={cn(
                       "w-[160px] justify-start text-left truncate",
-                      activeRequest.requestId === request.requestId ? "bg-muted" : ""
+                      activeRequest?.requestId === request.requestId ? "bg-muted" : ""
                     )}
                   >
                     {request.name}
                   </TabsTrigger>
-                  {requests.length > 1 && (
+                  {activeRequests.length > 1 && (
                     <Button
                       variant="ghost"
                       size="icon"
                       className={cn(
                         "h-8 w-8",
-                        activeRequest.requestId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
+                        activeRequest?.requestId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -205,12 +220,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             </TabsList>
           </div>
 
-          <Button variant="outline" size="icon" onClick={handleNewTab}>
+          <Button variant="outline" size="icon" onClick={createDefaultRequest}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
 
-        {requests.map((request) => (
+        {activeRequests.map((request) => (
           <TabsContent key={request.requestId} value={request.requestId} className="space-y-6">
             <div className="flex flex-col gap-6">
               <RequestPanel

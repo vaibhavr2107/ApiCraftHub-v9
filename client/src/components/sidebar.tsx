@@ -6,6 +6,7 @@ import { Upload, Wand2, Search, FileText, ChevronDown, ChevronRight, FolderClose
 import { useState, useEffect } from "react";
 import { Request } from "@shared/schema";
 import { generateRouteId } from "@/lib/utils";
+import yaml from 'js-yaml';
 
 interface SidebarProps {
   onRequestSelect: (request: Request) => void;
@@ -72,6 +73,98 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     setFolders(newFolders);
   };
 
+  const processPostmanCollection = (json: any) => {
+    const collectionId = generateRouteId(json.info?.name || 'imported-collection');
+    const collectionName = json.info?.name || 'Imported Collection';
+
+    const processRequest = (item: any): Request | null => {
+      if (!item.request) return null;
+
+      const url = typeof item.request.url === 'string' 
+        ? item.request.url 
+        : item.request.url?.raw || '';
+
+      return {
+        requestId: generateRouteId(`${collectionName}-${item.name}`),
+        routeId: generateRouteId(`${collectionName}-${item.name}`),
+        name: item.name,
+        method: item.request.method || 'GET',
+        baseUrl: url,
+        queryParams: {},
+        pathVariables: {},
+        auth: { type: "bearer-tiaa" },
+        headers: item.request.header?.reduce((acc: Record<string, string>, h: any) => {
+          if (!h.disabled) acc[h.key] = h.value;
+          return acc;
+        }, {}) || {},
+        historyId: generateRouteId(`history-${collectionName}-${item.name}`),
+        historyRequests: [],
+        responseFields: {},
+        requestBody: item.request.body?.raw ? JSON.parse(item.request.body.raw) : {},
+        exampleResponseBody: {},
+        tags: [],
+        collectionId,
+        collectionName,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: 1,
+        selectedEnvironment: "qa01"
+      };
+    };
+
+    const processItems = (items: any[]): Request[] => {
+      const requests: Request[] = [];
+      items.forEach(item => {
+        if (item.request) {
+          const request = processRequest(item);
+          if (request) requests.push(request);
+        } else if (item.item) {
+          requests.push(...processItems(item.item));
+        }
+      });
+      return requests;
+    };
+
+    return processItems(json.item || []);
+  };
+
+  const processOpenAPI = (spec: any) => {
+    const collectionId = generateRouteId(spec.info?.title || 'openapi-collection');
+    const collectionName = spec.info?.title || 'OpenAPI Collection';
+    const requests: Request[] = [];
+
+    Object.entries(spec.paths || {}).forEach(([path, methods]: [string, any]) => {
+      Object.entries(methods).forEach(([method, operation]: [string, any]) => {
+        const operationId = operation.operationId || `${method}-${path}`;
+        requests.push({
+          requestId: generateRouteId(`${collectionName}-${operationId}`),
+          routeId: generateRouteId(`${collectionName}-${operationId}`),
+          name: operation.summary || operationId,
+          method: method.toUpperCase(),
+          baseUrl: `${spec.servers?.[0]?.url || ''}${path}`,
+          queryParams: {},
+          pathVariables: {},
+          auth: { type: "bearer-tiaa" },
+          headers: {},
+          historyId: generateRouteId(`history-${collectionName}-${operationId}`),
+          historyRequests: [],
+          responseFields: {},
+          requestBody: operation.requestBody?.content?.['application/json']?.example || {},
+          exampleResponseBody: {},
+          tags: operation.tags || [],
+          collectionId,
+          collectionName,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          version: 1,
+          selectedEnvironment: "qa01"
+        });
+      });
+    });
+
+    return requests;
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -79,25 +172,38 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     const file = files[0];
     try {
       const content = await file.text();
-      const importedRequests = JSON.parse(content);
 
-      // Process imported requests
-      let requests: Request[];
-      if (Array.isArray(importedRequests)) {
-        requests = importedRequests;
-      } else {
-        // Handle OpenAPI/Postman collection format
-        // Assuming there's a collection ID and name in the imported format
-        const collectionId = importedRequests.info?.id || generateRouteId(file.name);
-        const collectionName = importedRequests.info?.name || file.name.replace(/\.[^/.]+$/, "");
+      // Try to parse as JSON first
+      let requests: Request[] = [];
+      try {
+        const json = JSON.parse(content);
 
-        requests = importedRequests.requests.map((req: any) => ({
-          ...req,
-          collectionId,
-          collectionName,
-          routeId: generateRouteId(`${collectionName}-${req.name}`),
-          requestId: generateRouteId(`${collectionName}-${req.name}`)
-        }));
+        // Check if it's a Postman collection
+        if (json.info && json.item) {
+          requests = processPostmanCollection(json);
+        }
+        // Check if it's an OpenAPI spec
+        else if (json.openapi || json.swagger) {
+          requests = processOpenAPI(json);
+        }
+        // Assume it's our own request format
+        else if (Array.isArray(json)) {
+          requests = json;
+        }
+      } catch (e) {
+        // If JSON parsing fails, try YAML
+        try {
+          const spec = yaml.load(content);
+          if (spec.openapi || spec.swagger) {
+            requests = processOpenAPI(spec);
+          }
+        } catch (yamlError) {
+          throw new Error('Invalid file format. Please provide a valid Postman collection, OpenAPI specification, or request JSON file.');
+        }
+      }
+
+      if (requests.length === 0) {
+        throw new Error('No valid requests found in the file.');
       }
 
       // Update localStorage
@@ -111,14 +217,14 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
 
       toast({
         title: "Success",
-        description: `Imported: ${file.name}`,
+        description: `Imported ${requests.length} requests from ${file.name}`,
       });
     } catch (error) {
       console.error(`Error processing file ${file.name}:`, error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: `Failed to import ${file.name}. Please check the file format.`,
+        description: error instanceof Error ? error.message : `Failed to import ${file.name}`,
       });
     }
 
