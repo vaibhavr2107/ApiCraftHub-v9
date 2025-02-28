@@ -45,6 +45,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// API routes error handling middleware
+app.use('/api', (err: any, req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith('/api')) {
+    // Ensure JSON response for API errors
+    res.setHeader('Content-Type', 'application/json');
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ error: message });
+  } else {
+    next(err);
+  }
+});
+
 (async () => {
   let server;
 
@@ -61,25 +74,15 @@ app.use((req, res, next) => {
       server = https.createServer(httpsOptions, app);
       log('HTTPS server created with provided certificates');
     } catch (error) {
-      log('Error loading HTTPS certificates:', error);
-      log('Falling back to HTTP server');
+      log('Error loading HTTPS certificates, falling back to HTTP server');
       server = http.createServer(app);
     }
   } else {
     server = http.createServer(app);
   }
 
-  // Register routes after server creation
+  // Register API routes first
   await registerRoutes(app);
-
-  // Error handling middleware
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
-  });
 
   // Setup Vite or serve static files
   if (app.get("env") === "development") {
@@ -87,6 +90,25 @@ app.use((req, res, next) => {
   } else {
     serveStatic(app);
   }
+
+  // Generic error handling middleware
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    // If headers already sent, let default Express error handler deal with it
+    if (res.headersSent) {
+      return next(err);
+    }
+
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+
+    // Set appropriate content type based on the request path
+    if (req.path.startsWith('/api')) {
+      res.setHeader('Content-Type', 'application/json');
+      res.status(status).json({ error: message });
+    } else {
+      res.status(status).send(message);
+    }
+  });
 
   // Start server on port 5000
   const port = 5000;
