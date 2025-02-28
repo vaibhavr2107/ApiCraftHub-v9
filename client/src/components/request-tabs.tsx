@@ -80,9 +80,17 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   }, [location]);
 
   const createDefaultRequest = useCallback(() => {
-    const timestamp = Date.now();
-    const counter = requestCounter.current++;
-    const newId = generateRouteId(`new-request-${timestamp}-${counter}`);
+    const baseId = 'new-request';
+    const existingVersions = activeRequests
+      .filter(r => r.routeId.startsWith(baseId))
+      .map(r => {
+        const match = r.routeId.match(/-v(\d+)$/);
+        return match ? parseInt(match[1]) : 0;
+      });
+
+    const version = existingVersions.length > 0 ? Math.max(...existingVersions) + 1 : 1;
+    const newId = `${baseId}-v${version}`;
+
     console.log('RequestTabs: Creating new default request with ID:', newId);
 
     const newRequest: Request = {
@@ -107,14 +115,14 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       tags: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      version: 1,
+      version: version,
       selectedEnvironment: "qa01"
     };
 
     console.log('RequestTabs: Adding new request to active requests:', newRequest);
     setActiveRequests(prev => [...prev, newRequest]);
     return newRequest;
-  }, []);
+  }, [activeRequests]);
 
   // Handle route changes and request loading
   useEffect(() => {
