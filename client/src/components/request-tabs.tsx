@@ -151,7 +151,6 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     }
   }, [requests, onRequestComplete]);
 
-  // Update request history after successful request
   const updateRequestHistory = async (request: Request, response: any) => {
     if (response.status >= 200 && response.status < 300) {
       const historyEntry: RequestHistory = {
@@ -172,12 +171,27 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       };
 
       try {
+        // Save request with updated history
         await saveRequest(updatedRequest);
+
+        // Update local state
         setRequests(prev =>
           prev.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
         );
+
+        // Update localStorage
+        localStorage.setItem("saved_requests", JSON.stringify(
+          requests.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
+        ));
+
+        console.log('Successfully saved request history:', historyEntry);
       } catch (error) {
         console.error('Error saving request history:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to save request history"
+        });
       }
     }
   };
