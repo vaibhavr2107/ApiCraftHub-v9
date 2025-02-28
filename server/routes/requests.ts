@@ -20,13 +20,24 @@ async function loadRequestFile(filePath: string): Promise<Request | null> {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
     const request = JSON.parse(content);
-    // Add collectionId and name if not present
-    if (!request.collectionId && request.routeId) {
-      const parts = request.routeId.split('-');
-      request.collectionId = parts[0];
-      request.collectionName = parts[0].split('/').pop();
-    }
-    return RequestSchema.parse(request);
+
+    // Extract collection info from file name
+    const fileName = path.basename(filePath, '.json');
+    const parts = fileName.split('-');
+
+    // Assuming format: collection-name-action-v1.json
+    const collectionId = parts[0] + '-' + parts[1] + '-api';
+    const collectionName = (parts[0] + ' ' + parts[1] + ' API').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+    // Merge with request data
+    const requestWithCollection = {
+      ...request,
+      collectionId,
+      collectionName
+    };
+
+    console.log('Processed request:', requestWithCollection);
+    return RequestSchema.parse(requestWithCollection);
   } catch (error) {
     console.error(`Error loading request file ${filePath}:`, error);
     return null;
