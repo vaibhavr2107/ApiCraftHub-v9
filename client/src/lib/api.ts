@@ -59,7 +59,19 @@ export async function makeRequest({
 }
 
 export async function saveRequest(request: Request): Promise<{ fileName: string; version: number }> {
-  const response = await fetch('/api/requests', {
+  // First check if a file with this name already exists
+  const response = await fetch(`/api/requests/${request.routeId}`);
+  let version = 1;
+
+  if (response.ok) {
+    // File exists, increment version
+    const existingRequest = await response.json();
+    version = (existingRequest.version || 0) + 1;
+    request = { ...request, version };
+  }
+
+  // Save the request
+  const saveResponse = await fetch('/api/requests', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -67,11 +79,11 @@ export async function saveRequest(request: Request): Promise<{ fileName: string;
     body: JSON.stringify(request)
   });
 
-  if (!response.ok) {
+  if (!saveResponse.ok) {
     throw new Error('Failed to save request');
   }
 
-  return response.json();
+  return saveResponse.json();
 }
 
 export async function loadRequests(): Promise<Request[]> {
@@ -79,6 +91,16 @@ export async function loadRequests(): Promise<Request[]> {
 
   if (!response.ok) {
     throw new Error('Failed to load requests');
+  }
+
+  return response.json();
+}
+
+export async function listRequestFiles(): Promise<string[]> {
+  const response = await fetch('/api/requests/files');
+
+  if (!response.ok) {
+    throw new Error('Failed to list request files');
   }
 
   return response.json();
