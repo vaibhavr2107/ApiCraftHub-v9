@@ -20,9 +20,10 @@ interface ResponsePanelProps {
   response: ResponseData | null;
   isLoading: boolean;
   error: string | null;
+  exampleResponse?: Record<string, any>;
 }
 
-export function ResponsePanel({ response, isLoading, error }: ResponsePanelProps) {
+export function ResponsePanel({ response, isLoading, error, exampleResponse }: ResponsePanelProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"body" | "headers">("body");
 
@@ -78,8 +79,18 @@ export function ResponsePanel({ response, isLoading, error }: ResponsePanelProps
           <CardTitle>Response</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-muted-foreground text-sm">
-            Make a request to see the response
+          <div className="space-y-4">
+            <div className="text-muted-foreground text-sm">
+              Make a request to see the response
+            </div>
+            {exampleResponse && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-muted-foreground">Example Response:</div>
+                <pre className="whitespace-pre-wrap break-words rounded-lg bg-muted p-4 text-sm font-mono">
+                  {JSON.stringify(exampleResponse, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -121,7 +121,7 @@ const HistorySection = ({ history }: { history: RequestHistory[] }) => {
               ) : (
                 <ChevronRight className="h-4 w-4 mr-2" />
               )}
-              <span className={`font-semibold ${METHOD_COLORS[entry.method]}`}>
+              <span className={`font-semibold ${getMethodColor(entry.method)}`}>
                 {entry.method}
               </span>
               <span className="ml-2 text-sm text-muted-foreground">
@@ -170,6 +170,13 @@ const METHOD_COLORS = {
   OPTIONS: "text-gray-400"
 } as const;
 
+type HttpMethod = keyof typeof METHOD_COLORS;
+
+const getMethodColor = (method: string): string => {
+  return METHOD_COLORS[method as HttpMethod] || "text-gray-500";
+};
+
+
 interface RequestPanelProps {
   request: Request;
   onRequestChange: (updates: Partial<Request>) => void;
@@ -204,16 +211,26 @@ export function RequestPanel({
   const [formData, setFormData] = useState<Array<{ key: string; value: string; type: "text" | "file"; enabled: boolean }>>([]);
   const [urlEncodedData, setUrlEncodedData] = useState<Parameter[]>([]);
   const [isEnvDialogOpen, setIsEnvDialogOpen] = useState(false);
+  const [unsavedChanges, setUnsavedChanges] = useState(false);
+
+  // Function to sync URL query params with UI state
+  const syncUrlQueryParams = (url: string) => {
+    try {
+      const urlObj = new URL(url);
+      const params: Parameter[] = [];
+      urlObj.searchParams.forEach((value, key) => {
+        params.push({ key, value, enabled: true });
+      });
+      setQueryParams(params);
+    } catch (e) {
+      // Invalid URL, keep existing params
+      console.warn('Invalid URL for query param sync:', e);
+    }
+  };
 
   // Initialize UI state from request
   useEffect(() => {
-    // Query parameters
-    const qParams = Object.entries(request.queryParams || {}).map(([key, value]) => ({
-      key,
-      value: String(value),
-      enabled: true
-    }));
-    setQueryParams(qParams);
+    syncUrlQueryParams(request.baseUrl);
 
     // Path variables
     const pParams = Object.entries(request.pathVariables || {}).map(([key, value]) => ({
@@ -255,6 +272,7 @@ export function RequestPanel({
       selectedEnvironment: env,
       baseUrl
     });
+    setUnsavedChanges(true);
   };
 
   const handleSend = async () => {
@@ -338,6 +356,7 @@ export function RequestPanel({
         responseFields: response.data || {},
         historyRequests: updatedHistoryRequests
       });
+      setUnsavedChanges(true);
 
       onResponse({
         ...response,
@@ -374,6 +393,7 @@ export function RequestPanel({
       }, {} as Record<string, string>),
       updatedAt: new Date().toISOString()
     });
+    setUnsavedChanges(false);
 
     toast({
       title: "Success",
@@ -381,19 +401,34 @@ export function RequestPanel({
     });
   };
 
+  // Handle URL change
+  const handleUrlChange = (newUrl: string) => {
+    onRequestChange({ baseUrl: newUrl });
+    syncUrlQueryParams(newUrl);
+    setUnsavedChanges(true);
+  };
+
+  const handleRawFormatChange = (value: typeof RAW_FORMATS[number]) => {
+    setRawFormat(value);
+    setUnsavedChanges(true);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Select
           value={request.method}
-          onValueChange={(value) => onRequestChange({ method: value })}
+          onValueChange={(value) => {
+            onRequestChange({ method: value });
+            setUnsavedChanges(true);
+          }}
         >
           <SelectTrigger className="w-[100px]">
             <SelectValue placeholder="Method" />
           </SelectTrigger>
           <SelectContent>
             {Object.keys(METHOD_COLORS).map((method) => (
-              <SelectItem key={method} value={method}>
+              <SelectItem key={method} value={method as HttpMethod}>
                 {method}
               </SelectItem>
             ))}
@@ -402,14 +437,19 @@ export function RequestPanel({
 
         <Input
           value={request.baseUrl}
-          onChange={(e) => onRequestChange({ baseUrl: e.target.value })}
+          onChange={(e) => handleUrlChange(e.target.value)}
           placeholder="Enter URL"
           className="flex-1"
         />
 
-        <Button variant="outline" onClick={handleSave}>
+        <Button
+          variant="outline"
+          onClick={handleSave}
+          disabled={!unsavedChanges}
+        >
           <Save className="mr-2 h-4 w-4" />
           Save
+          {unsavedChanges && "*"}
         </Button>
 
         <Button onClick={handleSend}>
@@ -467,6 +507,7 @@ export function RequestPanel({
                       const newParams = [...queryParams];
                       newParams[index] = { ...param, enabled: checked === true };
                       setQueryParams(newParams);
+                      setUnsavedChanges(true);
                     }}
                   />
                   <Input
@@ -476,6 +517,7 @@ export function RequestPanel({
                       const newParams = [...queryParams];
                       newParams[index] = { ...param, key: e.target.value };
                       setQueryParams(newParams);
+                      setUnsavedChanges(true);
                     }}
                     className="flex-1"
                   />
@@ -486,6 +528,7 @@ export function RequestPanel({
                       const newParams = [...queryParams];
                       newParams[index] = { ...param, value: e.target.value };
                       setQueryParams(newParams);
+                      setUnsavedChanges(true);
                     }}
                     className="flex-1"
                   />
@@ -494,6 +537,7 @@ export function RequestPanel({
                     size="icon"
                     onClick={() => {
                       setQueryParams(queryParams.filter((_, i) => i !== index));
+                      setUnsavedChanges(true);
                     }}
                   >
                     <X className="h-4 w-4" />
@@ -501,7 +545,10 @@ export function RequestPanel({
                 </div>
               ))}
               <Button
-                onClick={() => setQueryParams([...queryParams, { key: "", value: "", enabled: true }])}
+                onClick={() => {
+                  setQueryParams([...queryParams, { key: "", value: "", enabled: true }]);
+                  setUnsavedChanges(true);
+                }}
                 variant="outline"
                 size="sm"
                 className="w-full"
@@ -523,6 +570,7 @@ export function RequestPanel({
                       const newParams = [...pathParams];
                       newParams[index] = { ...param, enabled: checked === true };
                       setPathParams(newParams);
+                      setUnsavedChanges(true);
                     }}
                   />
                   <Input
@@ -532,6 +580,7 @@ export function RequestPanel({
                       const newParams = [...pathParams];
                       newParams[index] = { ...param, key: e.target.value };
                       setPathParams(newParams);
+                      setUnsavedChanges(true);
                     }}
                     className="flex-1"
                   />
@@ -542,6 +591,7 @@ export function RequestPanel({
                       const newParams = [...pathParams];
                       newParams[index] = { ...param, value: e.target.value };
                       setPathParams(newParams);
+                      setUnsavedChanges(true);
                     }}
                     className="flex-1"
                   />
@@ -550,6 +600,7 @@ export function RequestPanel({
                     size="icon"
                     onClick={() => {
                       setPathParams(pathParams.filter((_, i) => i !== index));
+                      setUnsavedChanges(true);
                     }}
                   >
                     <X className="h-4 w-4" />
@@ -557,7 +608,10 @@ export function RequestPanel({
                 </div>
               ))}
               <Button
-                onClick={() => setPathParams([...pathParams, { key: "", value: "", enabled: true }])}
+                onClick={() => {
+                  setPathParams([...pathParams, { key: "", value: "", enabled: true }]);
+                  setUnsavedChanges(true);
+                }}
                 variant="outline"
                 size="sm"
                 className="w-full"
@@ -575,9 +629,11 @@ export function RequestPanel({
               onRequestChange({
                 auth: {
                   type: value,
-                  basic: value === "basic" ? { username: "", password: "" } : undefined
+                  basic: value === "basic" ? { username: "", password: "" } : undefined,
+                  bearer: value === "bearer" ? { token: "" } : undefined
                 }
               });
+              setUnsavedChanges(true);
             }}
           >
             <SelectTrigger>
@@ -586,6 +642,7 @@ export function RequestPanel({
             <SelectContent>
               <SelectItem value="none">No Auth</SelectItem>
               <SelectItem value="basic">Basic Auth</SelectItem>
+              <SelectItem value="bearer">Bearer Token</SelectItem>
               <SelectItem value="bearer-tiaa">Bearer Token (TIAA)</SelectItem>
             </SelectContent>
           </Select>
@@ -596,27 +653,48 @@ export function RequestPanel({
                 type="text"
                 placeholder="Username"
                 value={request.auth.basic.username}
-                onChange={(e) =>
+                onChange={(e) => {
                   onRequestChange({
                     auth: {
                       ...request.auth,
                       basic: { ...request.auth.basic!, username: e.target.value }
                     }
-                  })
-                }
+                  });
+                  setUnsavedChanges(true);
+                }}
               />
               <Input
                 type="password"
                 placeholder="Password"
                 value={request.auth.basic.password}
-                onChange={(e) =>
+                onChange={(e) => {
                   onRequestChange({
                     auth: {
                       ...request.auth,
                       basic: { ...request.auth.basic!, password: e.target.value }
                     }
-                  })
-                }
+                  });
+                  setUnsavedChanges(true);
+                }}
+              />
+            </div>
+          )}
+
+          {request.auth.type === "bearer" && (
+            <div className="space-y-2">
+              <Input
+                type="text"
+                placeholder="Bearer Token"
+                value={request.auth.bearer?.token || ""}
+                onChange={(e) => {
+                  onRequestChange({
+                    auth: {
+                      ...request.auth,
+                      bearer: { token: e.target.value }
+                    }
+                  });
+                  setUnsavedChanges(true);
+                }}
               />
             </div>
           )}
@@ -638,6 +716,7 @@ export function RequestPanel({
                     const newHeaders = [...headers];
                     newHeaders[index] = { ...header, enabled: checked === true };
                     setHeaders(newHeaders);
+                    setUnsavedChanges(true);
                   }}
                 />
                 <Input
@@ -647,6 +726,7 @@ export function RequestPanel({
                     const newHeaders = [...headers];
                     newHeaders[index] = { ...header, key: e.target.value };
                     setHeaders(newHeaders);
+                    setUnsavedChanges(true);
                   }}
                   className="flex-1"
                 />
@@ -657,6 +737,7 @@ export function RequestPanel({
                     const newHeaders = [...headers];
                     newHeaders[index] = { ...header, value: e.target.value };
                     setHeaders(newHeaders);
+                    setUnsavedChanges(true);
                   }}
                   className="flex-1"
                 />
@@ -665,6 +746,7 @@ export function RequestPanel({
                   size="icon"
                   onClick={() => {
                     setHeaders(headers.filter((_, i) => i !== index));
+                    setUnsavedChanges(true);
                   }}
                 >
                   <X className="h-4 w-4" />
@@ -672,7 +754,10 @@ export function RequestPanel({
               </div>
             ))}
             <Button
-              onClick={() => setHeaders([...headers, { key: "", value: "", enabled: true }])}
+              onClick={() => {
+                setHeaders([...headers, { key: "", value: "", enabled: true }]);
+                setUnsavedChanges(true);
+              }}
               variant="outline"
               size="sm"
               className="w-full"
@@ -686,7 +771,10 @@ export function RequestPanel({
           <div className="space-y-4">
             <RadioGroup
               value={bodyType}
-              onValueChange={(value: typeof BODY_TYPES[number]) => setBodyType(value)}
+              onValueChange={(value: typeof BODY_TYPES[number]) => {
+                setBodyType(value);
+                setUnsavedChanges(true);
+              }}
               className="flex items-center gap-4"
             >
               {BODY_TYPES.map((type) => (
@@ -700,7 +788,7 @@ export function RequestPanel({
             {bodyType === "raw" && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Select value={rawFormat} onValueChange={setRawFormat}>
+                  <Select value={rawFormat} onValueChange={handleRawFormatChange}>
                     <SelectTrigger className="w-32">
                       <SelectValue placeholder="Format" />
                     </SelectTrigger>
@@ -717,6 +805,7 @@ export function RequestPanel({
                     onClick={() => {
                       try {
                         setRawBody(JSON.stringify(JSON.parse(rawBody), null, 2));
+                        setUnsavedChanges(true);
                       } catch (e) {
                         toast({
                           variant: "destructive",
@@ -731,7 +820,10 @@ export function RequestPanel({
                 </div>
                 <Textarea
                   value={rawBody}
-                  onChange={(e) => setRawBody(e.target.value)}
+                  onChange={(e) => {
+                    setRawBody(e.target.value);
+                    setUnsavedChanges(true);
+                  }}
                   placeholder="Request Body"
                   className="font-mono h-[300px]"
                 />
@@ -748,6 +840,7 @@ export function RequestPanel({
                         const newFormData = [...formData];
                         newFormData[index] = { ...field, enabled: checked === true };
                         setFormData(newFormData);
+                        setUnsavedChanges(true);
                       }}
                     />
                     <Input
@@ -757,6 +850,7 @@ export function RequestPanel({
                         const newFormData = [...formData];
                         newFormData[index] = { ...field, key: e.target.value };
                         setFormData(newFormData);
+                        setUnsavedChanges(true);
                       }}
                       className="flex-1"
                     />
@@ -767,6 +861,7 @@ export function RequestPanel({
                         const newFormData = [...formData];
                         newFormData[index] = { ...field, value: e.target.value };
                         setFormData(newFormData);
+                        setUnsavedChanges(true);
                       }}
                       className="flex-1"
                     />
@@ -776,6 +871,7 @@ export function RequestPanel({
                         const newFormData = [...formData];
                         newFormData[index] = { ...field, type: value };
                         setFormData(newFormData);
+                        setUnsavedChanges(true);
                       }}
                     >
                       <SelectTrigger className="w-[100px]">
@@ -791,6 +887,7 @@ export function RequestPanel({
                       size="icon"
                       onClick={() => {
                         setFormData(formData.filter((_, i) => i !== index));
+                        setUnsavedChanges(true);
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -798,12 +895,13 @@ export function RequestPanel({
                   </div>
                 ))}
                 <Button
-                  onClick={() =>
+                  onClick={() => {
                     setFormData([
                       ...formData,
                       { key: "", value: "", type: "text", enabled: true }
-                    ])
-                  }
+                    ]);
+                    setUnsavedChanges(true);
+                  }}
                   variant="outline"
                   size="sm"
                   className="w-full"
@@ -823,6 +921,7 @@ export function RequestPanel({
                         const newData = [...urlEncodedData];
                         newData[index] = { ...field, enabled: checked === true };
                         setUrlEncodedData(newData);
+                        setUnsavedChanges(true);
                       }}
                     />
                     <Input
@@ -832,6 +931,7 @@ export function RequestPanel({
                         const newData = [...urlEncodedData];
                         newData[index] = { ...field, key: e.target.value };
                         setUrlEncodedData(newData);
+                        setUnsavedChanges(true);
                       }}
                       className="flex-1"
                     />
@@ -842,6 +942,7 @@ export function RequestPanel({
                         const newData = [...urlEncodedData];
                         newData[index] = { ...field, value: e.target.value };
                         setUrlEncodedData(newData);
+                        setUnsavedChanges(true);
                       }}
                       className="flex-1"
                     />
@@ -850,6 +951,7 @@ export function RequestPanel({
                       size="icon"
                       onClick={() => {
                         setUrlEncodedData(urlEncodedData.filter((_, i) => i !== index));
+                        setUnsavedChanges(true);
                       }}
                     >
                       <X className="h-4 w-4" />
@@ -857,12 +959,13 @@ export function RequestPanel({
                   </div>
                 ))}
                 <Button
-                  onClick={() =>
+                  onClick={() => {
                     setUrlEncodedData([
                       ...urlEncodedData,
                       { key: "", value: "", enabled: true }
-                    ])
-                  }
+                    ]);
+                    setUnsavedChanges(true);
+                  }}
                   variant="outline"
                   size="sm"
                   className="w-full"
@@ -882,7 +985,10 @@ export function RequestPanel({
         isOpen={isEnvDialogOpen}
         onClose={() => setIsEnvDialogOpen(false)}
         request={request}
-        onUpdate={onRequestChange}
+        onUpdate={(updates) => {
+          onRequestChange(updates);
+          setUnsavedChanges(true);
+        }}
       />
     </div>
   );

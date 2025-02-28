@@ -3,7 +3,7 @@
   "routeId": "notion-api-create-a-page",
   "name": "Create a page",
   "method": "POST",
-  "baseUrl": "https://api.notion.com/v1/pages",
+  "baseUrl": "https://api.notion.com/v1/pages1212",
   "queryParams": {},
   "pathVariables": {},
   "auth": {
@@ -11,8 +11,27 @@
   },
   "headers": {},
   "historyId": "history-notion-api-page-createnewpage",
-  "historyRequests": [],
-  "responseFields": {},
+  "historyRequests": [
+    {
+      "method": "POST",
+      "url": "https://api.notion.com/v1/pages1212",
+      "requestBody": {},
+      "responseFields": {
+        "object": "error",
+        "status": 400,
+        "code": "invalid_request_url",
+        "message": "Invalid request URL."
+      },
+      "timestamp": "2025-02-28T22:23:00.026Z",
+      "responseTime": 416.09999999962747
+    }
+  ],
+  "responseFields": {
+    "object": "error",
+    "status": 400,
+    "code": "invalid_request_url",
+    "message": "Invalid request URL."
+  },
   "requestBody": {},
   "exampleResponseBody": {},
   "tags": [
@@ -21,7 +40,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-02-28T21:39:02.537Z",
+  "updatedAt": "2025-02-28T22:23:00.689Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }
