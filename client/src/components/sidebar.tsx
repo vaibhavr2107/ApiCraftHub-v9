@@ -22,7 +22,12 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   // Load collections from API
   const { data: collections = [], isLoading, error } = useQuery({
     queryKey: ['/api/requests'],
-    queryFn: loadRequests,
+    queryFn: async () => {
+      console.log('Fetching requests from API...');
+      const data = await loadRequests();
+      console.log('Received collections from API:', data);
+      return data;
+    },
   });
 
   const handleRequestSelect = (request: Request) => {
@@ -220,6 +225,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   };
 
   const toggleFolder = (folderId: string) => {
+    console.log('Toggling folder:', folderId);
     const newExpanded = new Set(expandedFolders);
     if (newExpanded.has(folderId)) {
       newExpanded.delete(folderId);
@@ -230,6 +236,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   };
 
   // Safely filter collections
+  console.log('Current collections before filtering:', collections);
   const filteredCollections = (collections || []).map((collection: Collection) => ({
     ...collection,
     requests: (collection.requests || []).filter((request: Request) =>
@@ -238,8 +245,10 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       request.baseUrl.toLowerCase().includes(searchQuery.toLowerCase())
     )
   })).filter(collection => (collection.requests || []).length > 0);
+  console.log('Filtered collections:', filteredCollections);
 
   if (isLoading) {
+    console.log('Loading state active');
     return (
       <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen p-4">
         Loading requests...
@@ -248,6 +257,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   }
 
   if (error) {
+    console.error('Error in sidebar:', error);
     return (
       <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen p-4">
         Error loading requests. Please try again.
