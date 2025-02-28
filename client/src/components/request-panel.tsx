@@ -317,18 +317,32 @@ export function RequestPanel({
       const endTime = performance.now();
       const responseTime = endTime - startTime;
 
+      // Create history entry
+      const historyEntry = {
+        method: request.method,
+        url: urlObj.toString(),
+        requestBody: requestBody || {},
+        responseFields: response.data,
+        timestamp: new Date().toISOString(),
+        responseTime
+      };
+
+      // Update request with new history entry
+      const updatedHistoryRequests = [
+        historyEntry,
+        ...(request.historyRequests || [])
+      ].slice(0, 5); // Keep only last 5 entries
+
+      onRequestChange({
+        requestBody: requestBody || {},
+        responseFields: response.data || {},
+        historyRequests: updatedHistoryRequests
+      });
+
       onResponse({
         ...response,
         time: responseTime
       });
-
-      // Update request body in the state if successful
-      if (response.status >= 200 && response.status < 300) {
-        onRequestChange({
-          requestBody: requestBody || {},
-          responseFields: response.data || {}
-        });
-      }
 
     } catch (err: any) {
       const message = err instanceof Error ? err.message : "An error occurred";
