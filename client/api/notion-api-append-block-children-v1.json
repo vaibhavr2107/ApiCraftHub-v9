@@ -3,7 +3,7 @@
   "routeId": "notion-api-append-block-children",
   "name": "Append block children",
   "method": "PATCH",
-  "baseUrl": "https://api.notion.com/v1/blocks/{block_id}/children",
+  "baseUrl": "https://api.notion.com/v1/blocks/{block_id}/children123df",
   "queryParams": {},
   "pathVariables": {},
   "auth": {
@@ -11,8 +11,27 @@
   },
   "headers": {},
   "historyId": "history-notion-api-block-appendchildren",
-  "historyRequests": [],
-  "responseFields": {},
+  "historyRequests": [
+    {
+      "method": "PATCH",
+      "url": "https://api.notion.com/v1/blocks/%7Bblock_id%7D/children123",
+      "requestBody": {},
+      "responseFields": {
+        "object": "error",
+        "status": 400,
+        "code": "invalid_request_url",
+        "message": "Invalid request URL."
+      },
+      "timestamp": "2025-02-28T22:10:19.806Z",
+      "responseTime": 400.59999999962747
+    }
+  ],
+  "responseFields": {
+    "object": "error",
+    "status": 400,
+    "code": "invalid_request_url",
+    "message": "Invalid request URL."
+  },
   "requestBody": {},
   "exampleResponseBody": {},
   "tags": [
@@ -21,7 +40,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-02-28T21:39:02.537Z",
+  "updatedAt": "2025-02-28T22:10:46.923Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }
