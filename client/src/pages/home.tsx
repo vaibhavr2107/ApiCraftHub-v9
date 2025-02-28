@@ -12,7 +12,10 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar onRequestSelect={handleRequestSelect} />
+      <Sidebar 
+        onRequestSelect={handleRequestSelect} 
+        setLocation={setLocation} 
+      />
       <div className="flex-1">
         <header className="border-b">
           <div className="container flex items-center gap-4 py-4">
