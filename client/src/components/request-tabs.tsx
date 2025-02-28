@@ -132,33 +132,13 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       return;
     }
 
-    // Try to load from localStorage first
-    const savedRequests = localStorage.getItem("saved_requests");
-    if (savedRequests) {
-      try {
-        const requests = JSON.parse(savedRequests);
-        const request = requests.find((r: Request) => r.routeId === routeId);
-        if (request) {
-          console.log('RequestTabs: Found request in localStorage:', request);
-          setActiveRequests(prev => [...prev, request]);
-          return;
-        }
-      } catch (error) {
-        console.error('RequestTabs: Error loading from localStorage:', error);
-      }
-    }
-
     // If not in localStorage and not a new request, try API
     if (!routeId.startsWith('new-request-')) {
       console.log('RequestTabs: Loading request from API:', routeId);
-      fetch(`/api/requests/${routeId}`, {
-        headers: {
-          'Accept': 'application/json'
-        }
-      })
+      fetch(`/api/requests/${routeId}`)
         .then(response => {
           if (!response.ok) {
-            throw new Error('Request not found');
+            throw new Error(`Request failed with status ${response.status}`);
           }
           return response.json();
         })
