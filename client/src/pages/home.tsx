@@ -21,6 +21,7 @@ export default function Home() {
 
   const handleRequestSelect = (request: Request) => {
     console.log('Home: Request selected from sidebar:', request);
+    // First change location, which will trigger the tab creation
     setLocation(`/request/${request.routeId}`);
   };
 
