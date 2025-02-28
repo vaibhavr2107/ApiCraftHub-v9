@@ -167,13 +167,29 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
     // Handle incoming request from sidebar
     if (!routeId.startsWith('new-request')) {
-      const newRequest = activeRequests.find(r => r.routeId === routeId);
-      if (!newRequest) {
-        // This is a request from sidebar, add it to active requests
+      // Attempt to find the request in localStorage first
+      const savedRequests = localStorage.getItem(ACTIVE_REQUESTS_KEY);
+      let savedRequest: Request | undefined;
+
+      if (savedRequests) {
+        try {
+          const requests = JSON.parse(savedRequests);
+          savedRequest = requests.find((r: Request) => r.routeId === routeId);
+        } catch (error) {
+          console.error('Error parsing saved requests:', error);
+        }
+      }
+
+      // If we have a saved request with full data, use that
+      if (savedRequest) {
+        setActiveRequests(prev => [...prev, savedRequest!]);
+      } else {
+        // If no saved request, create a new request with the routeId
+        // The sidebar component will update this with full data
         const sidebarRequest: Request = {
           requestId: routeId,
           routeId: routeId,
-          name: "Loading...",
+          name: routeId, // Use routeId as name until updated
           method: "GET",
           baseUrl: "",
           queryParams: {},
@@ -191,10 +207,31 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
           version: 1,
           selectedEnvironment: "qa01"
         };
+
+        // Add to active requests and trigger fetch of full data
         setActiveRequests(prev => [...prev, sidebarRequest]);
+
+        // Fetch the full request data
+        fetch(`/api/requests/${routeId}`)
+          .then(response => response.json())
+          .then(fullRequest => {
+            setActiveRequests(prev =>
+              prev.map(req =>
+                req.routeId === routeId ? { ...fullRequest, routeId } : req
+              )
+            );
+          })
+          .catch(error => {
+            console.error('Error fetching request data:', error);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Failed to load request data"
+            });
+          });
       }
     }
-  }, [routeId, activeRequests, initialized.current]);
+  }, [routeId, activeRequests, toast, initialized.current]);
 
   const handleSaveRequest = useCallback((request: Request) => {
     setRequestToSave(request);
@@ -211,7 +248,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     };
 
     try {
-      const result = await saveRequest(updatedRequest);
+      await saveRequest(updatedRequest);
       setActiveRequests(prev =>
         prev.map(req =>
           req.requestId === updatedRequest.requestId ? updatedRequest : req
