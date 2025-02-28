@@ -115,6 +115,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       name: "New Request",
       method: "GET",
       baseUrl: "https://api.restful-api.dev/objects",
+      // Initialize environment URLs
+      devUrl: "",
+      qa01Url: "",
+      qa02Url: "",
+      qa03Url: "",
+      perfUrl: "",
       queryParams: {},
       pathVariables: {},
       auth: { type: "none" },
@@ -192,6 +198,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
           name: routeId, // Use routeId as name until updated
           method: "GET",
           baseUrl: "",
+          // Initialize environment URLs
+          devUrl: "",
+          qa01Url: "",
+          qa02Url: "",
+          qa03Url: "",
+          perfUrl: "",
           queryParams: {},
           pathVariables: {},
           auth: { type: "none" },

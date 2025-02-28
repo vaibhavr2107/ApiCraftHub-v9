@@ -12,6 +12,18 @@ export const RequestHistorySchema = z.object({
 
 export type RequestHistory = z.infer<typeof RequestHistorySchema>;
 
+// Environment URL schema
+export const EnvironmentUrlSchema = z.object({
+  devUrl: z.string().optional(),
+  qa01Url: z.string().optional(),
+  qa02Url: z.string().optional(),
+  qa03Url: z.string().optional(),
+  perfUrl: z.string().optional(),
+  prodUrl: z.string().optional(),
+});
+
+export type EnvironmentUrl = z.infer<typeof EnvironmentUrlSchema>;
+
 // Main Request schema
 export const RequestSchema = z.object({
   requestId: z.string(), // method + requestname
@@ -19,13 +31,15 @@ export const RequestSchema = z.object({
   name: z.string(),
   method: z.string(),
   baseUrl: z.string(),
+  // Environment specific URLs
+  devUrl: z.string().optional(),
+  qa01Url: z.string().optional(),
+  qa02Url: z.string().optional(),
+  qa03Url: z.string().optional(),
+  perfUrl: z.string().optional(),
+  prodUrl: z.string().optional(),
   queryParams: z.record(z.any()).default({}),
   pathVariables: z.record(z.any()).default({}),
-  devEnvUrl: z.string().optional(),
-  qa01EnvUrl: z.string().optional(),
-  qa02EnvUrl: z.string().optional(),
-  qa03EnvUrl: z.string().optional(),
-  perfEnvUrl: z.string().optional(),
   auth: z.object({
     type: z.string(),
     token: z.string().optional(),
@@ -52,7 +66,7 @@ export const RequestSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
   version: z.number().default(1),
-  selectedEnvironment: z.string().default("qa01")
+  selectedEnvironment: z.enum(["dev", "qa01", "qa02", "qa03", "perf", "prod"]).default("qa01")
 });
 
 export type Request = z.infer<typeof RequestSchema>;

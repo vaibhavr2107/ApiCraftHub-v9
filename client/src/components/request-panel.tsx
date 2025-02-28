@@ -13,13 +13,80 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useEffect, useState } from "react";
 import { makeRequest } from "@/lib/api";
 import type { Request, RequestHistory } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Send, History, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Save, Send, History, X, ChevronDown, ChevronRight, Settings } from "lucide-react";
 
 const ENVIRONMENTS = ['dev', 'qa01', 'qa02', 'qa03', 'perf'] as const;
+
+// Updated interface for environment URL dialog
+interface EnvironmentUrlDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  request: Request;
+  onUpdate: (updates: Partial<Request>) => void;
+}
+
+// Environment URL Dialog Component
+function EnvironmentUrlDialog({ isOpen, onClose, request, onUpdate }: EnvironmentUrlDialogProps) {
+  const [urls, setUrls] = useState({
+    devUrl: request.devUrl || '',
+    qa01Url: request.qa01Url || '',
+    qa02Url: request.qa02Url || '',
+    qa03Url: request.qa03Url || '',
+    perfUrl: request.perfUrl || '',
+  });
+
+  const handleSave = () => {
+    onUpdate({
+      ...urls
+    });
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[525px]">
+        <DialogHeader>
+          <DialogTitle>Environment URLs</DialogTitle>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+          {ENVIRONMENTS.map((env) => (
+            <div key={env} className="grid gap-2">
+              <Label htmlFor={`${env}Url`}>{env.toUpperCase()} URL</Label>
+              <Input
+                id={`${env}Url`}
+                value={urls[`${env}Url` as keyof typeof urls]}
+                onChange={(e) =>
+                  setUrls((prev) => ({
+                    ...prev,
+                    [`${env}Url`]: e.target.value,
+                  }))
+                }
+                placeholder={`Enter ${env.toUpperCase()} URL`}
+              />
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave}>Save Changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 // History Section Component
 const HistorySection = ({ history }: { history: RequestHistory[] }) => {
@@ -136,6 +203,7 @@ export function RequestPanel({
   const [rawBody, setRawBody] = useState("");
   const [formData, setFormData] = useState<Array<{ key: string; value: string; type: "text" | "file"; enabled: boolean }>>([]);
   const [urlEncodedData, setUrlEncodedData] = useState<Parameter[]>([]);
+  const [isEnvDialogOpen, setIsEnvDialogOpen] = useState(false);
 
   // Initialize UI state from request
   useEffect(() => {
@@ -177,7 +245,7 @@ export function RequestPanel({
 
     // Update URL based on environment
     if (env !== 'dev') {
-      const envUrl = request[`${env}EnvUrl` as keyof Request];
+      const envUrl = request[`${env}Url` as keyof Request];
       if (envUrl) {
         baseUrl = envUrl;
       }
@@ -318,6 +386,23 @@ export function RequestPanel({
           </SelectContent>
         </Select>
 
+        <Input
+          value={request.baseUrl}
+          onChange={(e) => onRequestChange({ baseUrl: e.target.value })}
+          placeholder="Enter URL"
+          className="flex-1"
+        />
+
+        <Button variant="outline" onClick={handleSave}>
+          <Save className="mr-2 h-4 w-4" />
+          Save
+        </Button>
+
+        <Button onClick={handleSend}>
+          <Send className="mr-2 h-4 w-4" />
+          Send
+        </Button>
+
         <Select
           value={request.selectedEnvironment || 'qa01'}
           onValueChange={handleEnvironmentChange}
@@ -334,21 +419,12 @@ export function RequestPanel({
           </SelectContent>
         </Select>
 
-        <Input
-          value={request.baseUrl}
-          onChange={(e) => onRequestChange({ baseUrl: e.target.value })}
-          placeholder="Enter URL"
-          className="flex-1"
-        />
-
-        <Button variant="outline" onClick={handleSave}>
-          <Save className="mr-2 h-4 w-4" />
-          Save
-        </Button>
-
-        <Button onClick={handleSend}>
-          <Send className="mr-2 h-4 w-4" />
-          Send
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsEnvDialogOpen(true)}
+        >
+          <Settings className="h-4 w-4" />
         </Button>
       </div>
 
@@ -788,6 +864,12 @@ export function RequestPanel({
           <HistorySection history={request.historyRequests || []} />
         </TabsContent>
       </Tabs>
+      <EnvironmentUrlDialog
+        isOpen={isEnvDialogOpen}
+        onClose={() => setIsEnvDialogOpen(false)}
+        request={request}
+        onUpdate={onRequestChange}
+      />
     </div>
   );
 }
