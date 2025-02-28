@@ -2,8 +2,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Upload, Wand2, Search, FileText, ChevronDown, ChevronRight, FolderClosed, FolderOpen } from "lucide-react";
-import { useState } from "react";
+import { Upload, Wand2, Search, FileText, ChevronDown, ChevronRight, FolderClosed, FolderOpen, History } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Collection, Request } from "@shared/schema";
 import { generateRouteId } from "@/lib/utils";
 import yaml from 'js-yaml';
@@ -15,11 +15,36 @@ interface SidebarProps {
   onRequestSelect: (request: Request) => void;
 }
 
+// Add interface for history entries
+interface HistoryEntry {
+  id: string;
+  timestamp: string;
+  request: {
+    method: string;
+    url: string;
+    headers: Record<string, string>;
+    body?: any;
+    queryParams: Record<string, string>;
+  };
+  response: {
+    status: number;
+    statusText: string;
+    data: any;
+    headers: Record<string, string>;
+  };
+}
+
 export function Sidebar({ onRequestSelect }: SidebarProps) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [historySearch, setHistorySearch] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [showHistory, setShowHistory] = useState(false);
   const [, setLocation] = useLocation();
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>(() => {
+    const saved = localStorage.getItem("request_history");
+    return saved ? JSON.parse(saved) : [];
+  });
 
   // Load requests from API
   const { data: rawRequests = [], isLoading, error } = useQuery({
@@ -32,18 +57,115 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     },
   });
 
+  // Listen for history updates
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const saved = localStorage.getItem("request_history");
+      if (saved) {
+        setHistoryEntries(JSON.parse(saved));
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  // Deep search in objects
+  const searchInObject = (obj: any, searchTerm: string): boolean => {
+    const searchRegex = new RegExp(searchTerm, 'i');
+
+    const search = (value: any): boolean => {
+      if (typeof value === 'string') {
+        return searchRegex.test(value);
+      }
+      if (typeof value === 'number' || typeof value === 'boolean') {
+        return searchRegex.test(String(value));
+      }
+      if (Array.isArray(value)) {
+        return value.some(item => search(item));
+      }
+      if (value && typeof value === 'object') {
+        return Object.values(value).some(val => search(val));
+      }
+      return false;
+    };
+
+    return search(obj);
+  };
+
+  // Filter history entries
+  const filteredHistory = historyEntries.filter(entry => {
+    if (!historySearch) return true;
+
+    // Search in URL, method, and status
+    if (
+      entry.request.method.toLowerCase().includes(historySearch.toLowerCase()) ||
+      entry.request.url.toLowerCase().includes(historySearch.toLowerCase()) ||
+      entry.response.status.toString().includes(historySearch)
+    ) {
+      return true;
+    }
+
+    // Deep search in request body and response data
+    if (searchInObject(entry.request.body, historySearch)) return true;
+    if (searchInObject(entry.response.data, historySearch)) return true;
+
+    return false;
+  });
+
   // Group requests by collection
   const collections = groupRequestsByCollection(rawRequests);
   console.log('Grouped collections:', collections);
 
   const handleRequestSelect = (request: Request) => {
     console.log('Sidebar: Request selected:', request);
-    // Pass the full request object to the parent
     onRequestSelect(request);
-    // Update the route to reflect the selected request
     setLocation(`/request/${request.routeId}`);
   };
 
+  const handleHistoryItemClick = (entry: HistoryEntry) => {
+    const timestamp = new Date(entry.timestamp).getTime();
+    const routeId = generateRouteId(`history-${entry.request.method.toLowerCase()}-${timestamp}`);
+
+    // Create a new request from history entry
+    const historyRequest: Request = {
+      requestId: routeId,
+      routeId,
+      name: `${entry.request.method} ${new URL(entry.request.url).pathname} (${new Date(entry.timestamp).toLocaleString()})`,
+      method: entry.request.method,
+      baseUrl: entry.request.url,
+      headers: entry.request.headers || {},
+      queryParams: entry.request.queryParams || {},
+      pathVariables: {},
+      auth: { type: "none" },
+      requestBody: entry.request.body || {},
+      responseFields: entry.response.data || {},
+      historyId: routeId,
+      historyRequests: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      selectedEnvironment: "qa01",
+      devUrl: "",
+      qa01Url: "",
+      qa02Url: "",
+      qa03Url: "",
+      perfUrl: "",
+      exampleResponseBody: entry.response.data || {},
+      tags: [],
+      version: 1,
+      collectionId: "history",
+      collectionName: "History Requests"
+    };
+
+    // Save to active requests and navigate
+    const savedRequests = localStorage.getItem("active_requests");
+    const requests = savedRequests ? JSON.parse(savedRequests) : [];
+    localStorage.setItem("active_requests", JSON.stringify([...requests, historyRequest]));
+    window.dispatchEvent(new Event("storage"));
+    setLocation(`/request/${routeId}`);
+  };
+
+  // Rest of the existing functions remain unchanged...
   function groupRequestsByCollection(requests: Request[]): Collection[] {
     const collectionMap = new Map<string, Collection>();
 
@@ -314,10 +436,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={() => toast({
-                title: "Coming Soon",
-                description: "Import Wizard feature will be implemented soon!",
-              })}
+              onClick={handleImportWizard}
             >
               <Wand2 className="mr-2 h-4 w-4" />
               Wizard
@@ -332,8 +451,65 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
               className="pl-8"
             />
           </div>
+
+          {/* History Section */}
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={() => setShowHistory(!showHistory)}
+          >
+            <History className="mr-2 h-4 w-4" />
+            {showHistory ? <ChevronDown className="h-4 w-4 mr-2" /> : <ChevronRight className="h-4 w-4 mr-2" />}
+            History
+          </Button>
+
+          {showHistory && (
+            <div className="space-y-2">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search history (regex supported)..."
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="pl-8"
+                />
+              </div>
+              <ScrollArea className="h-48">
+                <div className="space-y-1">
+                  {filteredHistory.map((entry) => (
+                    <div
+                      key={entry.id}
+                      onClick={() => handleHistoryItemClick(entry)}
+                      className="flex flex-col p-2 text-sm cursor-pointer hover:bg-muted/50 rounded-md"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">
+                          {entry.request.method}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(entry.timestamp).toLocaleString()}
+                        </span>
+                      </div>
+                      <span className="text-xs text-muted-foreground truncate">
+                        {entry.request.url}
+                      </span>
+                      <span className={`text-xs ${entry.response.status < 400 ? 'text-green-500' : 'text-red-500'}`}>
+                        {entry.response.status} {entry.response.statusText}
+                      </span>
+                      {historySearch && (searchInObject(entry.request.body, historySearch) || searchInObject(entry.response.data, historySearch)) && (
+                        <span className="text-xs text-muted-foreground mt-1">
+                          Match found in request/response data
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
         </div>
       </div>
+
       <ScrollArea className="h-[calc(100vh-8rem)]">
         <div className="p-2">
           {filteredCollections.map((collection) => (
