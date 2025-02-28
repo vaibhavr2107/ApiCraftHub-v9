@@ -25,6 +25,9 @@ import type { Request, RequestHistory } from "@shared/schema";
 import { RequestPanel } from "./request-panel";
 import { ResponsePanel } from "./response-panel";
 
+// Local storage key for active requests
+const ACTIVE_REQUESTS_KEY = 'active_requests';
+
 interface SaveDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -70,7 +73,6 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   const { toast } = useToast();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
-  const requestCounter = useRef(0);
 
   // Get route ID
   const routeId = useMemo(() => {
@@ -78,6 +80,26 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     console.log('RequestTabs: Current routeId from location:', id);
     return id;
   }, [location]);
+
+  // Load active requests from localStorage
+  useEffect(() => {
+    const savedRequests = localStorage.getItem(ACTIVE_REQUESTS_KEY);
+    if (savedRequests) {
+      try {
+        const requests = JSON.parse(savedRequests);
+        setActiveRequests(requests);
+      } catch (error) {
+        console.error('Error loading active requests from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Save active requests to localStorage
+  useEffect(() => {
+    if (activeRequests.length > 0) {
+      localStorage.setItem(ACTIVE_REQUESTS_KEY, JSON.stringify(activeRequests));
+    }
+  }, [activeRequests]);
 
   const createDefaultRequest = useCallback(() => {
     const baseId = 'new-request';
@@ -121,8 +143,18 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
 
     console.log('RequestTabs: Adding new request to active requests:', newRequest);
     setActiveRequests(prev => [...prev, newRequest]);
+    setLocation(`/request/${newRequest.routeId}`);
     return newRequest;
-  }, [activeRequests]);
+  }, [activeRequests, setLocation]);
+
+  // Initialize with a single default request if no active requests
+  useEffect(() => {
+    if (!initialized.current && activeRequests.length === 0) {
+      console.log('RequestTabs: Initializing with default request');
+      initialized.current = true;
+      createDefaultRequest();
+    }
+  }, [createDefaultRequest, activeRequests.length]);
 
   // Handle route changes and request loading
   useEffect(() => {
@@ -140,7 +172,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       return;
     }
 
-    // If not in localStorage and not a new request, try API
+    // If not a new request, load from API
     if (!routeId.startsWith('new-request-')) {
       console.log('RequestTabs: Loading request from API:', routeId);
       fetch(`/api/requests/${routeId}`)
@@ -161,25 +193,9 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             title: "Error",
             description: "Failed to load request"
           });
-          // Create a new request if loading fails
-          const newRequest = createDefaultRequest();
-          setLocation(`/request/${newRequest.routeId}`);
         });
-    } else if (!existingRequest) {
-      console.log('RequestTabs: Creating new request for route:', routeId);
-      createDefaultRequest();
     }
-  }, [routeId, activeRequests, createDefaultRequest, setLocation, toast]);
-
-  // Initialize with a default request if no active requests
-  useEffect(() => {
-    if (!initialized.current && activeRequests.length === 0) {
-      console.log('RequestTabs: Initializing with default request');
-      initialized.current = true;
-      const newRequest = createDefaultRequest();
-      setLocation(`/request/${newRequest.routeId}`);
-    }
-  }, [createDefaultRequest, setLocation, activeRequests.length]);
+  }, [routeId, activeRequests, toast]);
 
   const handleSaveRequest = useCallback((request: Request) => {
     setRequestToSave(request);
@@ -196,13 +212,10 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     };
 
     try {
-      // Save to backend first
-      await saveRequest(updatedRequest);
-
-      // Update active requests
+      const result = await saveRequest(updatedRequest);
       setActiveRequests(prev =>
         prev.map(req =>
-          req.requestId === updatedRequest.requestId ? updatedRequest : req
+          req.requestId === updatedRequest.requestId ? result.request : req
         )
       );
 
@@ -243,52 +256,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     }
   }, [activeRequests, routeId, setLocation]);
 
-  const handleResponse = useCallback((requestId: string, response: any) => {
-    setResponses(prev => ({ ...prev, [requestId]: response }));
-    const request = activeRequests.find(req => req.requestId === requestId);
-    if (request) {
-      const historyEntry: RequestHistory = {
-        method: request.method,
-        url: request.baseUrl,
-        requestBody: request.requestBody,
-        responseFields: response.data,
-        timestamp: new Date().toISOString(),
-        responseTime: response.time
-      };
+  const handleNewRequest = useCallback(() => {
+    const newRequest = createDefaultRequest();
+    setLocation(`/request/${newRequest.routeId}`);
+  }, [createDefaultRequest, setLocation]);
 
-      const updatedRequest = {
-        ...request,
-        historyRequests: [
-          historyEntry,
-          ...(request.historyRequests || []).slice(0, 4)
-        ]
-      };
-
-      // Update active requests
-      setActiveRequests(prev =>
-        prev.map(r => r.requestId === updatedRequest.requestId ? updatedRequest : r)
-      );
-
-      // Update localStorage if the request was saved
-      const savedRequests = localStorage.getItem("saved_requests");
-      if (savedRequests) {
-        const allRequests = JSON.parse(savedRequests);
-        const requestIndex = allRequests.findIndex((r: Request) => r.routeId === updatedRequest.routeId);
-        if (requestIndex !== -1) {
-          allRequests[requestIndex] = updatedRequest;
-          localStorage.setItem("saved_requests", JSON.stringify(allRequests));
-        }
-      }
-    }
-  }, [activeRequests]);
-
-  // Find active request
-  const activeRequest = useMemo(() =>
-    activeRequests.find(r => r.routeId === routeId),
-    [activeRequests, routeId]
-  );
-
-  if (!activeRequest && !initialized.current) {
+  if (!initialized.current && activeRequests.length === 0) {
     return null;
   }
 
@@ -303,14 +276,14 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                   key={request.requestId}
                   className={cn(
                     "flex items-center mx-1 rounded-md transition-colors",
-                    activeRequest?.requestId === request.requestId ? "bg-muted" : "bg-transparent"
+                    routeId === request.requestId ? "bg-muted" : "bg-transparent"
                   )}
                 >
                   <TabsTrigger
                     value={request.requestId}
                     className={cn(
                       "w-[160px] justify-start text-left truncate",
-                      activeRequest?.requestId === request.requestId ? "bg-muted" : ""
+                      routeId === request.requestId ? "bg-muted" : ""
                     )}
                   >
                     {request.name}
@@ -320,7 +293,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                     size="icon"
                     className={cn(
                       "h-8 w-8",
-                      activeRequest?.requestId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
+                      routeId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
                     )}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -335,7 +308,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                       size="icon"
                       className={cn(
                         "h-8 w-8",
-                        activeRequest?.requestId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
+                        routeId === request.requestId ? "bg-muted hover:bg-muted/80" : ""
                       )}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -350,7 +323,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             </TabsList>
           </div>
 
-          <Button variant="outline" size="icon" onClick={createDefaultRequest}>
+          <Button variant="outline" size="icon" onClick={handleNewRequest}>
             <Plus className="h-4 w-4" />
           </Button>
         </div>
@@ -365,7 +338,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
                     req.requestId === request.requestId ? { ...req, ...updates } : req
                   )
                 )}
-                onResponse={(response) => handleResponse(request.requestId, response)}
+                onResponse={(response) => {
+                  setResponses(prev => ({ ...prev, [request.requestId]: response }));
+                  if (onRequestComplete) {
+                    onRequestComplete(request, response);
+                  }
+                }}
                 onLoading={(isLoading) =>
                   setLoading(prev => ({ ...prev, [request.requestId]: isLoading }))
                 }
