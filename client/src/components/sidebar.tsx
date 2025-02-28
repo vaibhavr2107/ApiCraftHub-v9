@@ -313,7 +313,7 @@ export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) {
   };
 
   const handleRequestSelect = (request: Request) => {
-    // First check local storage
+    // First check if we have the request in localStorage
     const savedRequests = localStorage.getItem("saved_requests");
     if (savedRequests) {
       try {
@@ -325,31 +325,40 @@ export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) {
           return;
         }
       } catch (error) {
-        console.error('Error parsing local storage:', error);
+        console.error('Error checking localStorage:', error);
       }
     }
 
-    // If not in local storage, try loading from API
-    fetch(`/api/requests/${request.routeId}`)
+    // If not in localStorage, try loading from API
+    fetch(`/api/requests/${request.routeId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    })
       .then(response => {
         if (!response.ok) {
           throw new Error(`Failed to load request: ${response.statusText}`);
         }
+        if (!response.headers.get('content-type')?.includes('application/json')) {
+          throw new Error('Invalid response format from server');
+        }
         return response.json();
       })
       .then(loadedRequest => {
-        // Update local storage with the loaded request
+        onRequestSelect(loadedRequest);
+        setLocation(`/request/${loadedRequest.routeId}`);
+
+        // Update localStorage
         const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
         const existingIndex = currentRequests.findIndex((r: Request) => r.routeId === loadedRequest.routeId);
+
         if (existingIndex !== -1) {
           currentRequests[existingIndex] = loadedRequest;
         } else {
           currentRequests.push(loadedRequest);
         }
-        localStorage.setItem("saved_requests", JSON.stringify(currentRequests));
 
-        onRequestSelect(loadedRequest);
-        setLocation(`/request/${loadedRequest.routeId}`);
+        localStorage.setItem("saved_requests", JSON.stringify(currentRequests));
       })
       .catch(error => {
         console.error('Error loading request:', error);
