@@ -28,6 +28,7 @@ interface SidebarProps {
 
 const saveRequest = async (request: Request) => {
   try {
+    console.log('Saving request:', request);
     const response = await fetch('/api/requests', {
       method: 'POST',
       headers: {
@@ -40,7 +41,9 @@ const saveRequest = async (request: Request) => {
       throw new Error(`Failed to save request: ${response.statusText}`);
     }
 
-    return response.json();
+    const result = await response.json();
+    console.log('Save request response:', result);
+    return result;
   } catch (error) {
     console.error(`Error saving request ${request.name}:`, error);
     throw error;
@@ -53,12 +56,12 @@ export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [folders, setFolders] = useState<RequestFolder[]>([]);
 
-  // Load saved requests and organize them into folders
   useEffect(() => {
     const savedRequests = localStorage.getItem("saved_requests");
     if (savedRequests) {
       try {
         const requests: Request[] = JSON.parse(savedRequests);
+        console.log('Loaded saved requests:', requests);
         organizeRequestsIntoFolders(requests);
       } catch (error) {
         console.error('Error loading saved requests:', error);
@@ -67,10 +70,10 @@ export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) {
   }, []);
 
   const organizeRequestsIntoFolders = (requests: Request[]) => {
+    console.log('Organizing requests into folders:', requests);
     const folderMap = new Map<string, Request[]>();
     const newRequests: Request[] = [];
 
-    // Group requests by collection ID
     requests.forEach(request => {
       if (request.collectionId) {
         const collection = folderMap.get(request.collectionId) || [];
@@ -81,30 +84,193 @@ export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) {
       }
     });
 
-    // Create folders array
     const newFolders: RequestFolder[] = [];
 
-    // Add collection folders
     folderMap.forEach((requests, collectionId) => {
       if (requests.length > 0) {
         newFolders.push({
           id: collectionId,
           name: requests[0].collectionName || 'Unnamed Collection',
-          requests
+          requests: requests.sort((a, b) => a.name.localeCompare(b.name))
         });
       }
     });
 
-    // Add "New Requests" folder if there are any
     if (newRequests.length > 0) {
       newFolders.push({
         id: 'new-requests',
         name: 'New Requests',
-        requests: newRequests
+        requests: newRequests.sort((a, b) => a.name.localeCompare(b.name))
       });
     }
 
+    console.log('Organized folders:', newFolders);
     setFolders(newFolders);
+  };
+
+  const handleRequestSelect = (request: Request) => {
+    console.log('Request selected:', request);
+
+    try {
+      if (!setLocation || typeof setLocation !== 'function') {
+        console.error('setLocation is not properly initialized:', setLocation);
+        throw new Error('Navigation function is not available');
+      }
+
+      // First try to load from localStorage
+      const savedRequests = localStorage.getItem("saved_requests");
+      if (savedRequests) {
+        const requests = JSON.parse(savedRequests);
+        const localRequest = requests.find((r: Request) => r.routeId === request.routeId);
+        if (localRequest) {
+          console.log('Found request in localStorage:', localRequest);
+          onRequestSelect(localRequest);
+          setLocation(`/request/${localRequest.routeId}`);
+          return;
+        }
+      }
+
+      // If not in localStorage, load from API
+      console.log('Loading request from API:', request.routeId);
+      fetch(`/api/requests/${request.routeId}`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+        .then(response => {
+          console.log('API response:', response);
+          if (!response.ok) {
+            throw new Error(`Failed to load request: ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then(loadedRequest => {
+          console.log('Loaded request from API:', loadedRequest);
+          onRequestSelect(loadedRequest);
+          setLocation(`/request/${loadedRequest.routeId}`);
+
+          // Update localStorage
+          const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+          const existingIndex = currentRequests.findIndex((r: Request) => r.routeId === loadedRequest.routeId);
+          if (existingIndex !== -1) {
+            currentRequests[existingIndex] = loadedRequest;
+          } else {
+            currentRequests.push(loadedRequest);
+          }
+          localStorage.setItem("saved_requests", JSON.stringify(currentRequests));
+        })
+        .catch(error => {
+          console.error('Error loading request:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: `Failed to load request: ${error.message}`
+          });
+        });
+    } catch (error) {
+      console.error('Error in handleRequestSelect:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to load request'
+      });
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    console.log('Processing file:', file.name);
+
+    try {
+      const content = await file.text();
+      let requests: Request[] = [];
+
+      // Try to parse as JSON first
+      try {
+        const json = JSON.parse(content);
+        console.log('Parsed JSON:', json);
+
+        // Check if it's a Postman collection
+        if (json.info && json.item) {
+          requests = processPostmanCollection(json);
+        }
+        // Check if it's an OpenAPI spec
+        else if (json.openapi || json.swagger) {
+          requests = processOpenAPI(json);
+        }
+        // Assume it's our own request format
+        else if (Array.isArray(json)) {
+          requests = json;
+        }
+      } catch (e) {
+        // If JSON parsing fails, try YAML
+        try {
+          const spec = yaml.load(content);
+          if (spec && typeof spec === 'object' && ('openapi' in spec || 'swagger' in spec)) {
+            requests = processOpenAPI(spec);
+          }
+        } catch (yamlError) {
+          throw new Error('Invalid file format. Please provide a valid Postman collection, OpenAPI specification, or request JSON file.');
+        }
+      }
+
+      if (requests.length === 0) {
+        throw new Error('No valid requests found in the file.');
+      }
+
+      console.log('Processed requests:', requests);
+
+      // Save each request to both localStorage and API
+      const savedPromises = requests.map(async (request) => {
+        try {
+          await saveRequest(request);
+          return request;
+        } catch (error) {
+          console.error(`Error saving request ${request.name}:`, error);
+          return null;
+        }
+      });
+
+      const savedRequests = await Promise.all(savedPromises);
+      const successfulSaves = savedRequests.filter((r): r is Request => r !== null);
+
+      // Update localStorage
+      const existingRequests = localStorage.getItem("saved_requests");
+      const currentRequests = existingRequests ? JSON.parse(existingRequests) : [];
+
+      // Merge requests, avoiding duplicates
+      const uniqueRequests = [...currentRequests];
+      successfulSaves.forEach(newRequest => {
+        const existingIndex = uniqueRequests.findIndex(r => r.routeId === newRequest.routeId);
+        if (existingIndex !== -1) {
+          uniqueRequests[existingIndex] = newRequest;
+        } else {
+          uniqueRequests.push(newRequest);
+        }
+      });
+
+      localStorage.setItem("saved_requests", JSON.stringify(uniqueRequests));
+
+      // Reorganize folders
+      organizeRequestsIntoFolders(uniqueRequests);
+
+      toast({
+        title: "Success",
+        description: `Imported ${successfulSaves.length} requests from ${file.name}`,
+      });
+    } catch (error) {
+      console.error(`Error processing file ${file.name}:`, error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : `Failed to import ${file.name}`
+      });
+    }
+
+    event.target.value = '';
   };
 
   const processPostmanCollection = (json: any) => {
@@ -213,161 +379,11 @@ export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) {
     return requests;
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    const file = files[0];
-    try {
-      const content = await file.text();
-      let requests: Request[] = [];
-
-      // Try to parse as JSON first
-      try {
-        const json = JSON.parse(content);
-
-        // Check if it's a Postman collection
-        if (json.info && json.item) {
-          requests = processPostmanCollection(json);
-        }
-        // Check if it's an OpenAPI spec
-        else if (json.openapi || json.swagger) {
-          requests = processOpenAPI(json);
-        }
-        // Assume it's our own request format
-        else if (Array.isArray(json)) {
-          requests = json;
-        }
-      } catch (e) {
-        // If JSON parsing fails, try YAML
-        try {
-          const spec = yaml.load(content);
-          if (spec && (spec.openapi || spec.swagger)) {
-            requests = processOpenAPI(spec);
-          }
-        } catch (yamlError) {
-          throw new Error('Invalid file format. Please provide a valid Postman collection, OpenAPI specification, or request JSON file.');
-        }
-      }
-
-      if (requests.length === 0) {
-        throw new Error('No valid requests found in the file.');
-      }
-
-      // Save each request to both localStorage and API
-      const savedPromises = requests.map(async (request) => {
-        try {
-          // Save to API (creates file)
-          await saveRequest(request);
-          return request;
-        } catch (error) {
-          console.error(`Error saving request ${request.name}:`, error);
-          return null;
-        }
-      });
-
-      const savedRequests = await Promise.all(savedPromises);
-      const successfulSaves = savedRequests.filter((r): r is Request => r !== null);
-
-      // Update localStorage
-      const existingRequests = localStorage.getItem("saved_requests");
-      const currentRequests = existingRequests ? JSON.parse(existingRequests) : [];
-
-      // Merge requests, avoiding duplicates
-      const uniqueRequests = [...currentRequests];
-      successfulSaves.forEach(newRequest => {
-        const existingIndex = uniqueRequests.findIndex(r => r.routeId === newRequest.routeId);
-        if (existingIndex !== -1) {
-          uniqueRequests[existingIndex] = newRequest;
-        } else {
-          uniqueRequests.push(newRequest);
-        }
-      });
-
-      localStorage.setItem("saved_requests", JSON.stringify(uniqueRequests));
-
-      // Reorganize folders
-      organizeRequestsIntoFolders(uniqueRequests);
-
-      toast({
-        title: "Success",
-        description: `Imported ${successfulSaves.length} requests from ${file.name}`,
-      });
-    } catch (error) {
-      console.error(`Error processing file ${file.name}:`, error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : `Failed to import ${file.name}`,
-      });
-    }
-
-    event.target.value = '';
-  };
-
   const handleImportWizard = () => {
     toast({
       title: "Coming Soon",
       description: "Import Wizard feature will be implemented soon!",
     });
-  };
-
-  const handleRequestSelect = (request: Request) => {
-    // First check if we have the request in localStorage
-    const savedRequests = localStorage.getItem("saved_requests");
-    if (savedRequests) {
-      try {
-        const requests = JSON.parse(savedRequests);
-        const localRequest = requests.find((r: Request) => r.routeId === request.routeId);
-        if (localRequest) {
-          onRequestSelect(localRequest);
-          setLocation(`/request/${localRequest.routeId}`);
-          return;
-        }
-      } catch (error) {
-        console.error('Error checking localStorage:', error);
-      }
-    }
-
-    // If not in localStorage, try loading from API
-    fetch(`/api/requests/${request.routeId}`, {
-      headers: {
-        'Accept': 'application/json'
-      }
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Failed to load request: ${response.statusText}`);
-        }
-        if (!response.headers.get('content-type')?.includes('application/json')) {
-          throw new Error('Invalid response format from server');
-        }
-        return response.json();
-      })
-      .then(loadedRequest => {
-        onRequestSelect(loadedRequest);
-        setLocation(`/request/${loadedRequest.routeId}`);
-
-        // Update localStorage
-        const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-        const existingIndex = currentRequests.findIndex((r: Request) => r.routeId === loadedRequest.routeId);
-
-        if (existingIndex !== -1) {
-          currentRequests[existingIndex] = loadedRequest;
-        } else {
-          currentRequests.push(loadedRequest);
-        }
-
-        localStorage.setItem("saved_requests", JSON.stringify(currentRequests));
-      })
-      .catch(error => {
-        console.error('Error loading request:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: `Failed to load request: ${error.message}`
-        });
-      });
   };
 
   const toggleFolder = (folderId: string) => {
