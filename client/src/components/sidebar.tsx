@@ -19,21 +19,46 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
-  // Load collections from API
-  const { data: collections = [], isLoading, error } = useQuery({
+  // Load requests from API
+  const { data: rawRequests = [], isLoading, error } = useQuery({
     queryKey: ['/api/requests'],
     queryFn: async () => {
       console.log('Fetching requests from API...');
       const data = await loadRequests();
-      console.log('Received collections from API:', data);
+      console.log('Received requests from API:', data);
       return data;
     },
   });
+
+  // Group requests by collection
+  const collections = groupRequestsByCollection(rawRequests);
+  console.log('Grouped collections:', collections);
 
   const handleRequestSelect = (request: Request) => {
     console.log('Sidebar: Request selected:', request);
     onRequestSelect(request);
   };
+
+  function groupRequestsByCollection(requests: Request[]): Collection[] {
+    const collectionMap = new Map<string, Collection>();
+
+    requests.forEach(request => {
+      const collectionId = request.collectionId || 'uncategorized';
+      const collectionName = request.collectionName || 'Uncategorized Requests';
+
+      if (!collectionMap.has(collectionId)) {
+        collectionMap.set(collectionId, {
+          id: collectionId,
+          name: collectionName,
+          requests: []
+        });
+      }
+
+      collectionMap.get(collectionId)!.requests.push(request);
+    });
+
+    return Array.from(collectionMap.values());
+  }
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -235,34 +260,15 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     setExpandedFolders(newExpanded);
   };
 
-  // Safely filter collections
-  console.log('Current collections before filtering:', collections);
-  const filteredCollections = collections.filter((collection: Collection) => {
-    // Make sure collection has requests array
-    if (!Array.isArray(collection.requests)) {
-      console.log('Collection has no requests array:', collection);
-      return false;
-    }
-
-    // Filter requests based on search
-    const matchingRequests = collection.requests.filter((request: Request) =>
-      request.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.method.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      request.baseUrl.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    // Include collection if it has matching requests
-    return matchingRequests.length > 0;
-  }).map((collection: Collection) => ({
+  // Filter collections based on search
+  const filteredCollections = collections.map(collection => ({
     ...collection,
-    requests: collection.requests.filter((request: Request) =>
+    requests: collection.requests.filter(request =>
       request.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.method.toLowerCase().includes(searchQuery.toLowerCase()) ||
       request.baseUrl.toLowerCase().includes(searchQuery.toLowerCase())
     )
-  }));
-
-  console.log('Filtered collections:', filteredCollections);
+  })).filter(collection => collection.requests.length > 0);
 
   if (isLoading) {
     return (
@@ -345,7 +351,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
               </Button>
               {expandedFolders.has(collection.id) && (
                 <div className="pl-4">
-                  {collection.requests.map((request: Request) => (
+                  {collection.requests.map((request) => (
                     <Button
                       key={request.requestId}
                       variant="ghost"

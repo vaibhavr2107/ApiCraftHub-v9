@@ -1,4 +1,4 @@
-import { Request, RequestSchema, CollectionSchema } from '@shared/schema';
+import { Request, RequestSchema } from '@shared/schema';
 import express from 'express';
 import fs from 'fs/promises';
 import path from 'path';
@@ -59,38 +59,17 @@ router.get('/requests', async (req, res) => {
     const jsonFiles = files.filter(file => file.endsWith('.json'));
     console.log('JSON files found:', jsonFiles);
 
-    const collectionMap = new Map<string, {
-      id: string;
-      name: string;
-      requests: Request[];
-    }>();
-
-    // Process each file and group into collections
+    const requests: Request[] = [];
     for (const file of jsonFiles) {
       const filePath = path.join(API_FOLDER, file);
       const request = await loadRequestFile(filePath);
-
-      if (request && request.collectionId) {
-        if (!collectionMap.has(request.collectionId)) {
-          collectionMap.set(request.collectionId, {
-            id: request.collectionId,
-            name: request.collectionName || 'Unnamed Collection',
-            requests: []
-          });
-        }
-
-        const collection = collectionMap.get(request.collectionId)!;
-        collection.requests.push(request);
+      if (request) {
+        requests.push(request);
       }
     }
 
-    const collections = Array.from(collectionMap.values());
-    console.log('Final collections structure:', JSON.stringify(collections, null, 2));
-
-    // Validate against CollectionSchema before sending
-    const validatedCollections = collections.map(collection => CollectionSchema.parse(collection));
-
-    res.json(validatedCollections);
+    console.log('Total requests loaded:', requests.length);
+    res.json(requests);
   } catch (error) {
     console.error('Error loading requests:', error);
     res.status(500).json({ error: 'Failed to load requests' });
