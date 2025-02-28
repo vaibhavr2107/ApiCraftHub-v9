@@ -23,34 +23,9 @@ export interface RequestFolder {
 
 interface SidebarProps {
   onRequestSelect: (request: Request) => void;
-  setLocation: (location: string) => void;
 }
 
-const saveRequest = async (request: Request) => {
-  try {
-    console.log('Saving request:', request);
-    const response = await fetch('/api/requests', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to save request: ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.log('Save request response:', result);
-    return result;
-  } catch (error) {
-    console.error(`Error saving request ${request.name}:`, error);
-    throw error;
-  }
-};
-
-export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) {
+export function Sidebar({ onRequestSelect }: SidebarProps) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -109,72 +84,8 @@ export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) {
   };
 
   const handleRequestSelect = (request: Request) => {
-    console.log('Request selected:', request);
-
-    try {
-      if (!setLocation || typeof setLocation !== 'function') {
-        console.error('setLocation is not properly initialized:', setLocation);
-        throw new Error('Navigation function is not available');
-      }
-
-      // First try to load from localStorage
-      const savedRequests = localStorage.getItem("saved_requests");
-      if (savedRequests) {
-        const requests = JSON.parse(savedRequests);
-        const localRequest = requests.find((r: Request) => r.routeId === request.routeId);
-        if (localRequest) {
-          console.log('Found request in localStorage:', localRequest);
-          onRequestSelect(localRequest);
-          setLocation(`/request/${localRequest.routeId}`);
-          return;
-        }
-      }
-
-      // If not in localStorage, load from API
-      console.log('Loading request from API:', request.routeId);
-      fetch(`/api/requests/${request.routeId}`, {
-        headers: {
-          'Accept': 'application/json'
-        }
-      })
-        .then(response => {
-          console.log('API response:', response);
-          if (!response.ok) {
-            throw new Error(`Failed to load request: ${response.statusText}`);
-          }
-          return response.json();
-        })
-        .then(loadedRequest => {
-          console.log('Loaded request from API:', loadedRequest);
-          onRequestSelect(loadedRequest);
-          setLocation(`/request/${loadedRequest.routeId}`);
-
-          // Update localStorage
-          const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
-          const existingIndex = currentRequests.findIndex((r: Request) => r.routeId === loadedRequest.routeId);
-          if (existingIndex !== -1) {
-            currentRequests[existingIndex] = loadedRequest;
-          } else {
-            currentRequests.push(loadedRequest);
-          }
-          localStorage.setItem("saved_requests", JSON.stringify(currentRequests));
-        })
-        .catch(error => {
-          console.error('Error loading request:', error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: `Failed to load request: ${error.message}`
-          });
-        });
-    } catch (error) {
-      console.error('Error in handleRequestSelect:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to load request'
-      });
-    }
+    console.log('Sidebar: Request selected:', request);
+    onRequestSelect(request);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -404,6 +315,31 @@ export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) {
       request.baseUrl.toLowerCase().includes(searchQuery.toLowerCase())
     )
   })).filter(folder => folder.requests.length > 0);
+
+  const saveRequest = async (request: Request) => {
+    try {
+      console.log('Saving request:', request);
+      const response = await fetch('/api/requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save request: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Save request response:', result);
+      return result;
+    } catch (error) {
+      console.error(`Error saving request ${request.name}:`, error);
+      throw error;
+    }
+  };
+
 
   return (
     <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen">
