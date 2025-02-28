@@ -4,7 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Upload, Wand2, Search, FileText, ChevronDown, ChevronRight, FolderClosed, FolderOpen } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Request, RequestAuth } from "@shared/schema";
+import { Request } from "@shared/schema";
 import { generateRouteId } from "@/lib/utils";
 import yaml from 'js-yaml';
 
@@ -13,15 +13,6 @@ export interface Collection {
   name: string;
   description?: string;
   requests: Request[];
-  auth?: RequestAuth;
-  variables?: CollectionVariable[];
-}
-
-export interface CollectionVariable {
-  id: string;
-  key: string;
-  value: string;
-  type: "default" | "secret";
 }
 
 export interface RequestFolder {
@@ -32,7 +23,7 @@ export interface RequestFolder {
 
 interface SidebarProps {
   onRequestSelect: (request: Request) => void;
-  setLocation: (location: string) => void; // Added setLocation prop
+  setLocation: (location: string) => void;
 }
 
 const saveRequest = async (request: Request) => {
@@ -56,7 +47,7 @@ const saveRequest = async (request: Request) => {
   }
 };
 
-export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) { // Added setLocation to props
+export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -66,8 +57,12 @@ export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) { // Add
   useEffect(() => {
     const savedRequests = localStorage.getItem("saved_requests");
     if (savedRequests) {
-      const requests: Request[] = JSON.parse(savedRequests);
-      organizeRequestsIntoFolders(requests);
+      try {
+        const requests: Request[] = JSON.parse(savedRequests);
+        organizeRequestsIntoFolders(requests);
+      } catch (error) {
+        console.error('Error loading saved requests:', error);
+      }
     }
   }, []);
 
@@ -91,11 +86,10 @@ export function Sidebar({ onRequestSelect, setLocation }: SidebarProps) { // Add
 
     // Add collection folders
     folderMap.forEach((requests, collectionId) => {
-      const firstRequest = requests[0];
-      if (firstRequest) {
+      if (requests.length > 0) {
         newFolders.push({
           id: collectionId,
-          name: firstRequest.collectionName || 'Unnamed Collection',
+          name: requests[0].collectionName || 'Unnamed Collection',
           requests
         });
       }
