@@ -6,6 +6,8 @@ import path from 'path';
 import axios from 'axios';
 import https from 'https';
 import { RequestSchema } from "@shared/schema";
+import requestRoutes from "./routes/requests";
+import express from 'express';
 
 // Create an HTTPS agent that accepts self-signed certificates
 const httpsAgent = new https.Agent({
@@ -13,7 +15,20 @@ const httpsAgent = new https.Agent({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // API routes prefix with /api
+  // Add JSON parsing middleware
+  app.use(express.json());
+
+  // API routes should be handled first
+  app.use('/api', (req, res, next) => {
+    // Set JSON content type for all API routes
+    res.setHeader('Content-Type', 'application/json');
+    next();
+  });
+
+  // Register API routes
+  app.use('/api', requestRoutes);
+
+  // Proxy route for making external API calls
   app.post('/api/proxy', async (req, res) => {
     try {
       const { method, url, headers = {}, body } = req.body;
@@ -71,84 +86,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Proxy error:', error);
       res.status(500).json({
         message: error.message || 'Internal server error',
-        error: error.toString()
-      });
-    }
-  });
-
-  // New endpoint for saving request files
-  app.post('/api/requests', async (req, res) => {
-    try {
-      const requestData = req.body;
-
-      // Validate request data against schema
-      const validatedData = RequestSchema.parse(requestData);
-
-      // Create api directory if it doesn't exist
-      const apiDir = path.join(process.cwd(), 'client', 'api');
-      if (!fs.existsSync(apiDir)) {
-        fs.mkdirSync(apiDir, { recursive: true });
-      }
-
-      // Check for existing versions of this request
-      const files = fs.readdirSync(apiDir);
-      const baseRequestId = validatedData.requestId;
-      const versionRegex = new RegExp(`${baseRequestId}-v(\\d+)\\.json`);
-      let maxVersion = 0;
-
-      files.forEach(file => {
-        const match = file.match(versionRegex);
-        if (match) {
-          const version = parseInt(match[1]);
-          maxVersion = Math.max(maxVersion, version);
-        }
-      });
-
-      // Increment version for the new file
-      const version = maxVersion + 1;
-      const fileName = `${baseRequestId}-v${version}.json`;
-      const filePath = path.join(apiDir, fileName);
-
-      // Save request data to file
-      fs.writeFileSync(filePath, JSON.stringify(validatedData, null, 2));
-
-      res.json({
-        message: 'Request saved successfully',
-        fileName,
-        version
-      });
-
-    } catch (error: any) {
-      console.error('Error saving request:', error);
-      res.status(500).json({
-        message: error.message || 'Failed to save request',
-        error: error.toString()
-      });
-    }
-  });
-
-  // Endpoint to get all saved requests
-  app.get('/api/requests', (req, res) => {
-    try {
-      const apiDir = path.join(process.cwd(), 'client', 'api');
-      if (!fs.existsSync(apiDir)) {
-        fs.mkdirSync(apiDir, { recursive: true });
-        return res.json([]);
-      }
-
-      const files = fs.readdirSync(apiDir)
-        .filter(file => file.endsWith('.json'))
-        .map(file => {
-          const filePath = path.join(apiDir, file);
-          const content = fs.readFileSync(filePath, 'utf-8');
-          return JSON.parse(content);
-        });
-
-      res.json(files);
-    } catch (error: any) {
-      console.error('Error reading requests:', error);
-      res.status(500).json({
-        message: error.message || 'Failed to read requests',
         error: error.toString()
       });
     }
