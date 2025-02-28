@@ -34,6 +34,27 @@ interface SidebarProps {
   onRequestSelect: (request: Request) => void;
 }
 
+const saveRequest = async (request: Request) => {
+  try {
+    const response = await fetch('/api/requests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to save request: ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error(`Error saving request ${request.name}:`, error);
+    throw error;
+  }
+};
+
 export function Sidebar({ onRequestSelect }: SidebarProps) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
@@ -204,9 +225,9 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     const file = files[0];
     try {
       const content = await file.text();
+      let requests: Request[] = [];
 
       // Try to parse as JSON first
-      let requests: Request[] = [];
       try {
         const json = JSON.parse(content);
 
@@ -238,13 +259,28 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
         throw new Error('No valid requests found in the file.');
       }
 
-      // Update localStorage
-      const savedRequests = localStorage.getItem("saved_requests");
-      const existingRequests = savedRequests ? JSON.parse(savedRequests) : [];
+      // Save each request to both localStorage and API
+      const savedPromises = requests.map(async (request) => {
+        try {
+          // Save to API (creates file)
+          await saveRequest(request);
+          return request;
+        } catch (error) {
+          console.error(`Error saving request ${request.name}:`, error);
+          return null;
+        }
+      });
 
-      // Merge requests, avoiding duplicates by routeId
-      const uniqueRequests = [...existingRequests];
-      requests.forEach(newRequest => {
+      const savedRequests = await Promise.all(savedPromises);
+      const successfulSaves = savedRequests.filter((r): r is Request => r !== null);
+
+      // Update localStorage
+      const existingRequests = localStorage.getItem("saved_requests");
+      const currentRequests = existingRequests ? JSON.parse(existingRequests) : [];
+
+      // Merge requests, avoiding duplicates
+      const uniqueRequests = [...currentRequests];
+      successfulSaves.forEach(newRequest => {
         const existingIndex = uniqueRequests.findIndex(r => r.routeId === newRequest.routeId);
         if (existingIndex !== -1) {
           uniqueRequests[existingIndex] = newRequest;
@@ -255,21 +291,12 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
 
       localStorage.setItem("saved_requests", JSON.stringify(uniqueRequests));
 
-      // Save each request to the API (assuming saveRequest function exists)
-      for (const request of requests) {
-        try {
-          await saveRequest(request); //Requires a saveRequest function to be defined elsewhere
-        } catch (error) {
-          console.error(`Error saving request ${request.name}:`, error);
-        }
-      }
-
       // Reorganize folders
       organizeRequestsIntoFolders(uniqueRequests);
 
       toast({
         title: "Success",
-        description: `Imported ${requests.length} requests from ${file.name}`,
+        description: `Imported ${successfulSaves.length} requests from ${file.name}`,
       });
     } catch (error) {
       console.error(`Error processing file ${file.name}:`, error);
@@ -288,6 +315,23 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       title: "Coming Soon",
       description: "Import Wizard feature will be implemented soon!",
     });
+  };
+
+  const handleRequestSelect = (request: Request) => {
+    // Load the request file
+    fetch(`/api/requests/${request.routeId}`)
+      .then(response => response.json())
+      .then(loadedRequest => {
+        onRequestSelect(loadedRequest);
+      })
+      .catch(error => {
+        console.error('Error loading request:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load request"
+        });
+      });
   };
 
   const toggleFolder = (folderId: string) => {
@@ -378,7 +422,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
                       key={request.requestId}
                       variant="ghost"
                       className="w-full justify-start hover:bg-muted/50 h-auto py-1.5"
-                      onClick={() => onRequestSelect(request)}
+                      onClick={() => handleRequestSelect(request)}
                     >
                       <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
                       <div className="flex flex-col items-start">
@@ -397,20 +441,4 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       </ScrollArea>
     </div>
   );
-}
-
-// Placeholder for the saveRequest function.  This needs to be implemented elsewhere.
-const saveRequest = async (request: Request) => {
-  //Implementation for saving the request to the API goes here.
-  //Example using fetch:
-  // const response = await fetch('/api/requests', {
-  //   method: 'POST',
-  //   headers: {
-  //     'Content-Type': 'application/json',
-  //   },
-  //   body: JSON.stringify(request),
-  // });
-  // if (!response.ok) {
-  //   throw new Error(`Failed to save request: ${response.statusText}`);
-  // }
 }
