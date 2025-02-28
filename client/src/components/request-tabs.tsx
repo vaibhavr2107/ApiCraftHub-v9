@@ -117,8 +117,13 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     if (!routeId) return;
 
     // Check if request is already in active requests
-    if (activeRequests.some(r => r.routeId === routeId)) {
+    const existingRequest = activeRequests.find(r => r.routeId === routeId);
+    if (existingRequest) {
       console.log('Request already in active tabs');
+      // Make sure it's the active request
+      if (activeRequest?.requestId !== existingRequest.requestId) {
+        setActiveRequest(existingRequest);
+      }
       return;
     }
 
@@ -154,7 +159,11 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
         })
         .then(request => {
           console.log('Loaded request from API:', request);
-          setActiveRequests(prev => [...prev, request]);
+          // Check if request is already in active requests
+          const existingRequestIndex = activeRequests.findIndex(r => r.routeId === request.routeId);
+          if (existingRequestIndex === -1) {
+            setActiveRequests(prev => [...prev, request]);
+          }
         })
         .catch(error => {
           console.error('Error loading request:', error);
@@ -169,9 +178,12 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
           setLocation(`/request/${newRequest.routeId}`);
         });
     } else {
-      // For new requests, just create them
-      console.log('Creating new request from route');
-      createDefaultRequest();
+      // For new requests, just create them if they don't already exist
+      const existingNewRequest = activeRequests.find(r => r.routeId === routeId);
+      if (!existingNewRequest) {
+        console.log('Creating new request from route');
+        createDefaultRequest();
+      }
     }
   }, [routeId, setLocation, toast, createDefaultRequest]);
 

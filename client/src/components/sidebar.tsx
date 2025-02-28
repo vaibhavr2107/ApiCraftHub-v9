@@ -9,6 +9,7 @@ import { generateRouteId } from "@/lib/utils";
 import yaml from 'js-yaml';
 import { useQuery } from "@tanstack/react-query";
 import { loadRequests, saveRequest } from "@/lib/api";
+import { useLocation } from "wouter";
 
 interface SidebarProps {
   onRequestSelect: (request: Request) => void;
@@ -18,6 +19,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [, setLocation] = useLocation();
 
   // Load requests from API
   const { data: rawRequests = [], isLoading, error } = useQuery({
@@ -36,6 +38,9 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
 
   const handleRequestSelect = (request: Request) => {
     console.log('Sidebar: Request selected:', request);
+    // Update the route to reflect the selected request
+    setLocation(`/request/${request.routeId}`);
+    // Notify parent component about the selection
     onRequestSelect(request);
   };
 
@@ -279,7 +284,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   }
 
   if (error) {
-    console.error('Error in sidebar:', error);
     return (
       <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen p-4">
         Error loading requests. Please try again.
@@ -310,7 +314,10 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
             <Button
               variant="outline"
               className="flex-1"
-              onClick={handleImportWizard}
+              onClick={() => toast({
+                title: "Coming Soon",
+                description: "Import Wizard feature will be implemented soon!",
+              })}
             >
               <Wand2 className="mr-2 h-4 w-4" />
               Wizard
