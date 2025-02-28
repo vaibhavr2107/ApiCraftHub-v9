@@ -1,5 +1,5 @@
 import { Plus, X } from "lucide-react";
-import { useCallback, useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { generateRouteId } from "@/lib/utils";
 import {
@@ -17,6 +17,40 @@ import { openRequest, updateRequest } from "@/lib/api";
 
 // Local storage key for active requests
 const ACTIVE_REQUESTS_KEY = 'active_requests';
+
+// Create default request helper
+function createDefaultRequest(): Request {
+  const routeId = generateRouteId('new-request');
+  return {
+    requestId: routeId,
+    routeId,
+    name: "New Request",
+    method: "GET",
+    baseUrl: "",
+    devUrl: "",
+    qa01Url: "",
+    qa02Url: "",
+    qa03Url: "",
+    perfUrl: "",
+    queryParams: {},
+    pathVariables: {},
+    auth: { type: "none" },
+    headers: {
+      'Accept': '*/*',
+      'Content-Type': 'application/json'
+    },
+    historyId: `history-${routeId}`,
+    historyRequests: [],
+    responseFields: {},
+    requestBody: {},
+    exampleResponseBody: {},
+    tags: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    version: 1,
+    selectedEnvironment: "qa01"
+  };
+}
 
 export function RequestTabs() {
   const [location, setLocation] = useLocation();
@@ -40,6 +74,7 @@ export function RequestTabs() {
         initialized.current = true;
       } catch (error) {
         console.error('Error loading active requests:', error);
+        initialized.current = true;
       }
     } else {
       initialized.current = true;
@@ -57,14 +92,9 @@ export function RequestTabs() {
   useEffect(() => {
     if (!routeId || !initialized.current) return;
 
-    console.log('RequestTabs: Processing route change for routeId:', routeId);
-
     // Check if request is already in active tabs
     const existingRequest = activeRequests.find(r => r.routeId === routeId);
-    if (existingRequest) {
-      console.log('RequestTabs: Request already in active tabs:', existingRequest);
-      return;
-    }
+    if (existingRequest) return;
 
     // If it's a new request, create it
     if (routeId.startsWith('new-request')) {
@@ -74,12 +104,10 @@ export function RequestTabs() {
     }
 
     // Otherwise, load the request from the API
-    console.log('RequestTabs: Loading request from API:', routeId);
     setLoading(prev => ({ ...prev, [routeId]: true }));
 
     openRequest(routeId)
       .then(request => {
-        console.log('RequestTabs: Loaded request from API:', request);
         setActiveRequests(prev => {
           // Check for duplicates again before adding
           if (prev.some(r => r.routeId === routeId)) return prev;
@@ -87,17 +115,22 @@ export function RequestTabs() {
         });
       })
       .catch(error => {
-        console.error('RequestTabs: Error loading request:', error);
+        console.error('Error loading request:', error);
         toast({
           variant: "destructive",
           title: "Error",
           description: error.message || "Failed to load request"
         });
+
+        // Create a new request if we can't load the existing one
+        const newRequest = createDefaultRequest();
+        setActiveRequests(prev => [...prev, newRequest]);
+        setLocation(`/request/${newRequest.routeId}`);
       })
       .finally(() => {
         setLoading(prev => ({ ...prev, [routeId]: false }));
       });
-  }, [routeId, activeRequests, toast]);
+  }, [routeId, activeRequests, toast, setLocation]);
 
   const handleTabChange = (value: string) => {
     setLocation(`/request/${value}`);
@@ -106,8 +139,8 @@ export function RequestTabs() {
   const handleCloseTab = (routeId: string) => {
     setActiveRequests(prev => {
       const filtered = prev.filter(r => r.routeId !== routeId);
+      // If closing last tab, create a new request
       if (filtered.length === 0) {
-        // If closing last tab, create a new request
         const newRequest = createDefaultRequest();
         return [newRequest];
       }
@@ -132,14 +165,7 @@ export function RequestTabs() {
       }
 
       // Merge updates with current request
-      const mergedRequest = {
-        ...currentRequest,
-        ...updates,
-        updatedAt: new Date().toISOString()
-      };
-
-      // Update the request on the server
-      const updatedRequest = await updateRequest(routeId, mergedRequest);
+      const updatedRequest = await updateRequest(routeId, updates);
 
       // Update local state
       setActiveRequests(prev =>
@@ -228,35 +254,4 @@ export function RequestTabs() {
       </Tabs>
     </div>
   );
-}
-
-// Helper function to create a default request
-function createDefaultRequest(): Request {
-  const routeId = generateRouteId('new-request');
-  return {
-    requestId: routeId,
-    routeId,
-    name: "New Request",
-    method: "GET",
-    baseUrl: "",
-    devUrl: "",
-    qa01Url: "",
-    qa02Url: "",
-    qa03Url: "",
-    perfUrl: "",
-    queryParams: {},
-    pathVariables: {},
-    auth: { type: "none" },
-    headers: {},
-    historyId: `history-${routeId}`,
-    historyRequests: [],
-    responseFields: {},
-    requestBody: {},
-    exampleResponseBody: {},
-    tags: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    version: 1,
-    selectedEnvironment: "qa01"
-  };
 }
