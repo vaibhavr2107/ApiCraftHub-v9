@@ -230,6 +230,7 @@ export function RequestPanel({
 
   // Initialize UI state from request
   useEffect(() => {
+    console.log('Initializing request panel state');
     syncUrlQueryParams(request.baseUrl);
 
     // Path variables
@@ -254,7 +255,8 @@ export function RequestPanel({
       setRawFormat("json");
       setRawBody(JSON.stringify(request.requestBody, null, 2));
     }
-  }, [request]);
+    setUnsavedChanges(false); // Reset unsaved changes on new request load
+  }, [request.routeId]); // Only reinitialize when routeId changes
 
   // Handle environment change
   const handleEnvironmentChange = (env: typeof ENVIRONMENTS[number]) => {
@@ -397,47 +399,79 @@ export function RequestPanel({
     }
   };
 
-  const handleSave = () => {
-    // Create a properly formatted history requests array
-    const formattedHistoryRequests = (request.historyRequests || []).map(entry => ({
-      method: entry.method || request.method,
-      url: entry.url || request.baseUrl,
-      timestamp: entry.timestamp || new Date().toISOString(),
-      responseTime: entry.responseTime || 0,
-      requestBody: entry.requestBody || {},
-      responseFields: entry.responseFields || {}
-    }));
-
-    onRequestChange({
-      requestBody: bodyType === "raw" && rawBody ? JSON.parse(rawBody) : {},
-      headers: headers.reduce((acc, h) => {
-        if (h.enabled && h.key) {
-          acc[h.key] = h.value;
-        }
-        return acc;
-      }, {} as Record<string, string>),
-      queryParams: queryParams.reduce((acc, p) => {
-        if (p.enabled && p.key) {
-          acc[p.key] = p.value;
-        }
-        return acc;
-      }, {} as Record<string, string>),
-      historyRequests: formattedHistoryRequests,
-      updatedAt: new Date().toISOString()
-    });
-    setUnsavedChanges(false);
-
-    toast({
-      title: "Success",
-      description: "Request saved successfully",
-    });
-  };
-
   // Handle URL change without auto-save
   const handleUrlChange = (newUrl: string) => {
-    onRequestChange({ baseUrl: newUrl });
+    console.log('URL changed, syncing query params');
     syncUrlQueryParams(newUrl);
+    onRequestChange({
+      baseUrl: newUrl
+    });
     setUnsavedChanges(true);
+  };
+
+  const handleSave = () => {
+    console.log('Saving request with current state');
+    try {
+      // Format headers
+      const headersObj = headers
+        .filter(h => h.enabled && h.key)
+        .reduce((acc, h) => {
+          acc[h.key] = h.value;
+          return acc;
+        }, {} as Record<string, string>);
+
+      // Format query parameters
+      const queryParamsObj = queryParams
+        .filter(p => p.enabled && p.key)
+        .reduce((acc, p) => {
+          acc[p.key] = p.value;
+          return acc;
+        }, {} as Record<string, string>);
+
+      // Format request body
+      let requestBodyObj = {};
+      if (bodyType === "raw" && rawBody) {
+        try {
+          requestBodyObj = JSON.parse(rawBody);
+        } catch (e) {
+          console.warn('Invalid JSON in raw body, saving as is');
+          requestBodyObj = rawBody;
+        }
+      }
+
+      // Ensure historyRequests are properly formatted
+      const formattedHistoryRequests = (request.historyRequests || []).map(entry => ({
+        method: entry.method || request.method,
+        url: entry.url || request.baseUrl,
+        timestamp: entry.timestamp || new Date().toISOString(),
+        responseTime: entry.responseTime || 0,
+        requestBody: entry.requestBody || {},
+        responseFields: entry.responseFields || {}
+      }));
+
+      // Update request with all changes
+      onRequestChange({
+        baseUrl: request.baseUrl,
+        headers: headersObj,
+        queryParams: queryParamsObj,
+        requestBody: requestBodyObj,
+        historyRequests: formattedHistoryRequests,
+        updatedAt: new Date().toISOString()
+      });
+      setUnsavedChanges(false);
+
+      toast({
+        title: "Success",
+        description: "Request saved successfully",
+      });
+    } catch (error) {
+      console.error('Error saving request:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save request. Please check the console for details.",
+      });
+    }
   };
 
   const handleRawFormatChange = (value: typeof RAW_FORMATS[number]) => {
@@ -963,8 +997,7 @@ export function RequestPanel({
                         const newData = [...urlEncodedData];
                         newData[index] = { ...field, key: e.target.value };
                         setUrlEncodedData(newData);
-                        setUnsavedChanges(true);
-                      }}
+                        setUnsavedChanges(true);                      }}
                       className="flex-1"
                     />
                     <Input
@@ -994,7 +1027,8 @@ export function RequestPanel({
                   onClick={() => {
                     setUrlEncodedData([
                       ...urlEncodedData,
-                      { key: "", value: "", enabled: true }                    ]);
+                      { key: "", value: "", enabled: true }
+                    ]);
                     setUnsavedChanges(true);
                   }}
                   variant="outline"
