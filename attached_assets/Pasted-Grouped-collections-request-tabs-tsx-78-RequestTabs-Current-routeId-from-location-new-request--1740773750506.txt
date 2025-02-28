@@ -1,0 +1,56 @@
+Grouped collections: []
+request-tabs.tsx:78 RequestTabs: Current routeId from location: new-request-1740773649806-1
+sidebar.tsx:28 Fetching requests from API...
+request-tabs.tsx:126 RequestTabs: Processing route change for routeId: new-request-1740773649806-1
+request-tabs.tsx:181 RequestTabs: Creating new request for route: new-request-1740773649806-1
+request-tabs.tsx:86 RequestTabs: Creating new default request with ID: new-request-1740773659728-0
+request-tabs.tsx:114 RequestTabs: Adding new request to active requests: {requestId: 'new-request-1740773659728-0', routeId: 'new-request-1740773659728-0', name: 'New Request', method: 'GET', baseUrl: 'https://api.restful-api.dev/objects', …}
+request-tabs.tsx:189 RequestTabs: Initializing with default request
+request-tabs.tsx:86 RequestTabs: Creating new default request with ID: new-request-1740773659729-1
+request-tabs.tsx:114 RequestTabs: Adding new request to active requests: {requestId: 'new-request-1740773659729-1', routeId: 'new-request-1740773659729-1', name: 'New Request', method: 'GET', baseUrl: 'https://api.restful-api.dev/objects', …}
+home.tsx:13 Home: Checking if we need to create a default request
+sidebar.tsx:37 Grouped collections: []
+request-tabs.tsx:78 RequestTabs: Current routeId from location: new-request-1740773659729-1
+request-tabs.tsx:126 RequestTabs: Processing route change for routeId: new-request-1740773659729-1
+request-tabs.tsx:181 RequestTabs: Creating new request for route: new-request-1740773659729-1
+request-tabs.tsx:86 RequestTabs: Creating new default request with ID: new-request-1740773659736-2
+request-tabs.tsx:114 RequestTabs: Adding new request to active requests: {requestId: 'new-request-1740773659736-2', routeId: 'new-request-1740773659736-2', name: 'New Request', method: 'GET', baseUrl: 'https://api.restful-api.dev/objects', …}
+request-tabs.tsx:126 RequestTabs: Processing route change for routeId: new-request-1740773659729-1
+request-tabs.tsx:131 RequestTabs: Request already in active tabs: {requestId: 'new-request-1740773659729-1', routeId: 'new-request-1740773659729-1', name: 'New Request', method: 'GET', baseUrl: 'https://api.restful-api.dev/objects', …}
+sidebar.tsx:30 Received requests from API: (7) [{…}, {…}, {…}, {…}, {…}, {…}, {…}]
+sidebar.tsx:37 Grouped collections: [{…}]
+sidebar.tsx:258 Toggling folder: notion-api
+sidebar.tsx:37 Grouped collections: [{…}]
+sidebar.tsx:40 Sidebar: Request selected: {requestId: 'notion-api-append-block-children', routeId: 'notion-api-append-block-children', name: 'Append block children', method: 'PATCH', baseUrl: 'https://api.notion.com/v1/blocks/{block_id}/children', …}
+home.tsx:23 Home: Request selected from sidebar: {requestId: 'notion-api-append-block-children', routeId: 'notion-api-append-block-children', name: 'Append block children', method: 'PATCH', baseUrl: 'https://api.notion.com/v1/blocks/{block_id}/children', …}
+sidebar.tsx:37 Grouped collections: [{…}]
+request-tabs.tsx:78 RequestTabs: Current routeId from location: notion-api-append-block-children
+request-tabs.tsx:126 RequestTabs: Processing route change for routeId: notion-api-append-block-children
+request-tabs.tsx:153 RequestTabs: Loading request from API: notion-api-append-block-children
+request-tabs.tsx:170 RequestTabs: Error loading request: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON
+(anonymous) @ request-tabs.tsx:170
+Promise.catch
+(anonymous) @ request-tabs.tsx:169
+commitHookEffectListMount @ chunk-WERSD76P.js?v=9a6e368f:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=9a6e368f:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=9a6e368f:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=9a6e368f:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=9a6e368f:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=9a6e368f:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=9a6e368f:19447
+commitRootImpl @ chunk-WERSD76P.js?v=9a6e368f:19416
+commitRoot @ chunk-WERSD76P.js?v=9a6e368f:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=9a6e368f:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=9a6e368f:9119
+(anonymous) @ chunk-WERSD76P.js?v=9a6e368f:18627Understand this errorAI
+request-tabs.tsx:86 RequestTabs: Creating new default request with ID: new-request-1740773667510-3
+request-tabs.tsx:114 RequestTabs: Adding new request to active requests: {requestId: 'new-request-1740773667510-3', routeId: 'new-request-1740773667510-3', name: 'New Request', method: 'GET', baseUrl: 'https://api.restful-api.dev/objects', …}
+sidebar.tsx:37 Grouped collections: [{…}]
+request-tabs.tsx:78 RequestTabs: Current routeId from location: new-request-1740773667510-3
+request-tabs.tsx:126 RequestTabs: Processing route change for routeId: new-request-1740773667510-3
+request-tabs.tsx:181 RequestTabs: Creating new request for route: new-request-1740773667510-3
+request-tabs.tsx:86 RequestTabs: Creating new default request with ID: new-request-1740773667521-4
+request-tabs.tsx:114 RequestTabs: Adding new request to active requests: {requestId: 'new-request-1740773667521-4', routeId: 'new-request-1740773667521-4', name: 'New Request', method: 'GET', baseUrl: 'https://api.restful-api.dev/objects', …}
+sidebar.tsx:37 Grouped collections: [{…}]
+request-tabs.tsx:126 RequestTabs: Processing route change for routeId: new-request-1740773667510-3
+request-tabs.tsx:131 RequestTabs: Request already in active tabs: {requestId: 'new-request-1740773667510-3', routeId: 'new-request-1740773667510-3', name: 'New Request', method: 'GET', baseUrl: 'https://api.restful-api.dev/objects', …}

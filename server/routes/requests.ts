@@ -28,12 +28,16 @@ async function loadRequestFile(filePath: string): Promise<Request | null> {
       const parts = fileName.split('-');
 
       // Assuming format: collection-name-request-name.json
-      const collectionParts = parts.slice(0, -1); // All parts except last one for collection
-      const collectionId = collectionParts.join('-');
-      const collectionName = collectionParts.join(' ').replace(/\b\w/g, l => l.toUpperCase());
+      const collectionId = parts[0]; // Take first part as collection id
+      const collectionName = parts[0].replace(/\b\w/g, l => l.toUpperCase()); // Capitalize collection name
 
       request.collectionId = request.collectionId || collectionId;
       request.collectionName = request.collectionName || collectionName;
+    }
+
+    // Ensure routeId exists
+    if (!request.routeId) {
+      request.routeId = path.basename(filePath, '.json');
     }
 
     return RequestSchema.parse(request);
@@ -43,7 +47,7 @@ async function loadRequestFile(filePath: string): Promise<Request | null> {
   }
 }
 
-// GET all requests from API folder
+// GET all requests
 router.get('/requests', async (req, res) => {
   try {
     console.log('Starting /requests endpoint');
@@ -72,36 +76,54 @@ router.get('/requests', async (req, res) => {
   }
 });
 
-// GET request file
+// GET single request
 router.get('/requests/:routeId', async (req, res) => {
   try {
     const { routeId } = req.params;
     console.log('Loading request by routeId:', routeId);
 
-    // Read all files and find the one matching routeId
-    const files = await fs.readdir(API_FOLDER);
+    await ensureApiFolder();
 
-    for (const file of files) {
-      const filePath = path.join(API_FOLDER, file);
-      const request = await loadRequestFile(filePath);
+    // First try direct file path
+    let request = await loadRequestFile(path.join(API_FOLDER, `${routeId}.json`));
 
-      if (request && request.routeId === routeId) {
-        console.log('Found matching request:', request);
-        return res.json(request);
+    // If not found, search through all files
+    if (!request) {
+      const files = await fs.readdir(API_FOLDER);
+      console.log('Searching through files for routeId:', routeId);
+
+      for (const file of files) {
+        const filePath = path.join(API_FOLDER, file);
+        const currentRequest = await loadRequestFile(filePath);
+
+        if (currentRequest?.routeId === routeId) {
+          console.log('Found matching request in file:', file);
+          request = currentRequest;
+          break;
+        }
       }
     }
 
-    throw new Error('Request not found');
+    if (!request) {
+      console.log('Request not found for routeId:', routeId);
+      return res.status(404).json({ 
+        error: 'Request not found',
+        routeId: req.params.routeId 
+      });
+    }
+
+    console.log('Successfully loaded request:', request.name);
+    res.json(request);
   } catch (error) {
     console.error('Error loading request:', error);
-    res.status(404).json({ 
-      error: 'Request not found',
-      routeId: req.params.routeId 
+    res.status(500).json({ 
+      error: 'Failed to load request',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// Save request file
+// Save request
 router.post('/requests', async (req, res) => {
   try {
     console.log('Saving request:', req.body);
