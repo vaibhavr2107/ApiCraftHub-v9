@@ -53,6 +53,8 @@ router.get('/requests', async (req, res) => {
       }
     }
 
+    // Set proper content type header
+    res.setHeader('Content-Type', 'application/json');
     res.json(requests);
   } catch (error) {
     console.error('Error loading requests:', error);
