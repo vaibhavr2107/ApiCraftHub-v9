@@ -1,0 +1,35 @@
+{
+  "requestId": "box-platform-api-create-webhook",
+  "routeId": "box-platform-api-create-webhook",
+  "name": "Create webhook",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/webhooks",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-webhook",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "target": {
+      "id": "1231232",
+      "type": "file"
+    },
+    "address": "https://example.com/webhooks",
+    "triggers": [
+      "FILE.UPLOADED"
+    ]
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.932Z",
+  "updatedAt": "2025-02-28T01:16:25.932Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

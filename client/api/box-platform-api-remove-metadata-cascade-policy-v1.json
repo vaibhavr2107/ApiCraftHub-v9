@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-remove-metadata-cascade-policy",
+  "routeId": "box-platform-api-remove-metadata-cascade-policy",
+  "name": "Remove metadata cascade policy",
+  "method": "DELETE",
+  "baseUrl": "https://{{api.box.com}}/2.0/metadata_cascade_policies/:metadata_cascade_policy_id",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-remove-metadata-cascade-policy",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.931Z",
+  "updatedAt": "2025-02-28T01:16:25.931Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

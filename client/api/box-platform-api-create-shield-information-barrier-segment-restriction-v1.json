@@ -1,0 +1,40 @@
+{
+  "requestId": "box-platform-api-create-shield-information-barrier-segment-restriction",
+  "routeId": "box-platform-api-create-shield-information-barrier-segment-restriction",
+  "name": "Create shield information barrier segment restriction",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/shield_information_barrier_segment_restrictions",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-shield-information-barrier-segment-restriction",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "type": "shield_information_barrier_segment_restriction",
+    "shield_information_barrier": {
+      "id": "11446498",
+      "type": "shield_information_barrier"
+    },
+    "shield_information_barrier_segment": {
+      "id": "1910967",
+      "type": "shield_information_barrier_segment"
+    },
+    "restricted_segment": {
+      "id": "1910967",
+      "type": "shield_information_barrier_segment"
+    }
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.932Z",
+  "updatedAt": "2025-02-28T01:16:25.932Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

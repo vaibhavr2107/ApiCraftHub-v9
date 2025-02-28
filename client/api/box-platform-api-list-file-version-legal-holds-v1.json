@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-list-file-version-legal-holds",
+  "routeId": "box-platform-api-list-file-version-legal-holds",
+  "name": "List file version legal holds",
+  "method": "GET",
+  "baseUrl": "https://{{api.box.com}}/2.0/file_version_legal_holds?policy_id=133870",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-list-file-version-legal-holds",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.931Z",
+  "updatedAt": "2025-02-28T01:16:25.931Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

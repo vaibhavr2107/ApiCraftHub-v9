@@ -318,10 +318,40 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   };
 
   const handleRequestSelect = (request: Request) => {
-    // Load the request file
+    // First check local storage
+    const savedRequests = localStorage.getItem("saved_requests");
+    if (savedRequests) {
+      try {
+        const requests = JSON.parse(savedRequests);
+        const localRequest = requests.find((r: Request) => r.routeId === request.routeId);
+        if (localRequest) {
+          onRequestSelect(localRequest);
+          return;
+        }
+      } catch (error) {
+        console.error('Error parsing local storage:', error);
+      }
+    }
+
+    // If not in local storage, try loading from API
     fetch(`/api/requests/${request.routeId}`)
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to load request: ${response.statusText}`);
+        }
+        return response.json();
+      })
       .then(loadedRequest => {
+        // Update local storage with the loaded request
+        const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+        const existingIndex = currentRequests.findIndex((r: Request) => r.routeId === loadedRequest.routeId);
+        if (existingIndex !== -1) {
+          currentRequests[existingIndex] = loadedRequest;
+        } else {
+          currentRequests.push(loadedRequest);
+        }
+        localStorage.setItem("saved_requests", JSON.stringify(currentRequests));
+
         onRequestSelect(loadedRequest);
       })
       .catch(error => {
@@ -329,7 +359,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load request"
+          description: `Failed to load request: ${error.message}`
         });
       });
   };

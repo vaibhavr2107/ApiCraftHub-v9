@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-get-metadata-instance-on-file",
+  "routeId": "box-platform-api-get-metadata-instance-on-file",
+  "name": "Get metadata instance on file",
+  "method": "GET",
+  "baseUrl": "https://{{api.box.com}}/2.0/files/:file_id/metadata/:scope/:template_key",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-get-metadata-instance-on-file",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.931Z",
+  "updatedAt": "2025-02-28T01:16:25.931Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

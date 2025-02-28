@@ -1,0 +1,60 @@
+{
+  "requestId": "box-platform-api-extract-metadata-structured",
+  "routeId": "box-platform-api-extract-metadata-structured",
+  "name": "Extract metadata (structured)",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/ai/extract_structured",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-extract-metadata-structured",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "items": [
+      {
+        "id": "123",
+        "type": "file",
+        "content": "This is file content."
+      }
+    ],
+    "metadata_template": {
+      "template_key": "invoiceTemplate",
+      "type": "metadata_template",
+      "scope": "enterprise_12345"
+    },
+    "fields": [
+      {
+        "key": "name",
+        "description": "The name of the person.",
+        "displayName": "Name",
+        "prompt": "Name is the first and last name from the email address",
+        "type": "enum",
+        "options": [
+          {
+            "key": "First Name"
+          },
+          {
+            "key": "Last Name"
+          }
+        ]
+      }
+    ],
+    "ai_agent": {
+      "type": "ai_agent_id",
+      "id": "14031"
+    }
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.930Z",
+  "updatedAt": "2025-02-28T01:16:25.930Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

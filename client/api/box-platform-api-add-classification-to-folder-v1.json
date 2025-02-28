@@ -1,0 +1,28 @@
+{
+  "requestId": "box-platform-api-add-classification-to-folder",
+  "routeId": "box-platform-api-add-classification-to-folder",
+  "name": "Add classification to folder",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/folders/:folder_id/metadata/enterprise/securityClassification-6VMVochwUWo",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-add-classification-to-folder",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "Box__Security__Classification__Key": "Sensitive"
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.930Z",
+  "updatedAt": "2025-02-28T01:16:25.930Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

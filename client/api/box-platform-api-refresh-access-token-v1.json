@@ -1,0 +1,26 @@
+{
+  "requestId": "box-platform-api-refresh-access-token",
+  "routeId": "box-platform-api-refresh-access-token",
+  "name": "Refresh access token",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/oauth2/token",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/x-www-form-urlencoded"
+  },
+  "historyId": "history-box-platform-api-refresh-access-token",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.930Z",
+  "updatedAt": "2025-02-28T01:16:25.930Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

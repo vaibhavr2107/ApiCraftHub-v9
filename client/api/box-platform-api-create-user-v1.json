@@ -1,0 +1,51 @@
+{
+  "requestId": "box-platform-api-create-user",
+  "routeId": "box-platform-api-create-user",
+  "name": "Create user",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/users",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-user",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "name": "Aaron Levie",
+    "login": "boss@box.com",
+    "is_platform_access_only": true,
+    "role": "user",
+    "language": "en",
+    "is_sync_enabled": true,
+    "job_title": "CEO",
+    "phone": "6509241374",
+    "address": "900 Jefferson Ave, Redwood City, CA 94063",
+    "space_amount": 11345156112,
+    "tracking_codes": [
+      {
+        "type": "tracking_code",
+        "name": "department",
+        "value": "Sales"
+      }
+    ],
+    "can_see_managed_users": true,
+    "timezone": "Africa/Bujumbura",
+    "is_external_collab_restricted": true,
+    "is_exempt_from_device_limits": true,
+    "is_exempt_from_login_verification": true,
+    "status": "active",
+    "external_app_user_id": "my-user-1234"
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.932Z",
+  "updatedAt": "2025-02-28T01:16:25.932Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

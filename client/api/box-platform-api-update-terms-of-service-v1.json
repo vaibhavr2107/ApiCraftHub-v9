@@ -1,0 +1,29 @@
+{
+  "requestId": "box-platform-api-update-terms-of-service",
+  "routeId": "box-platform-api-update-terms-of-service",
+  "name": "Update terms of service",
+  "method": "PUT",
+  "baseUrl": "https://{{api.box.com}}/2.0/terms_of_services/:terms_of_service_id",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-update-terms-of-service",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "status": "enabled",
+    "text": "By collaborating on this file you are accepting..."
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.932Z",
+  "updatedAt": "2025-02-28T01:16:25.932Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}
