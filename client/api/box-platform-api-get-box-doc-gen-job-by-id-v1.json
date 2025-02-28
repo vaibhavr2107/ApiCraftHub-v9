@@ -1,0 +1,26 @@
+{
+  "requestId": "box-platform-api-get-box-doc-gen-job-by-id",
+  "routeId": "box-platform-api-get-box-doc-gen-job-by-id",
+  "name": "Get Box Doc Gen job by ID",
+  "method": "GET",
+  "baseUrl": "https://{{api.box.com}}/2.0/docgen_jobs/:job_id",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "box-version": "2025.0"
+  },
+  "historyId": "history-box-platform-api-get-box-doc-gen-job-by-id",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.930Z",
+  "updatedAt": "2025-02-28T01:16:25.930Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

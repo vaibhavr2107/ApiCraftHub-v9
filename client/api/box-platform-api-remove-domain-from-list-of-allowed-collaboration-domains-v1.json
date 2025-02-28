@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-remove-domain-from-list-of-allowed-collaboration-domains",
+  "routeId": "box-platform-api-remove-domain-from-list-of-allowed-collaboration-domains",
+  "name": "Remove domain from list of allowed collaboration domains",
+  "method": "DELETE",
+  "baseUrl": "https://{{api.box.com}}/2.0/collaboration_whitelist_entries/:collaboration_whitelist_entry_id",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-remove-domain-from-list-of-allowed-collaboration-domains",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.931Z",
+  "updatedAt": "2025-02-28T01:16:25.931Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

@@ -1,0 +1,36 @@
+{
+  "requestId": "box-platform-api-create-terms-of-service-status-for-new-user",
+  "routeId": "box-platform-api-create-terms-of-service-status-for-new-user",
+  "name": "Create terms of service status for new user",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/terms_of_service_user_statuses",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-terms-of-service-status-for-new-user",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "tos": {
+      "type": "terms_of_service",
+      "id": "1232132"
+    },
+    "user": {
+      "type": "user",
+      "id": "3423423"
+    },
+    "is_accepted": true
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.932Z",
+  "updatedAt": "2025-02-28T01:16:25.932Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

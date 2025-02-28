@@ -1,0 +1,36 @@
+{
+  "requestId": "box-platform-api-commit-upload-session",
+  "routeId": "box-platform-api-commit-upload-session",
+  "name": "Commit upload session",
+  "method": "POST",
+  "baseUrl": "https://{{box-upload-server}}/api/2.0/files/upload_sessions/:upload_session_id/commit",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "digest": "sha=fpRyg5eVQletdZqEKaFlqwBXJzM=",
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-commit-upload-session",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "parts": [
+      {
+        "part_id": "6F2D3486",
+        "offset": 16777216,
+        "size": 3222784,
+        "sha1": "134b65991ed521fcfe4724b7d814ab8ded5185dc"
+      }
+    ]
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.932Z",
+  "updatedAt": "2025-02-28T01:16:25.932Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

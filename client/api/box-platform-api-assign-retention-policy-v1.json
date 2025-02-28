@@ -1,0 +1,39 @@
+{
+  "requestId": "box-platform-api-assign-retention-policy",
+  "routeId": "box-platform-api-assign-retention-policy",
+  "name": "Assign retention policy",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/retention_policy_assignments",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-assign-retention-policy",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "policy_id": "173463",
+    "assign_to": {
+      "type": "metadata_template",
+      "id": "6564564"
+    },
+    "filter_fields": [
+      {
+        "field": "a0f4ee4e-1dc1-4h90-a8a9-aef55fc681d4",
+        "value": "0c27b756-0p87-4fe0-a43a-59fb661ccc4e"
+      }
+    ],
+    "start_date_field": "upload_date"
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.931Z",
+  "updatedAt": "2025-02-28T01:16:25.931Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

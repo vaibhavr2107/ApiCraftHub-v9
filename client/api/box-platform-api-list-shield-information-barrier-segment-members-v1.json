@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-list-shield-information-barrier-segment-members",
+  "routeId": "box-platform-api-list-shield-information-barrier-segment-members",
+  "name": "List shield information barrier segment members",
+  "method": "GET",
+  "baseUrl": "https://{{api.box.com}}/2.0/shield_information_barrier_segment_members?shield_information_barrier_segment_id=3423",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-list-shield-information-barrier-segment-members",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.932Z",
+  "updatedAt": "2025-02-28T01:16:25.932Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

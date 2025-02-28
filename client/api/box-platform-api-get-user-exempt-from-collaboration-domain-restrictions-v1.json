@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-get-user-exempt-from-collaboration-domain-restrictions",
+  "routeId": "box-platform-api-get-user-exempt-from-collaboration-domain-restrictions",
+  "name": "Get user exempt from collaboration domain restrictions",
+  "method": "GET",
+  "baseUrl": "https://{{api.box.com}}/2.0/collaboration_whitelist_exempt_targets/:collaboration_whitelist_exempt_target_id",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-get-user-exempt-from-collaboration-domain-restrictions",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.931Z",
+  "updatedAt": "2025-02-28T01:16:25.931Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

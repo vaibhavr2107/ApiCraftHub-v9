@@ -1,0 +1,43 @@
+{
+  "requestId": "box-platform-api-create-retention-policy",
+  "routeId": "box-platform-api-create-retention-policy",
+  "name": "Create retention policy",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/retention_policies",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-retention-policy",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "policy_name": "Some Policy Name",
+    "description": "Policy to retain all reports for at least one month",
+    "policy_type": "finite",
+    "disposition_action": "permanently_delete",
+    "retention_length": "365",
+    "retention_type": "modifiable",
+    "can_owner_extend_retention": true,
+    "are_owners_notified": true,
+    "custom_notification_recipients": [
+      {
+        "id": "11446498",
+        "type": "user",
+        "name": "Aaron Levie",
+        "login": "ceo@example.com"
+      }
+    ]
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.931Z",
+  "updatedAt": "2025-02-28T01:16:25.931Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

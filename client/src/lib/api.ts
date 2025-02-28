@@ -59,31 +59,52 @@ export async function makeRequest({
 }
 
 export async function saveRequest(request: Request): Promise<{ fileName: string; version: number }> {
-  // First check if a file with this name already exists
-  const response = await fetch(`/api/requests/${request.routeId}`);
-  let version = 1;
+  try {
+    // First check if a file with this name already exists
+    const checkResponse = await fetch(`/api/requests/${request.routeId}`);
+    let version = 1;
 
-  if (response.ok) {
-    // File exists, increment version
-    const existingRequest = await response.json();
-    version = (existingRequest.version || 0) + 1;
-    request = { ...request, version };
+    if (checkResponse.ok) {
+      // File exists, increment version
+      const existingRequest = await checkResponse.json();
+      version = (existingRequest.version || 0) + 1;
+      request = { ...request, version };
+    }
+
+    // Save the request
+    const saveResponse = await fetch('/api/requests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request)
+    });
+
+    if (!saveResponse.ok) {
+      const errorText = await saveResponse.text();
+      throw new Error(errorText || 'Failed to save request');
+    }
+
+    const result = await saveResponse.json();
+
+    // Also update localStorage
+    const savedRequests = localStorage.getItem("saved_requests");
+    const currentRequests = savedRequests ? JSON.parse(savedRequests) : [];
+    const existingIndex = currentRequests.findIndex((r: Request) => r.routeId === request.routeId);
+
+    if (existingIndex !== -1) {
+      currentRequests[existingIndex] = request;
+    } else {
+      currentRequests.push(request);
+    }
+
+    localStorage.setItem("saved_requests", JSON.stringify(currentRequests));
+
+    return result;
+  } catch (error) {
+    console.error('Error saving request:', error);
+    throw error;
   }
-
-  // Save the request
-  const saveResponse = await fetch('/api/requests', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request)
-  });
-
-  if (!saveResponse.ok) {
-    throw new Error('Failed to save request');
-  }
-
-  return saveResponse.json();
 }
 
 export async function loadRequests(): Promise<Request[]> {

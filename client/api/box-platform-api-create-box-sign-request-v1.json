@@ -1,0 +1,77 @@
+{
+  "requestId": "box-platform-api-create-box-sign-request",
+  "routeId": "box-platform-api-create-box-sign-request",
+  "name": "Create Box Sign request",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/sign_requests",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-box-sign-request",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "is_document_preparation_needed": true,
+    "redirect_url": "https://www.example.com",
+    "declined_redirect_url": "https://declined-redirect.com",
+    "are_text_signatures_enabled": true,
+    "email_subject": "Sign Request from Acme",
+    "email_message": "Hello! Please sign the document below",
+    "are_reminders_enabled": true,
+    "name": "name",
+    "prefill_tags": [
+      {
+        "document_tag_id": "1234",
+        "text_value": "text",
+        "checkbox_value": true,
+        "date_value": "2021-04-26"
+      }
+    ],
+    "days_valid": 2,
+    "external_id": "123",
+    "template_id": "123075213-af2c8822-3ef2-4952-8557-52d69c2fe9cb",
+    "external_system_name": "Box",
+    "source_files": [
+      {
+        "id": "12345",
+        "etag": "1",
+        "type": "file"
+      }
+    ],
+    "signature_color": "blue",
+    "signers": [
+      {
+        "email": "example@gmail.com",
+        "role": "signer",
+        "is_in_person": true,
+        "order": 2,
+        "embed_url_external_user_id": "1234",
+        "redirect_url": "https://example.com",
+        "declined_redirect_url": "https://declined-example.com",
+        "login_required": true,
+        "password": "SecretPassword123",
+        "signer_group_id": "cd4ff89-8fc1-42cf-8b29-1890dedd26d7",
+        "suppress_notifications": false
+      }
+    ],
+    "parent_folder": {
+      "id": "12345",
+      "etag": "1",
+      "type": "folder",
+      "sequence_id": "3",
+      "name": "Contracts"
+    }
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:16:25.930Z",
+  "updatedAt": "2025-02-28T01:16:25.930Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}
