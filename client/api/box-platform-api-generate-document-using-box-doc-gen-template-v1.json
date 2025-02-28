@@ -1,0 +1,50 @@
+{
+  "requestId": "box-platform-api-generate-document-using-box-doc-gen-template",
+  "routeId": "box-platform-api-generate-document-using-box-doc-gen-template",
+  "name": "Generate document using Box Doc Gen template",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/docgen_batches",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "box-version": "2025.0",
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-generate-document-using-box-doc-gen-template",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "file": {
+      "type": "file",
+      "id": "42037322"
+    },
+    "file_version": {
+      "id": "12345",
+      "type": "file_version"
+    },
+    "input_source": "api",
+    "destination_folder": {
+      "type": "folder",
+      "id": "42037322"
+    },
+    "output_type": "docx",
+    "document_generation_data": [
+      {
+        "generated_file_name": "New_Template",
+        "user_input": {
+          "name": "Aaron Levie"
+        }
+      }
+    ]
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.453Z",
+  "updatedAt": "2025-02-28T01:52:03.453Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

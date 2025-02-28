@@ -1,0 +1,26 @@
+{
+  "requestId": "box-platform-api-revoke-access-token",
+  "routeId": "box-platform-api-revoke-access-token",
+  "name": "Revoke access token",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/oauth2/revoke",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/x-www-form-urlencoded"
+  },
+  "historyId": "history-box-platform-api-revoke-access-token",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.453Z",
+  "updatedAt": "2025-02-28T01:52:03.453Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

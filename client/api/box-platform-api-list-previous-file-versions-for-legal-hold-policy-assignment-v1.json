@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-list-previous-file-versions-for-legal-hold-policy-assignment",
+  "routeId": "box-platform-api-list-previous-file-versions-for-legal-hold-policy-assignment",
+  "name": "List previous file versions for legal hold policy assignment",
+  "method": "GET",
+  "baseUrl": "https://{{api.box.com}}/2.0/legal_hold_policy_assignments/:legal_hold_policy_assignment_id/file_versions_on_hold",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-list-previous-file-versions-for-legal-hold-policy-assignment",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

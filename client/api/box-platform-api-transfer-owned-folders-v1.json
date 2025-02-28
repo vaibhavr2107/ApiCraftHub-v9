@@ -1,0 +1,30 @@
+{
+  "requestId": "box-platform-api-transfer-owned-folders",
+  "routeId": "box-platform-api-transfer-owned-folders",
+  "name": "Transfer owned folders",
+  "method": "PUT",
+  "baseUrl": "https://{{api.box.com}}/2.0/users/:user_id/folders/0",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-transfer-owned-folders",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "owned_by": {
+      "id": "1232234"
+    }
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.455Z",
+  "updatedAt": "2025-02-28T01:52:03.455Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

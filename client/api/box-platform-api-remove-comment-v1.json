@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-remove-comment",
+  "routeId": "box-platform-api-remove-comment",
+  "name": "Remove comment",
+  "method": "DELETE",
+  "baseUrl": "https://{{api.box.com}}/2.0/comments/:comment_id",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-remove-comment",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

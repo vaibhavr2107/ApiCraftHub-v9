@@ -1,0 +1,24 @@
+{
+  "requestId": "box-platform-api-get-zip-download-status",
+  "routeId": "box-platform-api-get-zip-download-status",
+  "name": "Get zip download status",
+  "method": "GET",
+  "baseUrl": "https://{{api.box.com}}/2.0/zip_downloads/:zip_download_id/status",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-box-platform-api-get-zip-download-status",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.456Z",
+  "updatedAt": "2025-02-28T01:52:03.456Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

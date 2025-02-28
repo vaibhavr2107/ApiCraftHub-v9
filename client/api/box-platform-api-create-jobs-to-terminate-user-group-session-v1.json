@@ -1,0 +1,31 @@
+{
+  "requestId": "box-platform-api-create-jobs-to-terminate-user-group-session",
+  "routeId": "box-platform-api-create-jobs-to-terminate-user-group-session",
+  "name": "Create jobs to terminate user group session",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/groups/terminate_sessions",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-jobs-to-terminate-user-group-session",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "group_ids": [
+      "123456",
+      "456789"
+    ]
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

@@ -1,0 +1,35 @@
+{
+  "requestId": "box-platform-api-create-folder-lock",
+  "routeId": "box-platform-api-create-folder-lock",
+  "name": "Create folder lock",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/folder_locks",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-create-folder-lock",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "locked_operations": {
+      "move": true,
+      "delete": true
+    },
+    "folder": {
+      "type": "folder",
+      "id": "1234567890"
+    }
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

@@ -1,0 +1,32 @@
+{
+  "requestId": "box-platform-api-copy-file",
+  "routeId": "box-platform-api-copy-file",
+  "name": "Copy file",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/files/:file_id/copy",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-copy-file",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "name": "FileCopy.txt",
+    "version": "0",
+    "parent": {
+      "id": "0"
+    }
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.454Z",
+  "updatedAt": "2025-02-28T01:52:03.454Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

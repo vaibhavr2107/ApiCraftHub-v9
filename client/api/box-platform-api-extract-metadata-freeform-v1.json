@@ -1,0 +1,39 @@
+{
+  "requestId": "box-platform-api-extract-metadata-freeform",
+  "routeId": "box-platform-api-extract-metadata-freeform",
+  "name": "Extract metadata (freeform)",
+  "method": "POST",
+  "baseUrl": "https://{{api.box.com}}/2.0/ai/extract",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "historyId": "history-box-platform-api-extract-metadata-freeform",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "prompt": "\\\"fields\\\":[{\\\"type\\\":\\\"string\\\",\\\"key\\\":\\\"name\\\",\\\"displayName\\\":\\\"Name\\\",\\\"description\\\":\\\"The customer name\\\",\\\"prompt\\\":\\\"Name is always the first word in the document\\\"},{\\\"type\\\":\\\"date\\\",\\\"key\\\":\\\"last_contacted_at\\\",\\\"displayName\\\":\\\"Last Contacted At\\\",\\\"description\\\":\\\"When this customer was last contacted at\\\"}]",
+    "items": [
+      {
+        "id": "123",
+        "type": "file",
+        "content": "This is file content."
+      }
+    ],
+    "ai_agent": {
+      "type": "ai_agent_id",
+      "id": "14031"
+    }
+  },
+  "exampleResponseBody": {},
+  "tags": [],
+  "collectionId": "box-platform-api",
+  "createdAt": "2025-02-28T01:52:03.453Z",
+  "updatedAt": "2025-02-28T01:52:03.453Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}
