@@ -15,36 +15,6 @@ async function ensureApiFolder() {
   }
 }
 
-// Helper to load and parse a request file
-async function loadRequestFile(filePath: string): Promise<Request | null> {
-  try {
-    console.log('Loading request file:', filePath);
-    const content = await fs.readFile(filePath, 'utf-8');
-    const request = JSON.parse(content);
-
-    // Add missing fields if needed
-    if (!request.routeId) {
-      request.routeId = request.requestId || path.basename(filePath, '.json');
-    }
-
-    // Ensure environment URLs exist
-    request.devUrl = request.devUrl || '';
-    request.qa01Url = request.qa01Url || '';
-    request.qa02Url = request.qa02Url || '';
-    request.qa03Url = request.qa03Url || '';
-    request.perfUrl = request.perfUrl || '';
-
-    // Ensure history exists
-    request.historyRequests = request.historyRequests || [];
-
-    // Validate against schema
-    return RequestSchema.parse(request);
-  } catch (error) {
-    console.error(`Error loading request file ${filePath}:`, error);
-    return null;
-  }
-}
-
 // GET all requests
 router.get('/requests', async (req, res) => {
   try {
@@ -55,14 +25,13 @@ router.get('/requests', async (req, res) => {
     for (const file of files) {
       if (!file.endsWith('.json')) continue;
 
-      const filePath = path.join(API_FOLDER, file);
       try {
-        const content = await fs.readFile(filePath, 'utf-8');
+        const content = await fs.readFile(path.join(API_FOLDER, file), 'utf-8');
         const request = JSON.parse(content);
         const validatedRequest = RequestSchema.parse(request);
         requests.push(validatedRequest);
       } catch (error) {
-        console.error(`Error loading request file ${filePath}:`, error);
+        console.error(`Error loading request file ${file}:`, error);
       }
     }
 
@@ -73,26 +42,22 @@ router.get('/requests', async (req, res) => {
   }
 });
 
-// GET single request file by routeId
+// GET request by routeId
 router.get('/requests/open/:routeId', async (req, res) => {
   try {
-    // Set JSON content type early
-    res.setHeader('Content-Type', 'application/json');
-
     const { routeId } = req.params;
     await ensureApiFolder();
 
-    // Look for exact matches first, then partial matches
+    // Look for exact match first
     const files = await fs.readdir(API_FOLDER);
     let requestFile = files.find(file => file === `${routeId}.json`);
 
+    // If no exact match, try to find a file starting with routeId
     if (!requestFile) {
-      // Try partial match if exact match not found
-      requestFile = files.find(file => file.startsWith(`${routeId}`));
+      requestFile = files.find(file => file.includes(routeId) && file.endsWith('.json'));
     }
 
     if (!requestFile) {
-      console.error(`Request file not found for routeId: ${routeId}`);
       return res.status(404).json({ error: 'Request not found' });
     }
 
@@ -101,47 +66,47 @@ router.get('/requests/open/:routeId', async (req, res) => {
 
     try {
       const request = JSON.parse(content);
-      // Add any missing fields
-      request.historyRequests = request.historyRequests || [];
-      request.devUrl = request.devUrl || '';
-      request.qa01Url = request.qa01Url || '';
-      request.qa02Url = request.qa02Url || '';
-      request.qa03Url = request.qa03Url || '';
-      request.perfUrl = request.perfUrl || '';
+      const validatedRequest = RequestSchema.parse({
+        ...request,
+        historyRequests: request.historyRequests || [],
+        devUrl: request.devUrl || '',
+        qa01Url: request.qa01Url || '',
+        qa02Url: request.qa02Url || '',
+        qa03Url: request.qa03Url || '',
+        perfUrl: request.perfUrl || ''
+      });
 
-      const validatedRequest = RequestSchema.parse(request);
       return res.json(validatedRequest);
     } catch (error) {
-      console.error(`Error parsing request file ${filePath}:`, error);
-      return res.status(500).json({
+      console.error(`Error parsing request file ${requestFile}:`, error);
+      return res.status(500).json({ 
         error: 'Failed to parse request file',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   } catch (error) {
     console.error('Error opening request:', error);
-    return res.status(500).json({
+    return res.status(500).json({ 
       error: 'Failed to open request',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
 
-// PUT update existing request file
+// PUT update request
 router.put('/requests/update/:routeId', async (req, res) => {
   try {
-    res.setHeader('Content-Type', 'application/json');
-
     const { routeId } = req.params;
     const updates = req.body;
 
     await ensureApiFolder();
 
+    // Find the request file
     const files = await fs.readdir(API_FOLDER);
     let requestFile = files.find(file => file === `${routeId}.json`);
 
     if (!requestFile) {
-      requestFile = files.find(file => file.startsWith(`${routeId}`));
+      requestFile = files.find(file => file.includes(routeId) && file.endsWith('.json'));
     }
 
     if (!requestFile) {
@@ -171,7 +136,7 @@ router.put('/requests/update/:routeId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating request:', error);
-    res.status(500).json({
+    res.status(500).json({ 
       error: 'Failed to update request',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
