@@ -7,6 +7,8 @@ export default function Home() {
   const [location, setLocation] = useLocation();
 
   const handleRequestSelect = (request: Request) => {
+    console.log('Home: Request selected:', request);
+    // First change location, which will trigger the tab creation
     setLocation(`/request/${request.routeId}`);
   };
 

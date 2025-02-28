@@ -75,6 +75,54 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
   // Get route ID
   const routeId = useMemo(() => location.split('/').pop(), [location]);
 
+  // Handle route changes
+  useEffect(() => {
+    console.log('Route changed:', routeId);
+    if (routeId && !activeRequests.some(r => r.routeId === routeId)) {
+      // Try to load the request from localStorage first
+      const savedRequests = localStorage.getItem("saved_requests");
+      if (savedRequests) {
+        try {
+          const requests = JSON.parse(savedRequests);
+          const request = requests.find((r: Request) => r.routeId === routeId);
+          if (request) {
+            console.log('Found request in localStorage, adding to tabs:', request);
+            setActiveRequests(prev => [...prev, request]);
+            return;
+          }
+        } catch (error) {
+          console.error('Error loading from localStorage:', error);
+        }
+      }
+
+      // If not in localStorage, try loading from API
+      console.log('Loading request from API:', routeId);
+      fetch(`/api/requests/${routeId}`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+        .then(response => {
+          if (!response.ok) throw new Error('Request not found');
+          return response.json();
+        })
+        .then(request => {
+          console.log('Loaded request from API:', request);
+          setActiveRequests(prev => [...prev, request]);
+        })
+        .catch(error => {
+          console.error('Error loading request:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load request"
+          });
+          // If loading fails, create a new request
+          createDefaultRequest();
+        });
+    }
+  }, [routeId, toast]);
+
   const createDefaultRequest = useCallback(() => {
     const timestamp = Date.now();
     const counter = requestCounter.current++;
@@ -106,56 +154,18 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       selectedEnvironment: "qa01"
     };
 
+    console.log('Creating new request:', newRequest);
     setActiveRequests(prev => [...prev, newRequest]);
     setLocation(`/request/${newId}`);
   }, [setLocation]);
 
   // Initialize with a new request on first load
   useEffect(() => {
-    if (!initialized.current) {
+    if (!initialized.current && !routeId) {
       initialized.current = true;
       createDefaultRequest();
     }
-  }, [createDefaultRequest]);
-
-  const handleRequestSelect = useCallback((request: Request) => {
-    setActiveRequests(prev => {
-      // Check if request is already in active requests
-      if (prev.some(r => r.routeId === request.routeId)) {
-        return prev;
-      }
-      return [...prev, request];
-    });
-    setLocation(`/request/${request.routeId}`);
-  }, [setLocation]);
-
-  const handleCloseTab = useCallback((requestId: string) => {
-    setActiveRequests(prev => {
-      const updatedRequests = prev.filter(req => req.requestId !== requestId);
-      if (updatedRequests.length === 0) {
-        createDefaultRequest();
-      } else if (requestId === routeId) {
-        // If closing active tab, switch to last tab
-        setLocation(`/request/${updatedRequests[updatedRequests.length - 1].routeId}`);
-      }
-      return updatedRequests;
-    });
-  }, [routeId, createDefaultRequest, setLocation]);
-
-  const handleTabChange = useCallback((value: string) => {
-    const request = activeRequests.find(r => r.requestId === value);
-    if (request && request.routeId !== routeId) {
-      setLocation(`/request/${request.routeId}`);
-    }
-  }, [activeRequests, routeId, setLocation]);
-
-  const handleUpdateRequest = useCallback((requestId: string, updates: Partial<Request>) => {
-    setActiveRequests(prev =>
-      prev.map(req =>
-        req.requestId === requestId ? { ...req, ...updates } : req
-      )
-    );
-  }, []);
+  }, [createDefaultRequest, routeId]);
 
   const handleSaveRequest = useCallback((request: Request) => {
     setRequestToSave(request);
@@ -199,6 +209,26 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
     setRequestToSave(null);
   }, [requestToSave, toast]);
 
+  const handleCloseTab = useCallback((requestId: string) => {
+    setActiveRequests(prev => {
+      const updatedRequests = prev.filter(req => req.requestId !== requestId);
+      if (updatedRequests.length === 0) {
+        createDefaultRequest();
+      } else if (requestId === routeId) {
+        // If closing active tab, switch to last tab
+        setLocation(`/request/${updatedRequests[updatedRequests.length - 1].routeId}`);
+      }
+      return updatedRequests;
+    });
+  }, [routeId, createDefaultRequest, setLocation]);
+
+  const handleTabChange = useCallback((value: string) => {
+    const request = activeRequests.find(r => r.requestId === value);
+    if (request && request.routeId !== routeId) {
+      setLocation(`/request/${request.routeId}`);
+    }
+  }, [activeRequests, routeId, setLocation]);
+
   const handleResponse = useCallback((requestId: string, response: any) => {
     setResponses(prev => ({ ...prev, [requestId]: response }));
     const request = activeRequests.find(req => req.requestId === requestId);
@@ -206,7 +236,7 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
       const historyEntry: RequestHistory = {
         method: request.method,
         url: request.baseUrl,
-        requestBody: request.requestBody || null,
+        requestBody: request.requestBody,
         responseFields: response.data,
         timestamp: new Date().toISOString(),
         responseTime: response.time
@@ -316,7 +346,11 @@ export function RequestTabs({ onRequestComplete }: RequestTabsProps) {
             <div className="flex flex-col gap-6">
               <RequestPanel
                 request={request}
-                onRequestChange={(updates) => handleUpdateRequest(request.requestId, updates)}
+                onRequestChange={(updates) => setActiveRequests(prev =>
+                  prev.map(req =>
+                    req.requestId === request.requestId ? { ...req, ...updates } : req
+                  )
+                )}
                 onResponse={(response) => handleResponse(request.requestId, response)}
                 onLoading={(isLoading) =>
                   setLoading(prev => ({ ...prev, [request.requestId]: isLoading }))
