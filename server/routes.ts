@@ -31,21 +31,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // History routes
   app.get('/api/history/:routeId', (req, res) => {
     try {
-      const historyFolder = path.join(process.cwd(), 'client', 'api', 'history');
-      if (!fs.existsSync(historyFolder)) {
-        fs.mkdirSync(historyFolder, { recursive: true });
+      const apiFolder = path.join(process.cwd(), 'client', 'api');
+      if (!fs.existsSync(apiFolder)) {
+        fs.mkdirSync(apiFolder, { recursive: true });
       }
 
       const { routeId } = req.params;
-      const historyFile = fs.readdirSync(historyFolder)
-        .find(file => file.startsWith(routeId));
+      const historyFile = fs.readdirSync(apiFolder)
+        .find(file => file.startsWith(routeId) && file.endsWith('.json'));
 
       if (!historyFile) {
         return res.status(404).json({ error: 'History request not found' });
       }
 
       const content = fs.readFileSync(
-        path.join(historyFolder, historyFile),
+        path.join(apiFolder, historyFile),
         'utf-8'
       );
       res.json(JSON.parse(content));
@@ -57,21 +57,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/history', (req, res) => {
     try {
-      const historyFolder = path.join(process.cwd(), 'client', 'api', 'history');
-      if (!fs.existsSync(historyFolder)) {
-        fs.mkdirSync(historyFolder, { recursive: true });
+      const apiFolder = path.join(process.cwd(), 'client', 'api');
+      if (!fs.existsSync(apiFolder)) {
+        fs.mkdirSync(apiFolder, { recursive: true });
       }
 
       // Get list of existing history files
-      const files = fs.readdirSync(historyFolder)
-        .filter(file => file.endsWith('.json'))
+      const historyFiles = fs.readdirSync(apiFolder)
+        .filter(file => file.includes('history-') && file.endsWith('.json'))
         .sort()
         .reverse();
 
       // Remove oldest files if we exceed max
-      if (files.length >= 10) {
-        files.slice(9).forEach(file => {
-          fs.unlinkSync(path.join(historyFolder, file));
+      if (historyFiles.length >= 10) {
+        historyFiles.slice(9).forEach(file => {
+          fs.unlinkSync(path.join(apiFolder, file));
         });
       }
 
@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const timestamp = new Date().getTime();
       const fileName = `${request.routeId}-${timestamp}.json`;
       fs.writeFileSync(
-        path.join(historyFolder, fileName),
+        path.join(apiFolder, fileName),
         JSON.stringify(request, null, 2)
       );
 
