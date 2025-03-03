@@ -90,14 +90,14 @@ function EnvironmentUrlDialog({ isOpen, onClose, request, onUpdate }: Environmen
 
 // History Section Component
 const HistorySection = ({ history }: { history: RequestHistory[] }) => {
-  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
-  const toggleExpand = (index: number) => {
+  const toggleExpand = (entryId: string) => {
     const newExpanded = new Set(expandedItems);
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index);
+    if (newExpanded.has(entryId)) {
+      newExpanded.delete(entryId);
     } else {
-      newExpanded.add(index);
+      newExpanded.add(entryId);
     }
     setExpandedItems(newExpanded);
   };
@@ -112,49 +112,54 @@ const HistorySection = ({ history }: { history: RequestHistory[] }) => {
 
   return (
     <div className="space-y-4">
-      {history.map((entry, index) => (
-        <Card key={index} className="p-4">
-          <div className="flex justify-between items-start mb-2 cursor-pointer" onClick={() => toggleExpand(index)}>
-            <div className="flex items-center">
-              {expandedItems.has(index) ? (
-                <ChevronDown className="h-4 w-4 mr-2" />
-              ) : (
-                <ChevronRight className="h-4 w-4 mr-2" />
-              )}
-              <span className={`font-semibold ${getMethodColor(entry.method)}`}>
-                {entry.method}
-              </span>
-              <span className="ml-2 text-sm text-muted-foreground">
-                {new Date(entry.timestamp).toLocaleString()}
-              </span>
+      {history.map((entry, index) => {
+        // Create a unique ID for each entry using timestamp and index
+        const entryId = `${entry.timestamp || ''}-${index}`;
+        
+        return (
+          <Card key={entryId} className="p-4">
+            <div className="flex justify-between items-start mb-2 cursor-pointer" onClick={() => toggleExpand(entryId)}>
+              <div className="flex items-center">
+                {expandedItems.has(entryId) ? (
+                  <ChevronDown className="h-4 w-4 mr-2" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 mr-2" />
+                )}
+                <span className={`font-semibold ${getMethodColor(entry.method)}`}>
+                  {entry.method}
+                </span>
+                <span className="ml-2 text-sm text-muted-foreground">
+                  {new Date(entry.timestamp).toLocaleString()}
+                </span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {entry.responseTime ? entry.responseTime.toFixed(0) : '0'}ms
+              </div>
             </div>
-            <div className="text-sm text-muted-foreground">
-              {entry.responseTime.toFixed(0)}ms
-            </div>
-          </div>
-          <div className="text-sm break-all">{entry.url}</div>
-          {expandedItems.has(index) && (
-            <>
-              {entry.requestBody && Object.keys(entry.requestBody).length > 0 && (
-                <div className="mt-2">
-                  <div className="text-sm font-medium text-muted-foreground">Request Body:</div>
-                  <pre className="mt-1 text-sm bg-muted p-2 rounded-md overflow-auto">
-                    {JSON.stringify(entry.requestBody, null, 2)}
-                  </pre>
-                </div>
-              )}
-              {entry.responseFields && (
-                <div className="mt-2">
-                  <div className="text-sm font-medium text-muted-foreground">Response:</div>
-                  <pre className="mt-1 text-sm bg-muted p-2 rounded-md overflow-auto">
-                    {JSON.stringify(entry.responseFields, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </>
-          )}
-        </Card>
-      ))}
+            <div className="text-sm break-all">{entry.url}</div>
+            {expandedItems.has(entryId) && (
+              <>
+                {entry.requestBody && Object.keys(entry.requestBody).length > 0 && (
+                  <div className="mt-2">
+                    <div className="text-sm font-medium text-muted-foreground">Request Body:</div>
+                    <pre className="mt-1 text-sm bg-muted p-2 rounded-md overflow-auto">
+                      {JSON.stringify(entry.requestBody, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                {entry.responseFields && (
+                  <div className="mt-2">
+                    <div className="text-sm font-medium text-muted-foreground">Response:</div>
+                    <pre className="mt-1 text-sm bg-muted p-2 rounded-md overflow-auto">
+                      {JSON.stringify(entry.responseFields, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </>
+            )}
+          </Card>
+        );
+      })}
     </div>
   );
 };
