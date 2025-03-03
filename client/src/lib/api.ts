@@ -44,6 +44,7 @@ export async function makeRequest({
     // The actual HTTP status from the original request is in the response body
     const responseData = await response.json();
     
+
     // We want to return the response data regardless of status code
     // so that the UI can display the original API response
     return responseData;
@@ -74,12 +75,10 @@ export async function apiRequest(url: string, options: { method: string; body?: 
 
 export async function saveRequest(request: Request): Promise<{ request: Request; message: string }> {
   try {
-    // Validate request data
     if (!request.routeId || !request.name) {
       throw new Error('Invalid request data: routeId and name are required');
     }
 
-    // Get existing request if any
     let existingRequest: Request | null = null;
     try {
       const response = await apiRequest(`/api/requests/${request.routeId}`, { method: 'GET' });
@@ -90,19 +89,31 @@ export async function saveRequest(request: Request): Promise<{ request: Request;
       console.log('No existing request found:', error);
     }
 
-    // Merge with existing request if available
+    // Add timestamp to each history request for uniqueness
+    const timestamp = new Date().getTime();
     const updatedRequest = existingRequest ? {
       ...existingRequest,
       ...request,
-      historyRequests: [...(request.historyRequests || []), ...(existingRequest.historyRequests || [])].slice(0, 5),
+      historyRequests: [
+        ...(request.historyRequests || []).map(hr => ({
+          ...hr,
+          timestamp: hr.timestamp || new Date().toISOString(),
+          id: `${hr.method}-${timestamp}`
+        })),
+        ...(existingRequest.historyRequests || [])
+      ].slice(0, 5), // Keep only latest 5 history requests
       updatedAt: new Date().toISOString()
     } : {
       ...request,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      historyRequests: (request.historyRequests || []).map(hr => ({
+        ...hr,
+        timestamp: hr.timestamp || new Date().toISOString(),
+        id: `${hr.method}-${timestamp}`
+      }))
     };
 
-    // Save the request
     const saveResponse = await apiRequest('/api/requests', {
       method: 'POST',
       body: JSON.stringify(updatedRequest)
