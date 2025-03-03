@@ -36,6 +36,7 @@ const generateHistoryRouteId = (entry: any): string => {
   const timestamp = new Date(entry.timestamp).getTime();
   const urlPath = new URL(entry.request.url).pathname;
   const method = entry.request.method.toLowerCase();
+  // Simplified routeId format
   return `history-${method}-${urlPath.replace(/[^a-z0-9]+/g, '-')}-${timestamp}`;
 };
 
@@ -118,18 +119,12 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     // Check if we already have this request in local storage
     const savedRequests = localStorage.getItem("active_requests");
     const requests = savedRequests ? JSON.parse(savedRequests) : [];
-    const existingRequest = requests.find((r: any) => r.routeId === routeId);
 
-    if (existingRequest) {
-      console.log('Found existing request with same routeId:', existingRequest);
-      window.dispatchEvent(new CustomEvent('activateTab', { detail: existingRequest.routeId }));
-      return;
-    }
-
+    // Create the history request object
     const historyRequest = {
       requestId: routeId,
-      routeId,
-      name: `${entry.request.method} ${new URL(entry.request.url).pathname} (${formatDate(entry.timestamp)})`,
+      routeId: routeId, // Use the same routeId for consistency
+      name: `${entry.request.method} ${new URL(entry.request.url).pathname} (${new Date(entry.timestamp).toLocaleString()})`,
       method: entry.request.method,
       baseUrl: entry.request.url,
       headers: entry.request.headers || {},
@@ -149,8 +144,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       qa03Url: "",
       perfUrl: "",
       exampleResponseBody: entry.response.data || {},
-      tags: [],
-      version: 1
+      tags: []
     };
 
     // Save to local storage and trigger update
