@@ -7,7 +7,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+import { generateHistoryRouteId } from "@/lib/history"; //Updated import
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { generateRouteId } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface Environment {
   id: string;
@@ -31,14 +31,6 @@ interface ViewSectionProps {
   onEnvironmentSelect?: (environment: Environment) => void;
   onViewChange?: (view: 'collections' | 'environment' | 'history' | 'openapi' | 'catalog') => void;
 }
-
-const generateHistoryRouteId = (entry: any): string => {
-  const timestamp = new Date(entry.timestamp).getTime();
-  const baseRouteName = entry.request.url.split('//')[1]
-    .split('/').slice(1).join('-')
-    .replace(/[^a-z0-9]+/g, '-');
-  return `history-${entry.request.method.toLowerCase()}-${baseRouteName}-${timestamp}`;
-};
 
 export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionProps) {
   const [activeView, setActiveView] = useState<"collections" | "environment" | "history" | "openapi" | "catalog">("collections");
@@ -75,45 +67,13 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const handleAddEnvironment = () => {
-    if (!newEnvName.trim()) return;
-
-    const newEnv: Environment = {
-      id: crypto.randomUUID(),
-      name: newEnvName,
-      variables: []
-    };
-
-    setEnvironments(prev => {
-      const updated = [...prev, newEnv];
-      localStorage.setItem("environments", JSON.stringify(updated));
-      return updated;
-    });
-
-    setNewEnvDialogOpen(false);
-    setNewEnvName("");
-  };
-
-  const handleEnvironmentClick = (env: Environment) => {
-    if (onEnvironmentSelect) {
-      onEnvironmentSelect(env);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
-
-  const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return "text-emerald-500";
-    if (status >= 400 && status < 500) return "text-amber-500";
-    if (status >= 500) return "text-red-500";
-    return "text-gray-500";
-  };
-
   const handleHistoryItemClick = (entry: any) => {
     const timestamp = new Date(entry.timestamp).getTime();
-    const routeId = generateHistoryRouteId(entry);
+    const baseRouteName = entry.request.url.split('//')[1]
+      .split('/').slice(1).join('-')
+      .replace(/[^a-z0-9]+/g, '-');
+    const routeId = `history-${entry.request.method.toLowerCase()}-${baseRouteName}-${timestamp}`;
+
     console.log('Creating history request with routeId:', routeId);
 
     const savedRequests = localStorage.getItem("active_requests");
@@ -152,7 +112,43 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     window.location.href = `/request/${routeId}`;
   };
 
-  // Enhanced search functionality with regex support
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString();
+  };
+
+  const getStatusColor = (status: number) => {
+    if (status >= 200 && status < 300) return "text-emerald-500";
+    if (status >= 400 && status < 500) return "text-amber-500";
+    if (status >= 500) return "text-red-500";
+    return "text-gray-500";
+  };
+
+  //rest of the component remains unchanged
+  const handleAddEnvironment = () => {
+    if (!newEnvName.trim()) return;
+
+    const newEnv: Environment = {
+      id: crypto.randomUUID(),
+      name: newEnvName,
+      variables: []
+    };
+
+    setEnvironments(prev => {
+      const updated = [...prev, newEnv];
+      localStorage.setItem("environments", JSON.stringify(updated));
+      return updated;
+    });
+
+    setNewEnvDialogOpen(false);
+    setNewEnvName("");
+  };
+
+  const handleEnvironmentClick = (env: Environment) => {
+    if (onEnvironmentSelect) {
+      onEnvironmentSelect(env);
+    }
+  };
+
   const searchInObject = (obj: any, searchTerm: string): boolean => {
     let searchRegex;
 
