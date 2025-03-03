@@ -473,7 +473,18 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
               className="pl-8"
             />
           </div>
-
+          <div className="flex items-center space-x-2">
+            <label className="text-xs flex items-center gap-1.5 text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-3 w-3"
+                checked={isRegexSearch}
+                onChange={(e) => setIsRegexSearch(e.target.checked)}
+              />
+              <span>Regex search</span>
+              <span className="text-xs opacity-70">(e.g. /capacity/i)</span>
+            </label>
+          </div>
           <Button
             variant="ghost"
             className="w-full justify-start"
