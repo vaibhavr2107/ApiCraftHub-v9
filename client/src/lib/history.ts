@@ -4,12 +4,12 @@ import { apiRequest } from '@/lib/api';
 export function generateHistoryRouteId(request: Request): string {
   const timestamp = new Date().getTime();
   const baseRouteName = request.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  // Just append timestamp without datetime string
   return `history-${baseRouteName}-${timestamp}`;
 }
 
 export async function saveHistoryRequest(request: Request) {
   try {
-    // Generate a unique routeId using timestamp
     const uniqueRouteId = generateHistoryRouteId(request);
     const historyRequest = {
       ...request,
@@ -18,20 +18,16 @@ export async function saveHistoryRequest(request: Request) {
       timestamp: new Date().toISOString()
     };
 
-    // Get existing history files
     const existingFiles = await listRequestFiles();
     const historyFiles = existingFiles.filter(file => file.startsWith('history-'));
 
-    // If we have more than 5 history files, remove the oldest one
     if (historyFiles.length >= 5) {
-      // Sort by timestamp (oldest first)
       historyFiles.sort((a, b) => {
         const timestampA = parseInt(a.split('-').pop() || '0');
         const timestampB = parseInt(b.split('-').pop() || '0');
         return timestampA - timestampB;
       });
 
-      // Delete the oldest file
       await apiRequest(`/api/history/${historyFiles[0]}`, {
         method: 'DELETE'
       });
