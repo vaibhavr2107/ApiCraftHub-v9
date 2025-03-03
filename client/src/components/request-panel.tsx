@@ -47,6 +47,41 @@ function EnvironmentUrlDialog({ isOpen, onClose, request, onUpdate }: Environmen
   });
 
   const handleSave = () => {
+
+// Utility function to mask response values while preserving structure
+const maskResponseValues = (data: any): any => {
+  if (data === null || data === undefined) {
+    return data;
+  }
+  
+  if (Array.isArray(data)) {
+    // For arrays, mask each item (but keep a small sample)
+    const sampleSize = Math.min(data.length, 3);
+    return Array(sampleSize).fill(0).map((_, i) => maskResponseValues(data[i]));
+  }
+  
+  if (typeof data === 'object') {
+    // For objects, preserve keys but mask values
+    const result: Record<string, any> = {};
+    for (const key in data) {
+      if (Object.prototype.hasOwnProperty.call(data, key)) {
+        result[key] = maskResponseValues(data[key]);
+      }
+    }
+    return result;
+  }
+  
+  // Mask primitive values based on their type
+  if (typeof data === 'string') {
+    if (data.length > 30) return data.substring(0, 10) + '...';
+    return data.replace(/./g, '*'); // Mask all characters
+  }
+  if (typeof data === 'number') return 0;
+  if (typeof data === 'boolean') return false;
+  
+  return data; // Return as is for other types
+};
+
     onUpdate({
       ...urls
     });
@@ -373,13 +408,27 @@ export function RequestPanel({
       localStorage.setItem('request_history', JSON.stringify(history.slice(0, 100)));
       window.dispatchEvent(new Event('storage'));
 
-      // Update request with new history entry
+      // Create an example response if none exists or empty
+      let exampleResponse = request.exampleResponseBody;
+      if (!exampleResponse || (typeof exampleResponse === 'object' && 
+         (Array.isArray(exampleResponse) ? exampleResponse.length === 0 : Object.keys(exampleResponse).length === 0))) {
+        
+        // Create a masked copy of the response data
+        exampleResponse = maskResponseValues(response.data);
+        console.log('Created masked example response', exampleResponse);
+      }
+
+      // Update request with new history entry and example response
       onRequestChange({
         historyRequests: [historyEntry, ...(request.historyRequests || [])].slice(0, 5),
         requestBody: requestBody || {},
-        responseFields: response.data || {}
+        responseFields: response.data || {},
+        exampleResponseBody: exampleResponse
       });
       setUnsavedChanges(true);
+      
+      // Auto-save the request with the example response
+      handleSave();
 
       onResponse({
         ...response,
@@ -427,6 +476,8 @@ export function RequestPanel({
           acc[p.key] = p.value;
           return acc;
         }, {} as Record<string, string>);
+      
+      console.log('Saving request with example body:', request.exampleResponseBody);
 
       // Format request body
       let requestBodyObj = {};
