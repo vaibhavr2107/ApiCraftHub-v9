@@ -124,11 +124,25 @@ router.put('/requests/update/:routeId', async (req, res) => {
     }
 
 
+    // Handle merging specifically for historyRequests
+    let mergedHistoryRequests = existingRequest.historyRequests || [];
+
+    if (updates.historyRequests) {
+      // Combine existing and new history requests
+      mergedHistoryRequests = [...mergedHistoryRequests, ...updates.historyRequests];
+
+      // Sort and limit to 5
+      mergedHistoryRequests = mergedHistoryRequests
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 5);
+    }
+
     // Merge updates with existing request
     const updatedRequest = {
       ...existingRequest,
       ...updates,
-      updatedAt: new Date().toISOString()
+      historyRequests: mergedHistoryRequests,
+      updatedAt: new Date().toISOString(),
     };
 
     // Validate updated request
