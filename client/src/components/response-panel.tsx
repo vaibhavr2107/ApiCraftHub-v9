@@ -132,7 +132,7 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
   const getLineNumbers = (content: string) => {
     const lines = content.split('\n');
     return (
-      <div className="absolute left-0 top-0 bottom-0 w-12 bg-muted border-r text-right pr-2 text-sm text-muted-foreground select-none">
+      <div className="absolute left-0 top-0 bottom-0 w-8 bg-muted/50 border-r border-muted text-right pr-2 text-xs text-muted-foreground select-none">
         {lines.map((_, i) => (
           <div key={i} className="h-6 leading-6">{i + 1}</div>
         ))}
@@ -176,9 +176,9 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
             {contentType.toUpperCase()}
           </Badge>
         </div>
-        <pre className="whitespace-pre-wrap break-words rounded-lg bg-muted p-4 pl-16 text-sm font-mono min-h-[200px] overflow-x-auto relative">
+        <pre className="whitespace-pre-wrap break-words rounded-lg bg-muted p-4 pl-12 text-sm font-mono min-h-[200px] overflow-x-auto relative">
           {getLineNumbers(formattedContent)}
-          <code className={`language-${language}`}>
+          <code className={`language-${language} block pl-2`}>
             {formattedContent}
           </code>
         </pre>
