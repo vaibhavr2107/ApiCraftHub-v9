@@ -1,23 +1,22 @@
 import { Request } from '@shared/schema';
 import { apiRequest } from '@/lib/api';
 
-export function generateHistoryRouteId(request: Request): string {
-  const timestamp = new Date().getTime();
-  const baseRouteName = request.baseUrl.split('//')[1]
+export function generateHistoryRouteId(method: string, url: string, timestamp: number): string {
+  const baseRouteName = url.split('//')[1]
     .split('/').slice(1).join('-')
     .replace(/[^a-z0-9]+/g, '-');
-  return `history-${request.method.toLowerCase()}-${baseRouteName}-${timestamp}`;
+  return `history-${method.toLowerCase()}-${baseRouteName}-${timestamp}`;
 }
 
 export async function saveHistoryRequest(request: Request) {
   try {
     const timestamp = new Date().getTime();
-    const uniqueRouteId = generateHistoryRouteId(request);
+    const uniqueRouteId = generateHistoryRouteId(request.method, request.baseUrl, timestamp);
     const historyRequest = {
       ...request,
       routeId: uniqueRouteId,
       requestId: uniqueRouteId,
-      name: `${request.method} ${request.baseUrl.split('//')[1].split('/').slice(1).join('/')} ${timestamp}`,
+      name: `${request.method} ${request.baseUrl.split('//')[1].split('/').slice(1).join('/')}`,
       timestamp: new Date().toISOString()
     };
 
