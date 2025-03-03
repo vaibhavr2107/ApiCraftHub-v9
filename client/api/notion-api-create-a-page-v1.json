@@ -9,8 +9,8 @@
   "auth": {
     "type": "basic",
     "basic": {
-      "username": "dsd",
-      "password": "sdsds"
+      "username": "xzxz",
+      "password": "sdsdsd"
     }
   },
   "headers": {},
@@ -695,14 +695,36 @@
     }
   ],
   "requestBody": {},
-  "exampleResponseBody": {},
+  "exampleResponseBody": [
+    {
+      "id": "*",
+      "name": "******************",
+      "data": {
+        "color": "************",
+        "capacity": "******"
+      }
+    },
+    {
+      "id": "*",
+      "name": "Apple iPho...",
+      "data": null
+    },
+    {
+      "id": "*",
+      "name": "***********************",
+      "data": {
+        "color": "************",
+        "capacity GB": 0
+      }
+    }
+  ],
   "tags": [
     "Page"
   ],
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-03-03T20:35:37.700Z",
+  "updatedAt": "2025-03-03T20:40:19.230Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }
