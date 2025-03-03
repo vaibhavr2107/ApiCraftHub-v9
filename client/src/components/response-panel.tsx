@@ -57,7 +57,11 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
 
   // Initialize Prism highlighting
   useEffect(() => {
-    Prism.highlightAll();
+    // Small delay to ensure DOM is updated
+    const timer = setTimeout(() => {
+      Prism.highlightAll();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [response, activeTab, contentType]);
 
   const handleCopy = useCallback(async (content: string) => {
