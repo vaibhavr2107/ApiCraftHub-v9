@@ -1,3 +1,4 @@
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -52,7 +53,15 @@ app.use('/api', (err: any, req: Request, res: Response, next: NextFunction) => {
     res.setHeader('Content-Type', 'application/json');
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-    res.status(status).json({ error: message });
+    try {
+      // Make sure we're sending a valid JSON response
+      const errorResponse = { error: message };
+      res.status(status).json(errorResponse);
+    } catch (jsonError) {
+      // Fallback if JSON stringification fails
+      console.error('Error creating JSON response:', jsonError);
+      res.status(500).send('{"error": "Internal Server Error - Failed to generate response"}');
+    }
   } else {
     next(err);
   }
@@ -101,12 +110,22 @@ app.use('/api', (err: any, req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    // Set appropriate content type based on the request path
-    if (req.path.startsWith('/api')) {
-      res.setHeader('Content-Type', 'application/json');
-      res.status(status).json({ error: message });
-    } else {
-      res.status(status).send(message);
+    try {
+      // Set appropriate content type based on the request path
+      if (req.path.startsWith('/api')) {
+        res.setHeader('Content-Type', 'application/json');
+        const errorResponse = { error: message };
+        res.status(status).json(errorResponse);
+      } else {
+        res.status(status).send(message);
+      }
+    } catch (responseError) {
+      console.error('Error generating response:', responseError);
+      if (req.path.startsWith('/api')) {
+        res.status(500).send('{"error": "Failed to generate error response"}');
+      } else {
+        res.status(500).send('Internal Server Error - Failed to generate response');
+      }
     }
   });
 
