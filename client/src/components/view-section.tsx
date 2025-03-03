@@ -53,6 +53,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
   });
 
   const [historySearch, setHistorySearch] = useState("");
+  const [isRegexSearch, setIsRegexSearch] = useState(false);
 
   const handleViewChange = (view: typeof activeView) => {
     setActiveView(view);
@@ -163,14 +164,20 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
   // Enhanced search functionality with regex support
   const searchInObject = (obj: any, searchTerm: string): boolean => {
     let searchRegex;
-    
-    // Check if search term is in regex format /pattern/flags
-    const regexPattern = searchTerm.match(/^\/(.+)\/([gimuy]*)$/);
-    if (regexPattern) {
-      try {
-        searchRegex = new RegExp(regexPattern[1], regexPattern[2]);
-      } catch (e) {
-        // If regex is invalid, fall back to normal search
+
+    //Check if regex search is enabled
+    if (isRegexSearch) {
+      // Check if search term is in regex format /pattern/flags
+      const regexPattern = searchTerm.match(/^\/(.+)\/([gimuy]*)$/);
+      if (regexPattern) {
+        try {
+          searchRegex = new RegExp(regexPattern[1], regexPattern[2]);
+        } catch (e) {
+          // If regex is invalid, fall back to normal search
+          searchRegex = new RegExp(searchTerm, 'i');
+        }
+      } else {
+        // If not a valid regex, treat as literal string
         searchRegex = new RegExp(searchTerm, 'i');
       }
     } else {
@@ -333,6 +340,18 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
                   Tip: Use /pattern/ for regex search (e.g., /error|warning/i)
                 </div>
               </div>
+            </div>
+            <div className="flex items-center space-x-2 mb-2">
+              <label className="text-xs flex items-center gap-1.5 text-muted-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="h-3 w-3"
+                  checked={isRegexSearch}
+                  onChange={(e) => setIsRegexSearch(e.target.checked)}
+                />
+                <span>Regex search</span>
+                <span className="text-xs opacity-70">(e.g. /capacity/i)</span>
+              </label>
             </div>
             <ScrollArea className="h-[calc(100vh-12rem)]">
               <div className="space-y-2">
