@@ -163,7 +163,7 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
                 let content = '';
                 switch (activeTab) {
                   case 'response':
-                    content = JSON.stringify(response?.data, null, 2);
+                    content = response ? JSON.stringify(response.data, null, 2) : '';
                     break;
                   case 'headers':
                     content = response ? Object.entries(response.headers)
