@@ -22,6 +22,48 @@
         "headers": {
           "alt-svc": "h3=\":443\"; ma=86400",
           "cf-cache-status": "DYNAMIC",
+          "cf-ray": "91ac30d48ab13fb5-BOM",
+          "connection": "keep-alive",
+          "content-length": "93",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "application/json; charset=utf-8",
+          "date": "Mon, 03 Mar 2025 21:22:42 GMT",
+          "etag": "W/\"5d-E9/1ma/mgbKK+3SyBPEkqmm612s\"",
+          "referrer-policy": "strict-origin-when-cross-origin",
+          "server": "cloudflare",
+          "set-cookie": "_cfuvid=YpC2RCVgrHE5R0DLJRsUL0CcUrAALnM.kXQBxewUiP0-1741036962279-0.0.1.1-604800000; path=/; domain=.notion.com; HttpOnly; Secure; SameSite=None",
+          "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+          "vary": "Accept-Encoding",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-notion-request-id": "6713a196-e7fc-4a10-845c-16297fa3578f",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0"
+        },
+        "data": {
+          "object": "error",
+          "status": 400,
+          "code": "invalid_request_url",
+          "message": "Invalid request URL."
+        },
+        "time": 385,
+        "size": 93
+      },
+      "timestamp": "2025-03-03T21:22:41.441Z",
+      "responseTime": 426
+    },
+    {
+      "method": "PUT",
+      "url": "https://api.notion.com/v1/blocks/{block_id}/children123dffdfd",
+      "requestBody": {},
+      "responseFields": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "DYNAMIC",
           "cf-ray": "91ac1818cb5b837b-BOM",
           "connection": "keep-alive",
           "content-length": "93",
@@ -92,19 +134,6 @@
       },
       "timestamp": "2025-03-03T19:45:27.776Z",
       "responseTime": 433.40000000596046
-    },
-    {
-      "method": "PUT",
-      "url": "https://api.notion.com/v1/blocks/%7Bblock_id%7D/children123df",
-      "requestBody": {},
-      "responseFields": {
-        "object": "error",
-        "status": 400,
-        "code": "invalid_request_url",
-        "message": "Invalid request URL."
-      },
-      "timestamp": "2025-03-03T19:25:39.732Z",
-      "responseTime": 442.7000000178814
     }
   ],
   "responseFields": {
@@ -113,23 +142,23 @@
     "headers": {
       "alt-svc": "h3=\":443\"; ma=86400",
       "cf-cache-status": "DYNAMIC",
-      "cf-ray": "91ac1818cb5b837b-BOM",
+      "cf-ray": "91ac30d48ab13fb5-BOM",
       "connection": "keep-alive",
       "content-length": "93",
       "content-security-policy": "default-src 'none'",
       "content-type": "application/json; charset=utf-8",
-      "date": "Mon, 03 Mar 2025 21:05:49 GMT",
+      "date": "Mon, 03 Mar 2025 21:22:42 GMT",
       "etag": "W/\"5d-E9/1ma/mgbKK+3SyBPEkqmm612s\"",
       "referrer-policy": "strict-origin-when-cross-origin",
       "server": "cloudflare",
-      "set-cookie": "_cfuvid=QwfNlCiFRKE2G45qWYWEVFNIqSF3wnnKNV880pvOIVY-1741035949194-0.0.1.1-604800000; path=/; domain=.notion.com; HttpOnly; Secure; SameSite=None",
+      "set-cookie": "_cfuvid=YpC2RCVgrHE5R0DLJRsUL0CcUrAALnM.kXQBxewUiP0-1741036962279-0.0.1.1-604800000; path=/; domain=.notion.com; HttpOnly; Secure; SameSite=None",
       "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
       "vary": "Accept-Encoding",
       "x-content-type-options": "nosniff",
       "x-dns-prefetch-control": "off",
       "x-download-options": "noopen",
       "x-frame-options": "SAMEORIGIN",
-      "x-notion-request-id": "4f37554d-1a51-41e5-b15a-f8edd70af1b8",
+      "x-notion-request-id": "6713a196-e7fc-4a10-845c-16297fa3578f",
       "x-permitted-cross-domain-policies": "none",
       "x-xss-protection": "0"
     },
@@ -139,7 +168,7 @@
       "code": "invalid_request_url",
       "message": "Invalid request URL."
     },
-    "time": 391,
+    "time": 385,
     "size": 93
   },
   "requestBody": {},
@@ -150,7 +179,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-03-03T21:05:49.245Z",
+  "updatedAt": "2025-03-03T21:22:59.245Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }

@@ -7,14 +7,53 @@
   "queryParams": {},
   "pathVariables": {},
   "auth": {
-    "type": "bearer",
-    "bearer": {
-      "token": ""
-    }
+    "type": "bearer"
   },
   "headers": {},
   "historyId": "history-notion-api-token-generateaccess",
   "historyRequests": [
+    {
+      "method": "POST",
+      "url": "https://api.notion.com/v1/oauth/",
+      "requestBody": {},
+      "responseFields": {
+        "status": 400,
+        "statusText": "Bad Request",
+        "headers": {
+          "alt-svc": "h3=\":443\"; ma=86400",
+          "cf-cache-status": "DYNAMIC",
+          "cf-ray": "91ac31e5d9473a45-BOM",
+          "connection": "keep-alive",
+          "content-length": "93",
+          "content-security-policy": "default-src 'none'",
+          "content-type": "application/json; charset=utf-8",
+          "date": "Mon, 03 Mar 2025 21:23:25 GMT",
+          "etag": "W/\"5d-E9/1ma/mgbKK+3SyBPEkqmm612s\"",
+          "referrer-policy": "strict-origin-when-cross-origin",
+          "server": "cloudflare",
+          "set-cookie": "_cfuvid=jTM_VOKMvTsqFLaS6gw.678fFlRuyemV90k4YN0WPIM-1741037005994-0.0.1.1-604800000; path=/; domain=.notion.com; HttpOnly; Secure; SameSite=None",
+          "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+          "vary": "Accept-Encoding",
+          "x-content-type-options": "nosniff",
+          "x-dns-prefetch-control": "off",
+          "x-download-options": "noopen",
+          "x-frame-options": "SAMEORIGIN",
+          "x-notion-request-id": "9a700b4d-ec9c-4f32-8e5e-3f4cc6d8cf79",
+          "x-permitted-cross-domain-policies": "none",
+          "x-xss-protection": "0"
+        },
+        "data": {
+          "object": "error",
+          "status": 400,
+          "code": "invalid_request_url",
+          "message": "Invalid request URL."
+        },
+        "time": 335,
+        "size": 93
+      },
+      "timestamp": "2025-03-03T21:23:25.149Z",
+      "responseTime": 353
+    },
     {
       "method": "POST",
       "url": "https://api.notion.com/v1/oauth/token8989",
@@ -41,10 +80,39 @@
     }
   ],
   "responseFields": {
-    "object": "error",
     "status": 400,
-    "code": "invalid_request_url",
-    "message": "Invalid request URL."
+    "statusText": "Bad Request",
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=86400",
+      "cf-cache-status": "DYNAMIC",
+      "cf-ray": "91ac31e5d9473a45-BOM",
+      "connection": "keep-alive",
+      "content-length": "93",
+      "content-security-policy": "default-src 'none'",
+      "content-type": "application/json; charset=utf-8",
+      "date": "Mon, 03 Mar 2025 21:23:25 GMT",
+      "etag": "W/\"5d-E9/1ma/mgbKK+3SyBPEkqmm612s\"",
+      "referrer-policy": "strict-origin-when-cross-origin",
+      "server": "cloudflare",
+      "set-cookie": "_cfuvid=jTM_VOKMvTsqFLaS6gw.678fFlRuyemV90k4YN0WPIM-1741037005994-0.0.1.1-604800000; path=/; domain=.notion.com; HttpOnly; Secure; SameSite=None",
+      "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+      "vary": "Accept-Encoding",
+      "x-content-type-options": "nosniff",
+      "x-dns-prefetch-control": "off",
+      "x-download-options": "noopen",
+      "x-frame-options": "SAMEORIGIN",
+      "x-notion-request-id": "9a700b4d-ec9c-4f32-8e5e-3f4cc6d8cf79",
+      "x-permitted-cross-domain-policies": "none",
+      "x-xss-protection": "0"
+    },
+    "data": {
+      "object": "error",
+      "status": 400,
+      "code": "invalid_request_url",
+      "message": "Invalid request URL."
+    },
+    "time": 335,
+    "size": 93
   },
   "requestBody": {},
   "exampleResponseBody": {},
@@ -54,7 +122,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-03-03T19:11:15.203Z",
+  "updatedAt": "2025-03-03T21:23:26.036Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }
