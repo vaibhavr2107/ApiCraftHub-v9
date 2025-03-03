@@ -7,7 +7,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { generateHistoryRouteId } from "@/lib/history"; //Updated import
+import { generateHistoryRouteId } from "@/lib/history";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -68,48 +68,49 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
   }, []);
 
   const handleHistoryItemClick = (entry: any) => {
-    const timestamp = new Date(entry.timestamp).getTime();
-    const baseRouteName = entry.request.url.split('//')[1]
-      .split('/').slice(1).join('-')
-      .replace(/[^a-z0-9]+/g, '-');
-    const routeId = `history-${entry.request.method.toLowerCase()}-${baseRouteName}-${timestamp}`;
+    try {
+      const timestamp = new Date(entry.timestamp).getTime();
+      const routeId = generateHistoryRouteId(entry.request.method, entry.request.url, timestamp);
 
-    console.log('Creating history request with routeId:', routeId);
+      console.log('Creating history request with routeId:', routeId);
 
-    const savedRequests = localStorage.getItem("active_requests");
-    const requests = savedRequests ? JSON.parse(savedRequests) : [];
+      const savedRequests = localStorage.getItem("active_requests");
+      const requests = savedRequests ? JSON.parse(savedRequests) : [];
 
-    const historyRequest = {
-      requestId: routeId,
-      routeId: routeId,
-      name: `${entry.request.method} ${entry.request.url.split('//')[1].split('/').slice(1).join('/')} ${timestamp}`,
-      method: entry.request.method,
-      baseUrl: entry.request.url,
-      headers: entry.request.headers || {},
-      queryParams: entry.request.queryParams || {},
-      pathVariables: {},
-      auth: { type: "none" },
-      requestBody: entry.request.body || {},
-      responseFields: entry.response.data || {},
-      historyId: routeId,
-      historyRequests: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      selectedEnvironment: "qa01",
-      devUrl: "",
-      qa01Url: "",
-      qa02Url: "",
-      qa03Url: "",
-      perfUrl: "",
-      exampleResponseBody: entry.response.data || {},
-      tags: []
-    };
+      const historyRequest = {
+        requestId: routeId,
+        routeId: routeId,
+        name: `${entry.request.method} ${entry.request.url.split('//')[1].split('/').slice(1).join('/')}`,
+        method: entry.request.method,
+        baseUrl: entry.request.url,
+        headers: entry.request.headers || {},
+        queryParams: {},
+        pathVariables: {},
+        auth: { type: "none" },
+        requestBody: entry.request.body || {},
+        responseFields: entry.response.data || {},
+        historyId: routeId,
+        historyRequests: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        selectedEnvironment: "qa01",
+        devUrl: "",
+        qa01Url: "",
+        qa02Url: "",
+        qa03Url: "",
+        perfUrl: "",
+        exampleResponseBody: entry.response.data || {},
+        tags: []
+      };
 
-    const updatedRequests = [...requests, historyRequest];
-    localStorage.setItem("active_requests", JSON.stringify(updatedRequests));
-    window.dispatchEvent(new Event("storage"));
+      const updatedRequests = [...requests, historyRequest];
+      localStorage.setItem("active_requests", JSON.stringify(updatedRequests));
+      window.dispatchEvent(new Event("storage"));
 
-    window.location.href = `/request/${routeId}`;
+      window.location.href = `/request/${routeId}`;
+    } catch (error) {
+      console.error('Error handling history item click:', error);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -123,7 +124,6 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     return "text-gray-500";
   };
 
-  //rest of the component remains unchanged
   const handleAddEnvironment = () => {
     if (!newEnvName.trim()) return;
 
@@ -152,19 +152,15 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
   const searchInObject = (obj: any, searchTerm: string): boolean => {
     let searchRegex;
 
-    //Check if regex search is enabled
     if (isRegexSearch) {
-      // Check if search term is in regex format /pattern/flags
       const regexPattern = searchTerm.match(/^\/(.+)\/([gimuy]*)$/);
       if (regexPattern) {
         try {
           searchRegex = new RegExp(regexPattern[1], regexPattern[2]);
         } catch (e) {
-          // If regex is invalid, fall back to normal search
           searchRegex = new RegExp(searchTerm, 'i');
         }
       } else {
-        // If not a valid regex, treat as literal string
         searchRegex = new RegExp(searchTerm, 'i');
       }
     } else {
@@ -193,7 +189,6 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
   const filteredHistory = requestHistory.filter(entry => {
     if (!historySearch) return true;
 
-    // Search in URL, method, and status
     if (
       searchInObject(entry.request.method, historySearch) ||
       searchInObject(entry.request.url, historySearch) ||
@@ -202,7 +197,6 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       return true;
     }
 
-    // Deep search in request body and response data
     if (searchInObject(entry.request.body, historySearch)) return true;
     if (searchInObject(entry.response.data, historySearch)) return true;
     if (searchInObject(entry.request.headers, historySearch)) return true;
@@ -329,7 +323,6 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
               </div>
             </div>
             <div className="flex items-center space-x-2 mb-2">
-              {/* Removed Regex Checkbox */}
             </div>
             <ScrollArea className="h-[calc(100vh-12rem)]">
               <div className="space-y-2">
