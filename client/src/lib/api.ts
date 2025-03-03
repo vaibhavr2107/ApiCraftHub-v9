@@ -43,7 +43,7 @@ export async function makeRequest({
     // Always parse the JSON response, even for error status codes
     // The actual HTTP status from the original request is in the response body
     const responseData = await response.json();
-
+    
     // We want to return the response data regardless of status code
     // so that the UI can display the original API response
     return responseData;
@@ -203,15 +203,6 @@ export async function openRequest(routeId: string): Promise<Request> {
 
 export async function updateRequest(routeId: string, updates: Partial<Request>): Promise<Request> {
   try {
-    // Ensure history requests don't exceed 5 items
-    if (updates.historyRequests && updates.historyRequests.length > 5) {
-      // Sort by timestamp (newest first) and keep only the 5 most recent
-      updates.historyRequests = [...updates.historyRequests]
-        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 5);
-    }
-
-    console.log('Making API request:', `/api/requests/update/${routeId}`, { method: 'PUT', body: updates });
     const response = await apiRequest(`/api/requests/update/${routeId}`, {
       method: 'PUT',
       body: JSON.stringify(updates)
@@ -219,7 +210,7 @@ export async function updateRequest(routeId: string, updates: Partial<Request>):
     return response.request;
   } catch (error) {
     console.error('Error updating request:', error);
-    throw new Error(`Error updating request: ${error}`);
+    throw error instanceof Error ? error : new Error('Failed to update request');
   }
 }
 

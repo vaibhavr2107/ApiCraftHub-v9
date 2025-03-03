@@ -173,7 +173,7 @@ export function RequestTabs() {
     if (activeRequests.length <= 1) {
       return;
     }
-
+    
     setActiveRequests(prev => {
       const filtered = prev.filter(r => r.routeId !== routeId);
       return filtered;
@@ -197,14 +197,6 @@ export function RequestTabs() {
       }
 
       // Merge updates with current request
-      // Ensure history requests don't exceed 5 items
-      if (updates.historyRequests && updates.historyRequests.length > 5) {
-        // Sort by timestamp (newest first) and keep only the 5 most recent
-        updates.historyRequests = [...updates.historyRequests]
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-          .slice(0, 5);
-      }
-
       const updatedRequest = await updateRequest(routeId, updates);
 
       // Update local state
