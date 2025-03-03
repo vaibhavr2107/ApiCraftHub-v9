@@ -337,13 +337,18 @@ export function RequestPanel({
         responseData = text;
       }
 
+      // Extract just the data portion for the response panel
+      // Remove the wrapping and get the actual API response data
+      const actualResponseData = responseData.data || responseData;
+
+      // Modified: Pass only the necessary data to response panel
       const responseObj = {
         status: res.status,
         statusText: res.statusText,
         headers: Object.fromEntries(res.headers.entries()),
-        contentType,
-        data: responseData,
-        time: responseTime
+        data: actualResponseData, // Only pass the actual response data
+        time: responseTime,
+        size: JSON.stringify(actualResponseData).length
       };
 
       // Send response to parent component to update response panel
@@ -357,7 +362,7 @@ export function RequestPanel({
         timestamp: new Date().toISOString(),
         responseTime,
         requestBody: reqBody,
-        responseFields: responseData
+        responseFields: actualResponseData // Store only the actual response data
       };
 
       const updatedHistory = [
@@ -377,11 +382,11 @@ export function RequestPanel({
       if (shouldAutoSave) {
         console.log('Auto-saving request due to empty example response and successful request');
         // Create masked example response
-        const maskedResponse = maskResponseValues(responseData);
+        const maskedResponse = maskResponseValues(actualResponseData);
 
         onRequestChange({
           historyRequests: updatedHistory,
-          responseFields: responseData,
+          responseFields: actualResponseData,
           exampleResponseBody: maskedResponse,
           updatedAt: new Date().toISOString()
         });
@@ -394,7 +399,7 @@ export function RequestPanel({
         // Just update the history without saving
         onRequestChange({
           historyRequests: updatedHistory,
-          responseFields: responseData,
+          responseFields: actualResponseData,
           updatedAt: new Date().toISOString()
         });
 
