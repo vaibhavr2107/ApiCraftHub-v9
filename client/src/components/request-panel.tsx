@@ -46,42 +46,41 @@ function EnvironmentUrlDialog({ isOpen, onClose, request, onUpdate }: Environmen
     perfUrl: request.perfUrl || '',
   });
 
-  const handleSave = () => {
-
-// Utility function to mask response values while preserving structure
-const maskResponseValues = (data: any): any => {
-  if (data === null || data === undefined) {
-    return data;
-  }
-  
-  if (Array.isArray(data)) {
-    // For arrays, mask each item (but keep a small sample)
-    const sampleSize = Math.min(data.length, 3);
-    return Array(sampleSize).fill(0).map((_, i) => maskResponseValues(data[i]));
-  }
-  
-  if (typeof data === 'object') {
-    // For objects, preserve keys but mask values
-    const result: Record<string, any> = {};
-    for (const key in data) {
-      if (Object.prototype.hasOwnProperty.call(data, key)) {
-        result[key] = maskResponseValues(data[key]);
-      }
+  // Utility function to mask response values while preserving structure
+  const maskResponseValues = (data: any): any => {
+    if (data === null || data === undefined) {
+      return data;
     }
-    return result;
-  }
-  
-  // Mask primitive values based on their type
-  if (typeof data === 'string') {
-    if (data.length > 30) return data.substring(0, 10) + '...';
-    return data.replace(/./g, '*'); // Mask all characters
-  }
-  if (typeof data === 'number') return 0;
-  if (typeof data === 'boolean') return false;
-  
-  return data; // Return as is for other types
-};
+    
+    if (Array.isArray(data)) {
+      // For arrays, mask each item (but keep a small sample)
+      const sampleSize = Math.min(data.length, 3);
+      return Array(sampleSize).fill(0).map((_, i) => maskResponseValues(data[i]));
+    }
+    
+    if (typeof data === 'object') {
+      // For objects, preserve keys but mask values
+      const result: Record<string, any> = {};
+      for (const key in data) {
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+          result[key] = maskResponseValues(data[key]);
+        }
+      }
+      return result;
+    }
+    
+    // Mask primitive values based on their type
+    if (typeof data === 'string') {
+      if (data.length > 30) return data.substring(0, 10) + '...';
+      return data.replace(/./g, '*'); // Mask all characters
+    }
+    if (typeof data === 'number') return 0;
+    if (typeof data === 'boolean') return false;
+    
+    return data; // Return as is for other types
+  };
 
+  const handleSave = () => {
     onUpdate({
       ...urls
     });
