@@ -169,13 +169,13 @@ export function RequestTabs() {
   };
 
   const handleCloseTab = (routeId: string) => {
+    // If there's only one tab, don't allow it to be closed
+    if (activeRequests.length <= 1) {
+      return;
+    }
+    
     setActiveRequests(prev => {
       const filtered = prev.filter(r => r.routeId !== routeId);
-      // If closing last tab, create a new request
-      if (filtered.length === 0) {
-        const newRequest = createDefaultRequest();
-        return [newRequest];
-      }
       return filtered;
     });
 
@@ -244,16 +244,18 @@ export function RequestTabs() {
                 <TabsTrigger value={request.routeId}>
                   {request.name || request.routeId}
                 </TabsTrigger>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCloseTab(request.routeId);
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                {activeRequests.length > 1 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCloseTab(request.routeId);
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             ))}
           </TabsList>
