@@ -13,6 +13,19 @@
   "historyId": "history-notion-api-block-appendchildren",
   "historyRequests": [
     {
+      "method": "PUT",
+      "url": "https://api.notion.com/v1/blocks/%7Bblock_id%7D/children123df",
+      "requestBody": {},
+      "responseFields": {
+        "object": "error",
+        "status": 400,
+        "code": "invalid_request_url",
+        "message": "Invalid request URL."
+      },
+      "timestamp": "2025-03-03T19:19:34.291Z",
+      "responseTime": 416.5
+    },
+    {
       "method": "PATCH",
       "url": "https://api.notion.com/v1/blocks/%7Bblock_id%7D/children123",
       "requestBody": {},
@@ -40,7 +53,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-02-28T22:55:48.017Z",
+  "updatedAt": "2025-03-03T19:19:35.182Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }

@@ -31,7 +31,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // History routes
   app.get('/api/history/:routeId', (req, res) => {
     try {
-      const historyFolder = path.join(process.cwd(), 'client', 'collections', 'history');
+      const historyFolder = path.join(process.cwd(), 'client', 'api', 'history');
       if (!fs.existsSync(historyFolder)) {
         fs.mkdirSync(historyFolder, { recursive: true });
       }
@@ -57,7 +57,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/history', (req, res) => {
     try {
-      const historyFolder = path.join(process.cwd(), 'client', 'collections', 'history');
+      const historyFolder = path.join(process.cwd(), 'client', 'api', 'history');
       if (!fs.existsSync(historyFolder)) {
         fs.mkdirSync(historyFolder, { recursive: true });
       }
