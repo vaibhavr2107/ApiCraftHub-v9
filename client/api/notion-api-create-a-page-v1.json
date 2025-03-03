@@ -7,11 +7,125 @@
   "queryParams": {},
   "pathVariables": {},
   "auth": {
-    "type": "basic"
+    "type": "bearer-tiaa"
   },
   "headers": {},
   "historyId": "history-notion-api-page-createnewpage",
   "historyRequests": [
+    {
+      "method": "GET",
+      "url": "https://api.restful-api.dev/objects",
+      "requestBody": {},
+      "responseFields": [
+        {
+          "id": "1",
+          "name": "Google Pixel 6 Pro",
+          "data": {
+            "color": "Cloudy White",
+            "capacity": "128 GB"
+          }
+        },
+        {
+          "id": "2",
+          "name": "Apple iPhone 12 Mini, 256GB, Blue",
+          "data": null
+        },
+        {
+          "id": "3",
+          "name": "Apple iPhone 12 Pro Max",
+          "data": {
+            "color": "Cloudy White",
+            "capacity GB": 512
+          }
+        },
+        {
+          "id": "4",
+          "name": "Apple iPhone 11, 64GB",
+          "data": {
+            "price": 389.99,
+            "color": "Purple"
+          }
+        },
+        {
+          "id": "5",
+          "name": "Samsung Galaxy Z Fold2",
+          "data": {
+            "price": 689.99,
+            "color": "Brown"
+          }
+        },
+        {
+          "id": "6",
+          "name": "Apple AirPods",
+          "data": {
+            "generation": "3rd",
+            "price": 120
+          }
+        },
+        {
+          "id": "7",
+          "name": "Apple MacBook Pro 16",
+          "data": {
+            "year": 2019,
+            "price": 1849.99,
+            "CPU model": "Intel Core i9",
+            "Hard disk size": "1 TB"
+          }
+        },
+        {
+          "id": "8",
+          "name": "Apple Watch Series 8",
+          "data": {
+            "Strap Colour": "Elderberry",
+            "Case Size": "41mm"
+          }
+        },
+        {
+          "id": "9",
+          "name": "Beats Studio3 Wireless",
+          "data": {
+            "Color": "Red",
+            "Description": "High-performance wireless noise cancelling headphones"
+          }
+        },
+        {
+          "id": "10",
+          "name": "Apple iPad Mini 5th Gen",
+          "data": {
+            "Capacity": "64 GB",
+            "Screen size": 7.9
+          }
+        },
+        {
+          "id": "11",
+          "name": "Apple iPad Mini 5th Gen",
+          "data": {
+            "Capacity": "254 GB",
+            "Screen size": 7.9
+          }
+        },
+        {
+          "id": "12",
+          "name": "Apple iPad Air",
+          "data": {
+            "Generation": "4th",
+            "Price": "419.99",
+            "Capacity": "64 GB"
+          }
+        },
+        {
+          "id": "13",
+          "name": "Apple iPad Air",
+          "data": {
+            "Generation": "4th",
+            "Price": "519.99",
+            "Capacity": "256 GB"
+          }
+        }
+      ],
+      "timestamp": "2025-03-03T21:39:59.530Z",
+      "responseTime": 301
+    },
     {
       "method": "GET",
       "url": "https://api.restful-api.dev/objects",
@@ -551,166 +665,115 @@
       },
       "timestamp": "2025-03-03T21:06:02.835Z",
       "responseTime": 271
-    },
-    {
-      "method": "POST",
-      "url": "https://api.restful-api.dev/objects",
-      "requestBody": {},
-      "responseFields": {
-        "status": 200,
-        "statusText": "OK",
-        "headers": {
-          "date": "Mon, 03 Mar 2025 20:56:47 GMT",
-          "content-type": "application/json",
-          "transfer-encoding": "chunked",
-          "connection": "close",
-          "server": "cloudflare",
-          "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers",
-          "cf-cache-status": "DYNAMIC",
-          "cf-ray": "91ac0ae2bc5f3bd0-BOM",
-          "alt-svc": "h3=\":443\"; ma=86400"
-        },
-        "data": {
-          "id": "ff808181932badb601955dcc09ff645c",
-          "name": null,
-          "createdAt": "2025-03-03T20:56:47.871+00:00",
-          "data": null
-        },
-        "time": 222,
-        "size": 109
-      },
-      "timestamp": "2025-03-03T20:56:47.091Z",
-      "responseTime": 241
     }
   ],
-  "responseFields": {
-    "status": 200,
-    "statusText": "",
-    "headers": {
-      "alt-svc": "h3=\":443\"; ma=86400",
-      "cf-cache-status": "DYNAMIC",
-      "cf-ray": "91ac3e89385885cc-BOM",
-      "connection": "keep-alive",
-      "content-encoding": "br",
-      "content-type": "application/json",
-      "date": "Mon, 03 Mar 2025 21:32:03 GMT",
-      "nel": "{\"success_fraction\":0,\"report_to\":\"cf-nel\",\"max_age\":604800}",
-      "report-to": "{\"endpoints\":[{\"url\":\"https:\\/\\/a.nel.cloudflare.com\\/report\\/v4?s=0ibTGPIK%2Fr0haCdLb%2BoYJRSijHwWET2Qd68iW5yG1odimXN4C8S25fkggDFTgaZ5woQyvKA1X8s1etbfBUA483WjhI5aFr1qKQaCpHl46yfvXPRnF3jKMYXFilYDCv9oL2UvwuyK\"}],\"group\":\"cf-nel\",\"max_age\":604800}",
-      "server": "cloudflare",
-      "server-timing": "cfL4;desc=\"?proto=TCP&rtt=743&min_rtt=742&rtt_var=281&sent=4&recv=5&lost=0&retrans=0&sent_bytes=2849&recv_bytes=673&delivery_rate=3845949&cwnd=251&unsent_bytes=0&cid=8c3621c602361af2&ts=139&x=0\"",
-      "transfer-encoding": "chunked",
-      "vary": "Origin, Access-Control-Request-Method, Access-Control-Request-Headers"
-    },
-    "data": [
-      {
-        "id": "1",
-        "name": "Google Pixel 6 Pro",
-        "data": {
-          "color": "Cloudy White",
-          "capacity": "128 GB"
-        }
-      },
-      {
-        "id": "2",
-        "name": "Apple iPhone 12 Mini, 256GB, Blue",
-        "data": null
-      },
-      {
-        "id": "3",
-        "name": "Apple iPhone 12 Pro Max",
-        "data": {
-          "color": "Cloudy White",
-          "capacity GB": 512
-        }
-      },
-      {
-        "id": "4",
-        "name": "Apple iPhone 11, 64GB",
-        "data": {
-          "price": 389.99,
-          "color": "Purple"
-        }
-      },
-      {
-        "id": "5",
-        "name": "Samsung Galaxy Z Fold2",
-        "data": {
-          "price": 689.99,
-          "color": "Brown"
-        }
-      },
-      {
-        "id": "6",
-        "name": "Apple AirPods",
-        "data": {
-          "generation": "3rd",
-          "price": 120
-        }
-      },
-      {
-        "id": "7",
-        "name": "Apple MacBook Pro 16",
-        "data": {
-          "year": 2019,
-          "price": 1849.99,
-          "CPU model": "Intel Core i9",
-          "Hard disk size": "1 TB"
-        }
-      },
-      {
-        "id": "8",
-        "name": "Apple Watch Series 8",
-        "data": {
-          "Strap Colour": "Elderberry",
-          "Case Size": "41mm"
-        }
-      },
-      {
-        "id": "9",
-        "name": "Beats Studio3 Wireless",
-        "data": {
-          "Color": "Red",
-          "Description": "High-performance wireless noise cancelling headphones"
-        }
-      },
-      {
-        "id": "10",
-        "name": "Apple iPad Mini 5th Gen",
-        "data": {
-          "Capacity": "64 GB",
-          "Screen size": 7.9
-        }
-      },
-      {
-        "id": "11",
-        "name": "Apple iPad Mini 5th Gen",
-        "data": {
-          "Capacity": "254 GB",
-          "Screen size": 7.9
-        }
-      },
-      {
-        "id": "12",
-        "name": "Apple iPad Air",
-        "data": {
-          "Generation": "4th",
-          "Price": "419.99",
-          "Capacity": "64 GB"
-        }
-      },
-      {
-        "id": "13",
-        "name": "Apple iPad Air",
-        "data": {
-          "Generation": "4th",
-          "Price": "519.99",
-          "Capacity": "256 GB"
-        }
+  "responseFields": [
+    {
+      "id": "1",
+      "name": "Google Pixel 6 Pro",
+      "data": {
+        "color": "Cloudy White",
+        "capacity": "128 GB"
       }
-    ],
-    "time": 250,
-    "size": 1239
-  },
+    },
+    {
+      "id": "2",
+      "name": "Apple iPhone 12 Mini, 256GB, Blue",
+      "data": null
+    },
+    {
+      "id": "3",
+      "name": "Apple iPhone 12 Pro Max",
+      "data": {
+        "color": "Cloudy White",
+        "capacity GB": 512
+      }
+    },
+    {
+      "id": "4",
+      "name": "Apple iPhone 11, 64GB",
+      "data": {
+        "price": 389.99,
+        "color": "Purple"
+      }
+    },
+    {
+      "id": "5",
+      "name": "Samsung Galaxy Z Fold2",
+      "data": {
+        "price": 689.99,
+        "color": "Brown"
+      }
+    },
+    {
+      "id": "6",
+      "name": "Apple AirPods",
+      "data": {
+        "generation": "3rd",
+        "price": 120
+      }
+    },
+    {
+      "id": "7",
+      "name": "Apple MacBook Pro 16",
+      "data": {
+        "year": 2019,
+        "price": 1849.99,
+        "CPU model": "Intel Core i9",
+        "Hard disk size": "1 TB"
+      }
+    },
+    {
+      "id": "8",
+      "name": "Apple Watch Series 8",
+      "data": {
+        "Strap Colour": "Elderberry",
+        "Case Size": "41mm"
+      }
+    },
+    {
+      "id": "9",
+      "name": "Beats Studio3 Wireless",
+      "data": {
+        "Color": "Red",
+        "Description": "High-performance wireless noise cancelling headphones"
+      }
+    },
+    {
+      "id": "10",
+      "name": "Apple iPad Mini 5th Gen",
+      "data": {
+        "Capacity": "64 GB",
+        "Screen size": 7.9
+      }
+    },
+    {
+      "id": "11",
+      "name": "Apple iPad Mini 5th Gen",
+      "data": {
+        "Capacity": "254 GB",
+        "Screen size": 7.9
+      }
+    },
+    {
+      "id": "12",
+      "name": "Apple iPad Air",
+      "data": {
+        "Generation": "4th",
+        "Price": "419.99",
+        "Capacity": "64 GB"
+      }
+    },
+    {
+      "id": "13",
+      "name": "Apple iPad Air",
+      "data": {
+        "Generation": "4th",
+        "Price": "519.99",
+        "Capacity": "256 GB"
+      }
+    }
+  ],
   "requestBody": {},
   "exampleResponseBody": [
     {
@@ -741,7 +804,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-03-03T21:32:03.584Z",
+  "updatedAt": "2025-03-03T21:40:26.188Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }
