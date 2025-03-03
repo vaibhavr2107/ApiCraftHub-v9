@@ -34,9 +34,10 @@ interface ViewSectionProps {
 
 const generateHistoryRouteId = (entry: any): string => {
   const timestamp = new Date(entry.timestamp).getTime();
-  const urlPath = entry.request.url.split('//')[1].split('/').slice(1).join('-');
-  const method = entry.request.method.toLowerCase();
-  return `history-${method}-${urlPath}-${timestamp}`;
+  const baseRouteName = entry.request.url.split('//')[1]
+    .split('/').slice(1).join('-')
+    .replace(/[^a-z0-9]+/g, '-');
+  return `history-${entry.request.method.toLowerCase()}-${baseRouteName}-${timestamp}`;
 };
 
 export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionProps) {
