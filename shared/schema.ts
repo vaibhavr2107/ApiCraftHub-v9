@@ -51,10 +51,7 @@ export const RequestSchema = z.object({
       token: z.string()
     }).optional(),
     oauth2: z.any().optional()
-  }).default({ type: "bearer-tiaa" }).transform(auth => ({
-    // Only keep the type when transforming for storage
-    type: auth.type
-  })),
+  }).default({ type: "bearer-tiaa" }),
   headers: z.record(z.string()).default({}),
   historyId: z.string(),
   historyRequests: z.array(RequestHistorySchema).max(5).default([]),
@@ -79,7 +76,8 @@ export const CollectionSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
-  requests: z.array(RequestSchema)
+  requests: z.array(RequestSchema),
+  importData: z.record(z.any()).optional() // Store import metadata
 });
 
 export type Collection = z.infer<typeof CollectionSchema>;
