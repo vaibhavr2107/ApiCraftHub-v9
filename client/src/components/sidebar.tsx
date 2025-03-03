@@ -45,7 +45,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     const saved = localStorage.getItem("request_history");
     return saved ? JSON.parse(saved) : [];
   });
-  const [isRegexSearch, setIsRegexSearch] = useState(false); // Added state for regex search
+  // Removed isRegexSearch state
 
 
   const { data: rawRequests = [], isLoading, error } = useQuery({
@@ -71,40 +71,35 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   }, []);
 
   // Deep search function for objects
-  const searchInObject = (obj: any, searchTerm: string, isRegex: boolean): boolean => {
-    let searchRegex;
-
-    if (isRegex) {
-      // Extract pattern and flags from /pattern/flags format
-      const match = searchTerm.match(/^\/(.+)\/([gimuy]*)$/);
-      if (match) {
-        try {
-          searchRegex = new RegExp(match[1], match[2]);
-        } catch (e) {
-          // If regex is invalid, fall back to normal search
-          searchRegex = new RegExp(searchTerm, 'i');
-        }
-      } else {
-        searchRegex = new RegExp(searchTerm, 'i');
-      }
-    } else {
-      searchRegex = new RegExp(searchTerm, 'i');
-    }
+  const searchInObject = (obj: any, searchTerm: string): boolean => {
+    if (!obj) return false;
 
     const search = (value: any): boolean => {
+      // Convert to string and do case-insensitive search
+      if (value === null || value === undefined) return false;
+
       if (typeof value === 'string') {
-        return searchRegex.test(value);
+        return value.toLowerCase().includes(searchTerm);
       }
+
       if (typeof value === 'number' || typeof value === 'boolean') {
-        return searchRegex.test(String(value));
+        return String(value).toLowerCase().includes(searchTerm);
       }
+
       if (Array.isArray(value)) {
+        // For arrays, check each element
         return value.some(item => search(item));
       }
-      if (value && typeof value === 'object') {
-        return Object.values(value).some(val => search(val));
+
+      if (typeof value === 'object') {
+        // For objects, check both keys and values
+        return Object.entries(value).some(([key, val]) => {
+          return key.toLowerCase().includes(searchTerm) || search(val);
+        });
       }
-      return false;
+
+      // Convert anything else to string
+      return String(value).toLowerCase().includes(searchTerm);
     };
 
     return search(obj);
@@ -113,18 +108,28 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   const filteredHistory = historyEntries.filter(entry => {
     if (!historySearch) return true;
 
+    const searchTerm = historySearch.toLowerCase();
+
+    // Check method, URL and status code
     if (
-      entry.request.method.toLowerCase().includes(historySearch.toLowerCase()) ||
-      entry.request.url.toLowerCase().includes(historySearch.toLowerCase()) ||
-      entry.response.status.toString().includes(historySearch)
+      entry.request.method.toLowerCase().includes(searchTerm) ||
+      entry.request.url.toLowerCase().includes(searchTerm) ||
+      entry.response.status.toString().includes(searchTerm)
     ) {
       return true;
     }
 
-    if (searchInObject(entry.request.body, historySearch, isRegexSearch)) return true;
-    if (searchInObject(entry.response.data, historySearch, isRegexSearch)) return true;
+    // Deep search in all aspects of the request and response
+    if (searchInObject(entry.request.body, searchTerm)) return true;
+    if (searchInObject(entry.response.data, searchTerm)) return true;
+    if (searchInObject(entry.request.headers, searchTerm)) return true;
+    if (searchInObject(entry.response.headers, searchTerm)) return true;
+    if (searchInObject(entry.request.queryParams, searchTerm)) return true;
 
-    return false;
+    // Convert the entire entry to a string and search within it as a fallback
+    // This ensures we catch any nested fields in complex JSON objects
+    const entryStr = JSON.stringify(entry).toLowerCase();
+    return entryStr.includes(searchTerm);
   });
 
   const collections = groupRequestsByCollection(rawRequests);
@@ -416,7 +421,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   // Filter requests based on search
   const filteredCollections = collections.map(collection => ({
     ...collection,
-    requests: collection.requests.filter(request => searchInObject(request, searchQuery, isRegexSearch))
+    requests: collection.requests.filter(request => searchInObject(request, searchQuery))
   })).filter(collection => collection.requests.length > 0);
 
   if (isLoading) {
@@ -467,23 +472,11 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search requests..."
+              placeholder="Search requests (searches all content)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8"
             />
-          </div>
-          <div className="flex items-center space-x-2">
-            <label className="text-xs flex items-center gap-1.5 text-muted-foreground cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-3 w-3"
-                checked={isRegexSearch}
-                onChange={(e) => setIsRegexSearch(e.target.checked)}
-              />
-              <span>Regex search</span>
-              <span className="text-xs opacity-70">(e.g. /capacity/i)</span>
-            </label>
           </div>
           <Button
             variant="ghost"
@@ -500,7 +493,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search history (regex supported)..."
+                  placeholder="Search history (searches all content)..."
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
                   className="pl-8"
@@ -528,7 +521,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
                       <span className={`text-xs ${entry.response.status < 400 ? 'text-green-500' : 'text-red-500'}`}>
                         {entry.response.status} {entry.response.statusText}
                       </span>
-                      {historySearch && (searchInObject(entry.request.body, historySearch, isRegexSearch) || searchInObject(entry.response.data, historySearch, isRegexSearch)) && (
+                      {historySearch && (searchInObject(entry.request.body, historySearch) || searchInObject(entry.response.data, historySearch)) && (
                         <span className="text-xs text-muted-foreground mt-1">
                           Match found in request/response data
                         </span>
