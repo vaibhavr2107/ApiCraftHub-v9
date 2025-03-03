@@ -331,27 +331,18 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <div className="space-y-1">
                 <Input
-                  placeholder="Search history... (use /pattern/ for regex)"
+                  placeholder="Search history... (searches all content)"
                   value={historySearch}
                   onChange={(e) => setHistorySearch(e.target.value)}
                   className="pl-8"
                 />
                 <div className="text-xs text-muted-foreground">
-                  Tip: Use /pattern/ for regex search (e.g., /error|warning/i)
+                  Tip: Search finds matches in URLs, request/response bodies, headers, and all fields
                 </div>
               </div>
             </div>
             <div className="flex items-center space-x-2 mb-2">
-              <label className="text-xs flex items-center gap-1.5 text-muted-foreground cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="h-3 w-3"
-                  checked={isRegexSearch}
-                  onChange={(e) => setIsRegexSearch(e.target.checked)}
-                />
-                <span>Regex search</span>
-                <span className="text-xs opacity-70">(e.g. /capacity/i)</span>
-              </label>
+              {/* Removed Regex Checkbox */}
             </div>
             <ScrollArea className="h-[calc(100vh-12rem)]">
               <div className="space-y-2">
