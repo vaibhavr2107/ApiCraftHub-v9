@@ -34,10 +34,9 @@ interface ViewSectionProps {
 
 const generateHistoryRouteId = (entry: any): string => {
   const timestamp = new Date(entry.timestamp).getTime();
-  const urlPath = new URL(entry.request.url).pathname;
+  const urlPath = entry.request.url.split('//')[1].split('/').slice(1).join('-');
   const method = entry.request.method.toLowerCase();
-  // Simplified routeId format
-  return `history-${method}-${urlPath.replace(/[^a-z0-9]+/g, '-')}-${timestamp}`;
+  return `history-${method}-${urlPath}-${timestamp}`;
 };
 
 export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionProps) {
@@ -116,15 +115,13 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     const routeId = generateHistoryRouteId(entry);
     console.log('Creating history request with routeId:', routeId);
 
-    // Check if we already have this request in local storage
     const savedRequests = localStorage.getItem("active_requests");
     const requests = savedRequests ? JSON.parse(savedRequests) : [];
 
-    // Create the history request object
     const historyRequest = {
       requestId: routeId,
-      routeId: routeId, // Use the same routeId for consistency
-      name: `${entry.request.method} ${new URL(entry.request.url).pathname} (${new Date(entry.timestamp).toLocaleString()})`,
+      routeId: routeId,
+      name: `${entry.request.method} ${entry.request.url.split('//')[1].split('/').slice(1).join('/')} ${timestamp}`,
       method: entry.request.method,
       baseUrl: entry.request.url,
       headers: entry.request.headers || {},
@@ -133,7 +130,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       auth: { type: "none" },
       requestBody: entry.request.body || {},
       responseFields: entry.response.data || {},
-      historyId: `${routeId}-${timestamp}`,
+      historyId: routeId,
       historyRequests: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -147,12 +144,10 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       tags: []
     };
 
-    // Save to local storage and trigger update
     const updatedRequests = [...requests, historyRequest];
     localStorage.setItem("active_requests", JSON.stringify(updatedRequests));
     window.dispatchEvent(new Event("storage"));
 
-    // Navigate to the new request
     window.location.href = `/request/${routeId}`;
   };
 
