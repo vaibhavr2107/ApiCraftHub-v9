@@ -57,7 +57,7 @@ export const RequestSchema = z.object({
   historyRequests: z.array(RequestHistorySchema).max(5).default([]),
   responseFields: z.any().default({}),
   requestBody: z.record(z.any()).default({}),
-  exampleResponseBody: z.record(z.any()).default({}),
+  exampleResponseBody: z.union([z.record(z.any()), z.array(z.any())]).default({}),
   tags: z.array(z.string()).default([]),
   teamName: z.string().optional(),
   collectionId: z.string().optional(),
