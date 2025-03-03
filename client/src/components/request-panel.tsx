@@ -102,6 +102,8 @@ const HistorySection = ({ history }: { history: RequestHistory[] }) => {
     setExpandedItems(newExpanded);
   };
 
+  console.log("History data received:", history);
+
   if (!history || history.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-4">
