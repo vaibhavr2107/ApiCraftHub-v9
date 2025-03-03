@@ -287,6 +287,7 @@ export function RequestPanel({
     setIsSending(true);
     setResponse(null);
     setResponseError(null);
+    onLoading(true);
 
     try {
       const formattedHeaders = headers
@@ -345,7 +346,9 @@ export function RequestPanel({
         time: responseTime
       };
 
-      setResponse(responseObj);
+      // Send response to parent component to update response panel
+      onResponse(responseObj);
+      onError(null);
 
       // Update history with the new request
       const historyEntry = {
@@ -362,16 +365,18 @@ export function RequestPanel({
         ...(request.historyRequests || []).slice(0, 9) // Keep last 10 entries
       ];
 
-      // Only auto-save the request in specific conditions:
-      // 1. If the example response body is empty AND response status is 200
+      // Only auto-save the request if:
+      // 1. Example response body is empty AND
+      // 2. Response status is 200
       const shouldAutoSave = 
         (!request.exampleResponseBody || 
-         (typeof request.exampleResponseBody === 'object' && Object.keys(request.exampleResponseBody).length === 0)) && 
+         (typeof request.exampleResponseBody === 'object' && 
+          Object.keys(request.exampleResponseBody).length === 0)) && 
         res.status === 200;
 
       if (shouldAutoSave) {
         console.log('Auto-saving request due to empty example response and successful request');
-        // Create masked example response if needed
+        // Create masked example response
         const maskedResponse = maskResponseValues(responseData);
 
         onRequestChange({
@@ -380,14 +385,13 @@ export function RequestPanel({
           exampleResponseBody: maskedResponse,
           updatedAt: new Date().toISOString()
         });
-        await onUpdate({});
 
         toast({
           title: "Request completed and saved",
           description: `${res.status} ${res.statusText} in ${responseTime}ms`,
         });
       } else {
-        // Just update state without saving to file
+        // Just update the history without saving
         onRequestChange({
           historyRequests: updatedHistory,
           responseFields: responseData,
@@ -401,14 +405,17 @@ export function RequestPanel({
       }
     } catch (error) {
       console.error('Error sending request:', error);
-      setResponseError(error instanceof Error ? error.message : String(error));
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setResponseError(errorMessage);
+      onError(errorMessage);
       toast({
         variant: "destructive",
         title: "Request failed",
-        description: error instanceof Error ? error.message : String(error),
+        description: errorMessage,
       });
     } finally {
       setIsSending(false);
+      onLoading(false);
     }
   };
 
@@ -969,6 +976,23 @@ export function RequestPanel({
                       }}
                       className="flex-1"
                     />
+                    <Select
+                      value={field.type}
+                      onValueChange={(value: "text" | "file") => {
+                        const newFormData = [...formData];
+                        newFormData[index] = { ...field, type: value };
+                        setFormData(newFormData);
+                        setUnsavedChanges(true);
+                      }}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Text</SelectItem>
+                        <SelectItem value="file">File</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Input
                       placeholder="Value"
                       value={field.value}
@@ -980,23 +1004,6 @@ export function RequestPanel({
                       }}
                       className="flex-1"
                     />
-                    <Select
-                      value={field.type}
-                      onValueChange={(value: "text" | "file") => {
-                        const newFormData = [...formData];
-                        newFormData[index] = { ...field, type: value };
-                        setFormData(newFormData);
-                        setUnsavedChanges(true);
-                      }}
-                    >
-                      <SelectTrigger className="w-[100px]">
-                        <SelectValue />```xml
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="text">Text</SelectItem>
-                         <SelectItem value="file">File</SelectItem>
-                      </SelectContent>
-                    </Select>
                     <Button
                       variant="ghost"
                       size="icon"
