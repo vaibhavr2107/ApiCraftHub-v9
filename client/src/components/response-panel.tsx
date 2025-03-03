@@ -163,6 +163,7 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
                 let content = '';
                 switch (activeTab) {
                   case 'response':
+                    // Only copy the actual response data, not the complete response object
                     content = response ? JSON.stringify(response.data, null, 2) : '';
                     break;
                   case 'headers':
@@ -184,6 +185,7 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
 
           <TabsContent value="response">
             {response ? (
+              // Only render the response data, not the complete response object
               renderJsonContent(response.data)
             ) : (
               <div className="text-muted-foreground text-sm p-4">
