@@ -346,41 +346,42 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
             </div>
             <ScrollArea className="h-[calc(100vh-12rem)]">
               <div className="space-y-2">
-                {filteredHistory.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="rounded-md border p-2 text-xs space-y-1 cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleHistoryItemClick(entry)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className={cn(
-                        "font-mono font-medium",
-                        getStatusColor(entry.response.status)
-                      )}>
-                        {entry.request.method} ({entry.response.status})
-                      </span>
-                      <span className="text-muted-foreground">
-                        {formatDate(entry.timestamp)}
-                      </span>
-                    </div>
-                    <div className="truncate font-mono text-muted-foreground">
-                      {entry.request.url}
-                    </div>
-                    {historySearch && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {searchInObject(entry.request.body, historySearch) && (
-                          <div>Match found in request body</div>
-                        )}
-                        {searchInObject(entry.response.data, historySearch) && (
-                          <div>Match found in response data</div>
-                        )}
+                {filteredHistory.length > 0 ? (
+                  filteredHistory.map((entry) => (
+                    <div
+                      key={entry.id}
+                      className="rounded-md border p-2 text-xs space-y-1 cursor-pointer hover:bg-muted/50"
+                      onClick={() => handleHistoryItemClick(entry)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={cn(
+                          "font-mono font-medium",
+                          getStatusColor(entry.response.status)
+                        )}>
+                          {entry.request.method} ({entry.response.status})
+                        </span>
+                        <span className="text-muted-foreground">
+                          {formatDate(entry.timestamp)}
+                        </span>
                       </div>
-                    )}
-                  </div>
-                ))}
-                {filteredHistory.length === 0 && (
-                  <div className="text-sm text-muted-foreground">
-                    {requestHistory.length === 0 ? "No recent requests" : "No matching requests"}
+                      <div className="truncate font-mono text-muted-foreground">
+                        {entry.request.url}
+                      </div>
+                      {historySearch && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {searchInObject(entry.request.body, historySearch) && (
+                            <div>Match found in request body</div>
+                          )}
+                          {searchInObject(entry.response.data, historySearch) && (
+                            <div>Match found in response data</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    No history entries found. Make requests to see them here.
                   </div>
                 )}
               </div>
