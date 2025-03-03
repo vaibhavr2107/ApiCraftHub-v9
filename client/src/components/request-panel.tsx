@@ -212,6 +212,11 @@ export function RequestPanel({
   const [urlEncodedData, setUrlEncodedData] = useState<Parameter[]>([]);
   const [isEnvDialogOpen, setIsEnvDialogOpen] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [response, setResponse] = useState(null);
+  const [responseError, setResponseError] = useState(null);
+  const [authHeaders, setAuthHeaders] = useState({});
+
 
   // Function to sync URL query params with UI state
   const syncUrlQueryParams = (url: string) => {
@@ -278,138 +283,132 @@ export function RequestPanel({
   };
 
   const handleSend = async () => {
-    onLoading(true);
-    onError(null);
-    const startTime = performance.now();
+    console.log('Sending request with body:', rawBody);
+    setIsSending(true);
+    setResponse(null);
+    setResponseError(null);
 
     try {
-      // Build request parameters
-      const urlObj = new URL(request.baseUrl);
+      const formattedHeaders = headers
+        .filter(h => h.enabled && h.key)
+        .reduce((acc, h) => {
+          acc[h.key] = h.value;
+          return acc;
+        }, {} as Record<string, string>);
 
-      // Add query parameters
-      queryParams.forEach(param => {
-        if (param.enabled && param.key && param.value) {
-          urlObj.searchParams.append(param.key, param.value);
-        }
-      });
-
-      // Build headers
-      const headersRecord: Record<string, string> = {};
-      headers
-        .filter(h => h.enabled && h.key && h.value)
-        .forEach(h => {
-          headersRecord[h.key] = h.value;
-        });
-
-      // Process body
-      let requestBody;
+      let reqBody = {};
       if (bodyType === "raw" && rawBody) {
         try {
-          requestBody = JSON.parse(rawBody);
+          reqBody = JSON.parse(rawBody);
         } catch (e) {
-          requestBody = rawBody;
+          console.log('Raw body is not JSON, sending as is');
+          reqBody = rawBody;
         }
-      } else if (bodyType === "form-data") {
-        const formDataObj = new FormData();
-        formData.forEach(field => {
-          if (field.enabled && field.key) {
-            formDataObj.append(field.key, field.value);
-          }
-        });
-        requestBody = formDataObj;
-      } else if (bodyType === "x-www-form-urlencoded") {
-        const params = new URLSearchParams();
-        urlEncodedData.forEach(field => {
-          if (field.enabled && field.key) {
-            params.append(field.key, field.value);
-          }
-        });
-        requestBody = params.toString();
       }
 
-      const response = await makeRequest({
-        method: request.method,
-        url: urlObj.toString(),
-        headers: headersRecord,
-        body: requestBody
+      const startTime = Date.now();
+
+      const res = await fetch('/api/proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          method: request.method,
+          url: request.baseUrl,
+          headers: {
+            ...formattedHeaders,
+            ...authHeaders
+          },
+          body: reqBody
+        }),
       });
 
-      const endTime = performance.now();
-      const responseTime = endTime - startTime;
+      const responseTime = Date.now() - startTime;
 
-      // Create history entry that matches the required schema
+      const contentType = res.headers.get('content-type') || '';
+      let responseData;
+
+      if (contentType.includes('application/json')) {
+        responseData = await res.json();
+      } else {
+        const text = await res.text();
+        responseData = text;
+      }
+
+      const responseObj = {
+        status: res.status,
+        statusText: res.statusText,
+        headers: Object.fromEntries(res.headers.entries()),
+        contentType,
+        data: responseData,
+        time: responseTime
+      };
+
+      setResponse(responseObj);
+
+      // Update history with the new request
       const historyEntry = {
         method: request.method,
-        url: urlObj.toString(),
+        url: request.baseUrl,
         timestamp: new Date().toISOString(),
         responseTime,
-        requestBody: requestBody || {},
-        responseFields: response.data || {}
+        requestBody: reqBody,
+        responseFields: responseData
       };
 
-      // Save to local storage for global history
-      const globalHistoryEntry = {
-        id: crypto.randomUUID(),
-        request: {
-          method: request.method,
-          url: urlObj.toString(),
-          headers: headersRecord,
-          body: requestBody,
-          queryParams: Object.fromEntries(urlObj.searchParams.entries())
-        },
-        response: {
-          status: response.status,
-          statusText: response.statusText,
-          data: response.data,
-          headers: response.headers
-        },
-        timestamp: new Date().toISOString(),
-        responseTime
-      };
+      const updatedHistory = [
+        historyEntry,
+        ...(request.historyRequests || []).slice(0, 9) // Keep last 10 entries
+      ];
 
-      const savedHistory = localStorage.getItem('request_history') || '[]';
-      const history = JSON.parse(savedHistory);
-      history.unshift(globalHistoryEntry);
-      localStorage.setItem('request_history', JSON.stringify(history.slice(0, 100)));
-      window.dispatchEvent(new Event('storage'));
+      // Only auto-save the request in specific conditions:
+      // 1. If the example response body is empty AND response status is 200
+      const shouldAutoSave = 
+        (!request.exampleResponseBody || 
+         (typeof request.exampleResponseBody === 'object' && Object.keys(request.exampleResponseBody).length === 0)) && 
+        res.status === 200;
 
-      // Create an example response if none exists or empty
-      let exampleResponse = request.exampleResponseBody;
-      if (!exampleResponse || (typeof exampleResponse === 'object' && 
-         (Array.isArray(exampleResponse) ? exampleResponse.length === 0 : Object.keys(exampleResponse).length === 0))) {
+      if (shouldAutoSave) {
+        console.log('Auto-saving request due to empty example response and successful request');
+        // Create masked example response if needed
+        const maskedResponse = maskResponseValues(responseData);
 
-        // Create a masked copy of the response data
-        exampleResponse = maskResponseValues(response.data);
-        console.log('Created masked example response', exampleResponse);
+        onRequestChange({
+          historyRequests: updatedHistory,
+          responseFields: responseData,
+          exampleResponseBody: maskedResponse,
+          updatedAt: new Date().toISOString()
+        });
+        await onUpdate({});
+
+        toast({
+          title: "Request completed and saved",
+          description: `${res.status} ${res.statusText} in ${responseTime}ms`,
+        });
+      } else {
+        // Just update state without saving to file
+        onRequestChange({
+          historyRequests: updatedHistory,
+          responseFields: responseData,
+          updatedAt: new Date().toISOString()
+        });
+
+        toast({
+          title: "Request completed",
+          description: `${res.status} ${res.statusText} in ${responseTime}ms`,
+        });
       }
-
-      // Update request with new history entry and example response
-      onRequestChange({
-        historyRequests: [historyEntry, ...(request.historyRequests || [])].slice(0, 5),
-        requestBody: requestBody || {},
-        responseFields: response.data || {},
-        exampleResponseBody: exampleResponse
-      });
-      setUnsavedChanges(true);
-
-      // Auto-save the request with the example response
-      handleSave();
-
-      onResponse({
-        ...response,
-        time: responseTime
-      });
-
-    } catch (err: any) {
-      const message = err instanceof Error ? err.message : "An error occurred";
-      onError(message);
+    } catch (error) {
+      console.error('Error sending request:', error);
+      setResponseError(error instanceof Error ? error.message : String(error));
       toast({
         variant: "destructive",
-        title: "Request Failed",
-        description: message,
+        title: "Request failed",
+        description: error instanceof Error ? error.message : String(error),
       });
     } finally {
-      onLoading(false);
+      setIsSending(false);
     }
   };
 
@@ -568,7 +567,7 @@ export function RequestPanel({
           {unsavedChanges && "*"}
         </Button>
 
-        <Button onClick={handleSend} className="bg-indigo-600 hover:bg-indigo-700">
+        <Button onClick={handleSend} className="bg-indigo-600 hover:bg-indigo-700" disabled={isSending}>
           <Send className="mr-2 h-4 w-4" />
           Send
         </Button>
@@ -995,7 +994,7 @@ export function RequestPanel({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="text">Text</SelectItem>
-                        <SelectItem value="file">File</SelectItem>
+                         <SelectItem value="file">File</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button
