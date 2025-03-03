@@ -7,6 +7,7 @@ import axios from 'axios';
 import https from 'https';
 import { RequestSchema } from "@shared/schema";
 import requestRoutes from "./routes/requests";
+import importRoutes from "./routes/import";
 import express from 'express';
 
 // Create an HTTPS agent that accepts self-signed certificates
@@ -27,6 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register API routes
   app.use('/api', requestRoutes);
+  app.use('/api', importRoutes);  // Add the import routes
 
   // History routes
   app.get('/api/history/:routeId', (req, res) => {
