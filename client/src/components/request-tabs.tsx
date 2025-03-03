@@ -135,8 +135,8 @@ export function RequestTabs() {
     openRequest(routeId)
       .then(request => {
         setActiveRequests(prev => {
-          // Check for duplicates before adding
-          if (prev.some(r => r.routeId === routeId || r.name === request.name)) {
+          // Check for duplicates by routeId only to avoid false positives
+          if (prev.some(r => r.routeId === routeId)) {
             return prev;
           }
           return [...prev, request];
@@ -239,8 +239,8 @@ export function RequestTabs() {
       <Tabs value={routeId || ''} onValueChange={handleTabChange}>
         <div className="flex items-center gap-2 mb-4">
           <TabsList className="flex-1">
-            {activeRequests.map(request => (
-              <div key={request.routeId} className="flex items-center">
+            {activeRequests.map((request, index) => (
+              <div key={`${request.routeId}-${index}`} className="flex items-center">
                 <TabsTrigger value={request.routeId}>
                   {request.name || request.routeId}
                 </TabsTrigger>
