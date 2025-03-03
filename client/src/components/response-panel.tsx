@@ -98,9 +98,9 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
   }
 
   const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return "success";
-    if (status >= 400) return "destructive";
-    return "default";
+    if (status >= 200 && status < 300) return "text-green-500"; // Changed to green-500
+    if (status >= 400) return "text-red-600";
+    return "text-gray-600";
   };
 
   const formatSize = (bytes?: number) => {
@@ -155,20 +155,23 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
               <TabsTrigger value="body">Body</TabsTrigger>
               <TabsTrigger value="headers">Headers</TabsTrigger>
             </TabsList>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleCopy(
-                activeTab === "body"
-                  ? JSON.stringify(response.data, null, 2)
-                  : Object.entries(response.headers)
-                    .map(([key, value]) => `${key}: ${value}`)
-                    .join('\n')
-              )}
-            >
-              <Copy className="w-4 h-4 mr-2" />
-              Copy
-            </Button>
+            <div className="flex gap-2"> {/* Added div for button arrangement */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopy(
+                  activeTab === "body"
+                    ? JSON.stringify(response.data, null, 2)
+                    : Object.entries(response.headers)
+                      .map(([key, value]) => `${key}: ${value}`)
+                      .join('\n')
+                )}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copy
+              </Button>
+              <Button variant="secondary" size="sm">Close All</Button> {/* Added Close All button */}
+            </div>
           </div>
 
           <TabsContent value="body" className="relative">
