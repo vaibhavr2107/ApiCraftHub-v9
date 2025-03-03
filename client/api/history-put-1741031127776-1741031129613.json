@@ -1,0 +1,54 @@
+{
+  "requestId": "history-put-1741031127776",
+  "routeId": "history-put-1741031127776",
+  "name": "PUT /v1/blocks/%7Bblock_id%7D/children123df (3/4/2025, 1:15:27 AM)",
+  "method": "PUT",
+  "baseUrl": "https://api.notion.com/v1/blocks/%7Bblock_id%7D/children123df",
+  "headers": {},
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "none"
+  },
+  "requestBody": {},
+  "responseFields": {
+    "object": "error",
+    "status": 400,
+    "code": "invalid_request_url",
+    "message": "Invalid request URL."
+  },
+  "historyId": "history-put-1741031127776",
+  "historyRequests": [
+    {
+      "method": "PUT",
+      "url": "https://api.notion.com/v1/blocks/%7Bblock_id%7D/children123df",
+      "timestamp": "2025-03-03T19:45:27.776Z",
+      "responseTime": 0,
+      "requestBody": {},
+      "responseFields": {
+        "object": "error",
+        "status": 400,
+        "code": "invalid_request_url",
+        "message": "Invalid request URL."
+      }
+    }
+  ],
+  "createdAt": "2025-03-03T19:45:28.726Z",
+  "updatedAt": "2025-03-03T19:45:28.726Z",
+  "selectedEnvironment": "qa01",
+  "devUrl": "",
+  "qa01Url": "",
+  "qa02Url": "",
+  "qa03Url": "",
+  "perfUrl": "",
+  "exampleResponseBody": {
+    "object": "error",
+    "status": 400,
+    "code": "invalid_request_url",
+    "message": "Invalid request URL."
+  },
+  "tags": [],
+  "version": 1,
+  "collectionId": "history",
+  "collectionName": "History Requests"
+}

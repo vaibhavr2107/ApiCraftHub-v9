@@ -22,6 +22,19 @@
         "code": "invalid_request_url",
         "message": "Invalid request URL."
       },
+      "timestamp": "2025-03-03T19:45:27.776Z",
+      "responseTime": 433.40000000596046
+    },
+    {
+      "method": "PUT",
+      "url": "https://api.notion.com/v1/blocks/%7Bblock_id%7D/children123df",
+      "requestBody": {},
+      "responseFields": {
+        "object": "error",
+        "status": 400,
+        "code": "invalid_request_url",
+        "message": "Invalid request URL."
+      },
       "timestamp": "2025-03-03T19:25:39.732Z",
       "responseTime": 442.7000000178814
     },
@@ -66,7 +79,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-03-03T19:25:40.623Z",
+  "updatedAt": "2025-03-03T19:45:28.666Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }
