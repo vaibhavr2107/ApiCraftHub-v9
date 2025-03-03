@@ -42,7 +42,7 @@ export const RequestSchema = z.object({
   pathVariables: z.record(z.any()).default({}),
   auth: z.object({
     type: z.string(),
-    token: z.string().optional(),
+    // Include optional fields in schema for type checking, but don't persist values
     basic: z.object({
       username: z.string(),
       password: z.string()
@@ -51,7 +51,10 @@ export const RequestSchema = z.object({
       token: z.string()
     }).optional(),
     oauth2: z.any().optional()
-  }).default({ type: "bearer-tiaa" }),
+  }).default({ type: "bearer-tiaa" }).transform(auth => ({
+    // Only keep the type when transforming for storage
+    type: auth.type
+  })),
   headers: z.record(z.string()).default({}),
   historyId: z.string(),
   historyRequests: z.array(RequestHistorySchema).max(5).default([]),
