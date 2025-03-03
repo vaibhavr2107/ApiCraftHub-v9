@@ -260,7 +260,7 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
             {response ? (
               <div className="rounded-lg bg-muted p-4 space-y-2">
                 {Object.entries(response.headers).map(([key, value]) => (
-                  <div key={key} className="grid grid-cols-3 gap-4 text-sm">
+                  <div key={key} className="grid grid-cols-3 gap-4 text-xs">
                     <div className="font-medium">{key}</div>
                     <div className="col-span-2 font-mono break-all">{String(value)}</div>
                   </div>
