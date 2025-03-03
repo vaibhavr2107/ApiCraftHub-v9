@@ -6,6 +6,12 @@ import { Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useCallback, useState, useEffect } from "react";
+import Prism from 'prismjs';
+// Import Prism themes and languages
+import 'prismjs/themes/prism-tomorrow.css';
+// Import syntax highlighting for languages
+import 'prismjs/components/prism-json.min.js';
+import 'prismjs/components/prism-markup.min.js';
 
 export interface ResponseData {
   status: number;
@@ -26,6 +32,21 @@ interface ResponsePanelProps {
 export function ResponsePanel({ response, isLoading, error, exampleResponse }: ResponsePanelProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"response" | "headers" | "example">("example");
+  const [contentType, setContentType] = useState<"json" | "xml" | "text">("json");
+
+  // Detect content type from headers or content
+  useEffect(() => {
+    if (response?.headers['content-type']) {
+      const type = response.headers['content-type'].toLowerCase();
+      if (type.includes('application/json')) {
+        setContentType('json');
+      } else if (type.includes('application/xml') || type.includes('text/xml')) {
+        setContentType('xml');
+      } else {
+        setContentType('text');
+      }
+    }
+  }, [response]);
 
   // Switch to response tab when there's new response data
   useEffect(() => {
@@ -33,6 +54,11 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
       setActiveTab("response");
     }
   }, [response]);
+
+  // Initialize Prism highlighting
+  useEffect(() => {
+    Prism.highlightAll();
+  }, [response, activeTab, contentType]);
 
   const handleCopy = useCallback(async (content: string) => {
     try {
@@ -114,17 +140,49 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
     );
   };
 
-  const renderJsonContent = (data: any) => {
-    if (!data || Object.keys(data).length === 0) {
+  const formatContent = (data: any, type: "json" | "xml" | "text" = "json"): string => {
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+      return '';
+    }
+
+    try {
+      if (type === "json") {
+        return JSON.stringify(data, null, 2);
+      } else if (type === "xml" && typeof data === "string" && data.trim().startsWith("<?xml")) {
+        // If it's already XML string, return as is
+        return data;
+      } else {
+        // For non-JSON/XML or when conversion fails, return as string
+        return typeof data === "string" ? data : JSON.stringify(data, null, 2);
+      }
+    } catch (e) {
+      console.error("Error formatting content:", e);
+      return String(data);
+    }
+  };
+
+  const renderContent = (data: any) => {
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
       return <div className="text-muted-foreground text-sm">No data available</div>;
     }
 
-    const jsonString = JSON.stringify(data, null, 2);
+    const formattedContent = formatContent(data, contentType);
+    const language = contentType === 'json' ? 'json' : contentType === 'xml' ? 'markup' : 'text';
+
     return (
-      <pre className="whitespace-pre-wrap break-words rounded-lg bg-muted p-4 pl-16 text-sm font-mono min-h-[200px] overflow-x-auto relative">
-        {getLineNumbers(jsonString)}
-        {jsonString}
-      </pre>
+      <div className="relative">
+        <div className="absolute right-2 top-2 flex items-center gap-2">
+          <Badge variant="outline" className="text-xs">
+            {contentType.toUpperCase()}
+          </Badge>
+        </div>
+        <pre className="whitespace-pre-wrap break-words rounded-lg bg-muted p-4 pl-16 text-sm font-mono min-h-[200px] overflow-x-auto relative">
+          {getLineNumbers(formattedContent)}
+          <code className={`language-${language}`}>
+            {formattedContent}
+          </code>
+        </pre>
+      </div>
     );
   };
 
@@ -164,7 +222,7 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
                 switch (activeTab) {
                   case 'response':
                     // Only copy the actual response data, not the complete response object
-                    content = response ? JSON.stringify(response.data, null, 2) : '';
+                    content = response ? formatContent(response.data, contentType) : '';
                     break;
                   case 'headers':
                     content = response ? Object.entries(response.headers)
@@ -172,7 +230,7 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
                       .join('\n') : '';
                     break;
                   case 'example':
-                    content = JSON.stringify(exampleResponse, null, 2);
+                    content = formatContent(exampleResponse, 'json');
                     break;
                 }
                 handleCopy(content);
@@ -186,7 +244,7 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
           <TabsContent value="response">
             {response ? (
               // Only render the response data, not the complete response object
-              renderJsonContent(response.data)
+              renderContent(response.data)
             ) : (
               <div className="text-muted-foreground text-sm p-4">
                 Make a request to see the response
@@ -212,7 +270,7 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
           </TabsContent>
 
           <TabsContent value="example">
-            {renderJsonContent(exampleResponse)}
+            {renderContent(exampleResponse)}
           </TabsContent>
         </Tabs>
       </CardContent>
