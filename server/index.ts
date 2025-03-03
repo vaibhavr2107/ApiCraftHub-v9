@@ -128,8 +128,8 @@ app.use('/api', (err: any, req: Request, res: Response, next: NextFunction) => {
     }
   });
 
-  // Start server on port 5000
-  const port = 5000;
+  // Start server on port 5001
+  const port = 5001;
   server.listen({
     port,
     host: "0.0.0.0",
