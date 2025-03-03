@@ -2,6 +2,13 @@ import { Request, RequestSchema } from '@shared/schema';
 import express from 'express';
 import fs from 'fs/promises';
 import path from 'path';
+import fsSync from 'fs'; // Import fsSync for synchronous operations
+
+// Add type for history files sorting
+interface HistoryFile {
+  filename: string;
+  timestamp: number;
+}
 
 const router = express.Router();
 const API_FOLDER = path.join(process.cwd(), 'client', 'api');
@@ -79,14 +86,14 @@ router.get('/requests/open/:routeId', async (req, res) => {
       return res.json(validatedRequest);
     } catch (error) {
       console.error(`Error parsing request file ${requestFile}:`, error);
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Failed to parse request file',
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   } catch (error) {
     console.error('Error opening request:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Failed to open request',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
@@ -143,10 +150,53 @@ router.put('/requests/update/:routeId', async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating request:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to update request',
       message: error instanceof Error ? error.message : 'Unknown error'
     });
+  }
+});
+
+router.post('/api/history', (req, res) => {
+  try {
+    const apiFolder = path.join(process.cwd(), 'client', 'api');
+    if (!fsSync.existsSync(apiFolder)) {
+      fsSync.mkdirSync(apiFolder, { recursive: true });
+    }
+
+    // Get list of existing history files
+    const historyFiles: HistoryFile[] = fsSync.readdirSync(apiFolder)
+      .filter(file => file.includes('history-') && file.endsWith('.json'))
+      .map(filename => {
+        const matches = filename.match(/\d+/g);
+        const timestamp = matches ? parseInt(matches[matches.length - 1]) : 0;
+        return { filename, timestamp };
+      })
+      .sort((a: HistoryFile, b: HistoryFile) => b.timestamp - a.timestamp);
+
+    // Save new history file
+    const request = req.body;
+    const timestamp = new Date().getTime();
+    const fileName = `${request.routeId}-${timestamp}.json`;
+
+    fsSync.writeFileSync(
+      path.join(apiFolder, fileName),
+      JSON.stringify(request, null, 2)
+    );
+
+    // Remove oldest files if we exceed max (after adding new one)
+    if (historyFiles.length >= 9) { // 9 + the one we just added = 10 total
+      console.log(`Removing old history files: total count ${historyFiles.length + 1}`);
+      historyFiles.slice(9).forEach(file => {
+        console.log(`Removing old history file: ${file.filename}`);
+        fsSync.unlinkSync(path.join(apiFolder, file.filename));
+      });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error saving history request:', error);
+    res.status(500).json({ error: 'Failed to save history request' });
   }
 });
 

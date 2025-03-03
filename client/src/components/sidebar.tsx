@@ -1,9 +1,8 @@
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Upload, Wand2, Search, FileText, ChevronDown, ChevronRight, FolderClosed, FolderOpen, History } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Upload, Wand2, Search, FileText, ChevronDown, ChevronRight, FolderClosed, FolderOpen, History, RefreshCw } from "lucide-react";
 import { Collection, Request } from "@shared/schema";
 import { generateRouteId } from "@/lib/utils";
 import yaml from 'js-yaml';
@@ -11,6 +10,9 @@ import { useQuery } from "@tanstack/react-query";
 import { loadRequests, saveRequest } from "@/lib/api";
 import { useLocation } from "wouter";
 import { saveHistoryRequest } from '@/lib/history';
+import { ImportWizard, ImportData } from "./import-wizard";
+import { importService, refreshServiceImport } from "@/lib/import-service";
+import { useToast } from "@/hooks/use-toast";
 
 interface SidebarProps {
   onRequestSelect: (request: Request) => void;
@@ -40,13 +42,12 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   const [historySearch, setHistorySearch] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [showHistory, setShowHistory] = useState(false);
+  const [isImportWizardOpen, setIsImportWizardOpen] = useState(false);
   const [, setLocation] = useLocation();
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>(() => {
     const saved = localStorage.getItem("request_history");
     return saved ? JSON.parse(saved) : [];
   });
-  // Removed isRegexSearch state
-
 
   const { data: rawRequests = [], isLoading, error } = useQuery({
     queryKey: ['/api/requests'],
@@ -70,12 +71,10 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Deep search function for objects
   const searchInObject = (obj: any, searchTerm: string): boolean => {
     if (!obj) return false;
 
     const search = (value: any): boolean => {
-      // Convert to string and do case-insensitive search
       if (value === null || value === undefined) return false;
 
       if (typeof value === 'string') {
@@ -87,18 +86,15 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       }
 
       if (Array.isArray(value)) {
-        // For arrays, check each element
         return value.some(item => search(item));
       }
 
       if (typeof value === 'object') {
-        // For objects, check both keys and values
         return Object.entries(value).some(([key, val]) => {
           return key.toLowerCase().includes(searchTerm) || search(val);
         });
       }
 
-      // Convert anything else to string
       return String(value).toLowerCase().includes(searchTerm);
     };
 
@@ -110,7 +106,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
 
     const searchTerm = historySearch.toLowerCase();
 
-    // Check method, URL and status code
     if (
       entry.request.method.toLowerCase().includes(searchTerm) ||
       entry.request.url.toLowerCase().includes(searchTerm) ||
@@ -119,15 +114,12 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       return true;
     }
 
-    // Deep search in all aspects of the request and response
     if (searchInObject(entry.request.body, searchTerm)) return true;
     if (searchInObject(entry.response.data, searchTerm)) return true;
     if (searchInObject(entry.request.headers, searchTerm)) return true;
     if (searchInObject(entry.response.headers, searchTerm)) return true;
     if (searchInObject(entry.request.queryParams, searchTerm)) return true;
 
-    // Convert the entire entry to a string and search within it as a fallback
-    // This ensures we catch any nested fields in complex JSON objects
     const entryStr = JSON.stringify(entry).toLowerCase();
     return entryStr.includes(searchTerm);
   });
@@ -401,10 +393,42 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   };
 
   const handleImportWizard = () => {
-    toast({
-      title: "Coming Soon",
-      description: "Import Wizard feature will be implemented soon!",
-    });
+    setIsImportWizardOpen(true);
+  };
+
+  const handleImport = async (importData: ImportData) => {
+    try {
+      await importService(importData);
+      toast({
+        title: "Success",
+        description: `Successfully imported service: ${importData.serviceName}`,
+      });
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to import service",
+      });
+      throw error;
+    }
+  };
+
+  const handleRefreshCollection = async (collectionName: string) => {
+    try {
+      await refreshServiceImport(collectionName);
+      toast({
+        title: "Success",
+        description: `Successfully refreshed collection: ${collectionName}`,
+      });
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to refresh collection",
+      });
+    }
   };
 
   const toggleFolder = (folderId: string) => {
@@ -418,7 +442,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     setExpandedFolders(newExpanded);
   };
 
-  // Filter requests based on search
   const filteredCollections = collections.map(collection => ({
     ...collection,
     requests: collection.requests.filter(request => searchInObject(request, searchQuery))
@@ -469,6 +492,7 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
               Wizard
             </Button>
           </div>
+
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -539,24 +563,34 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
         <div className="p-2">
           {filteredCollections.map((collection) => (
             <div key={collection.id} className="mb-2">
-              <Button
-                variant="ghost"
-                className="w-full justify-start mb-1"
-                onClick={() => toggleFolder(collection.id)}
-              >
-                {expandedFolders.has(collection.id) ? (
-                  <>
-                    <ChevronDown className="h-4 w-4 mr-2" />
-                    <FolderOpen className="h-4 w-4 mr-2" />
-                  </>
-                ) : (
-                  <>
-                    <ChevronRight className="h-4 w-4 mr-2" />
-                    <FolderClosed className="h-4 w-4 mr-2" />
-                  </>
-                )}
-                {collection.name}
-              </Button>
+              <div className="flex items-center">
+                <Button
+                  variant="ghost"
+                  className="flex-1 justify-start mb-1"
+                  onClick={() => toggleFolder(collection.id)}
+                >
+                  {expandedFolders.has(collection.id) ? (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-2" />
+                      <FolderOpen className="h-4 w-4 mr-2" />
+                    </>
+                  ) : (
+                    <>
+                      <ChevronRight className="h-4 w-4 mr-2" />
+                      <FolderClosed className="h-4 w-4 mr-2" />
+                    </>
+                  )}
+                  {collection.name}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => handleRefreshCollection(collection.name)}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
               {expandedFolders.has(collection.id) && (
                 <div className="pl-4">
                   {collection.requests.map((request) => (
@@ -581,6 +615,12 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
           ))}
         </div>
       </ScrollArea>
+
+      <ImportWizard
+        isOpen={isImportWizardOpen}
+        onClose={() => setIsImportWizardOpen(false)}
+        onImport={handleImport}
+      />
     </div>
   );
 }
