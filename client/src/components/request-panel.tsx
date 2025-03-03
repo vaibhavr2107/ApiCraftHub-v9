@@ -523,8 +523,6 @@ export function RequestPanel({
           Send
         </Button>
 
-        <Button variant="default" onClick={() => {/* Add close all functionality here */}}>Close All</Button> {/* Added Close All button */}
-
         <Select
           value={request.selectedEnvironment || 'qa01'}
           onValueChange={handleEnvironmentChange}

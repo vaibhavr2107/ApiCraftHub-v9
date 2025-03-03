@@ -170,7 +170,6 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
               </Button>
-              <Button variant="secondary" size="sm">Close All</Button> {/* Added Close All button */}
             </div>
           </div>
 

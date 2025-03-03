@@ -307,12 +307,17 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
             <h3 className="text-sm font-medium">History</h3>
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search history (supports regex)..."
-                value={historySearch}
-                onChange={(e) => setHistorySearch(e.target.value)}
-                className="pl-8"
-              />
+              <div className="space-y-1">
+                <Input
+                  placeholder="Search history... (use /pattern/ for regex)"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="pl-8"
+                />
+                <div className="text-xs text-muted-foreground">
+                  Tip: Use /pattern/ for regex search (e.g., /error|warning/i)
+                </div>
+              </div>
             </div>
             <ScrollArea className="h-[calc(100vh-12rem)]">
               <div className="space-y-2">
