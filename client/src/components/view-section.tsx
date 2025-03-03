@@ -70,7 +70,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
   const handleHistoryItemClick = (entry: any) => {
     try {
       const timestamp = new Date(entry.timestamp).getTime();
-      const routeId = generateHistoryRouteId(entry.request.method, entry.request.url, timestamp);
+      const routeId = generateHistoryRouteId(entry.request.method, timestamp);
 
       console.log('Creating history request with routeId:', routeId);
 
@@ -80,7 +80,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       const historyRequest = {
         requestId: routeId,
         routeId: routeId,
-        name: `${entry.request.method} ${entry.request.url.split('//')[1].split('/').slice(1).join('/')}`,
+        name: `${entry.request.method} Request (${new Date(timestamp).toLocaleString()})`,
         method: entry.request.method,
         baseUrl: entry.request.url,
         headers: entry.request.headers || {},
