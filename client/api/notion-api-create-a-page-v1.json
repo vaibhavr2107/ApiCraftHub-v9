@@ -7,7 +7,11 @@
   "queryParams": {},
   "pathVariables": {},
   "auth": {
-    "type": "bearer-tiaa"
+    "type": "basic",
+    "basic": {
+      "username": "dsd",
+      "password": "sdsds"
+    }
   },
   "headers": {},
   "historyId": "history-notion-api-page-createnewpage",
@@ -698,7 +702,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-03-03T20:27:47.306Z",
+  "updatedAt": "2025-03-03T20:35:37.700Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }
