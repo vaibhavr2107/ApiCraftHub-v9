@@ -48,13 +48,6 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
   const [historySearch, setHistorySearch] = useState("");
   const [isRegexSearch, setIsRegexSearch] = useState(false);
 
-  const handleViewChange = (view: typeof activeView) => {
-    setActiveView(view);
-    if (onViewChange) {
-      onViewChange(view);
-    }
-  };
-
   useEffect(() => {
     const handleStorageChange = () => {
       const saved = localStorage.getItem("request_history");
@@ -69,9 +62,8 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
 
   const handleHistoryItemClick = (entry: any) => {
     try {
-      const currentTimestamp = new Date().getTime();
-      const routeId = generateHistoryRouteId(entry.request.method, currentTimestamp);
-
+      // Use the original timestamp from the entry
+      const routeId = generateHistoryRouteId(entry.request.method, entry.id);
       console.log('Creating history request with routeId:', routeId);
 
       const savedRequests = localStorage.getItem("active_requests");
@@ -80,7 +72,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       const historyRequest = {
         requestId: routeId,
         routeId: routeId,
-        name: `${entry.request.method} Request (${new Date(currentTimestamp).toLocaleString()})`,
+        name: `${entry.request.method} Request (${new Date(entry.timestamp).toLocaleString()})`,
         method: entry.request.method,
         baseUrl: entry.request.url,
         headers: entry.request.headers || {},
@@ -204,6 +196,13 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
 
     return false;
   }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  const handleViewChange = (view: typeof activeView) => {
+    setActiveView(view);
+    if (onViewChange) {
+      onViewChange(view);
+    }
+  };
 
   return (
     <SidebarGroup>

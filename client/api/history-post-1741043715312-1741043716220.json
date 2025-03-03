@@ -1,9 +1,14 @@
 {
-  "requestId": "notion-api-create-a-token",
-  "routeId": "notion-api-create-a-token",
-  "name": "Create a token",
+  "requestId": "history-post-1741043715312",
+  "routeId": "history-post-1741043715312",
+  "name": "POST Request (3/4/2025, 4:45:15 AM)",
   "method": "POST",
   "baseUrl": "https://api.notion.com/v1/oauth/",
+  "devUrl": "",
+  "qa01Url": "",
+  "qa02Url": "",
+  "qa03Url": "",
+  "perfUrl": "",
   "queryParams": {},
   "pathVariables": {},
   "auth": {
@@ -15,15 +20,15 @@
     {
       "method": "POST",
       "url": "https://api.notion.com/v1/oauth/",
+      "timestamp": "2025-03-03T23:15:15.312Z",
+      "responseTime": 439,
       "requestBody": {},
       "responseFields": {
         "object": "error",
         "status": 400,
         "code": "invalid_request_url",
         "message": "Invalid request URL."
-      },
-      "timestamp": "2025-03-03T23:15:15.312Z",
-      "responseTime": 439
+      }
     },
     {
       "method": "POST",
@@ -76,6 +81,19 @@
       },
       "timestamp": "2025-03-03T22:11:10.816Z",
       "responseTime": 1220
+    },
+    {
+      "method": "POST",
+      "url": "https://api.notion.com/v1/oauth/",
+      "requestBody": {},
+      "responseFields": {
+        "object": "error",
+        "status": 400,
+        "code": "invalid_request_url",
+        "message": "Invalid request URL."
+      },
+      "timestamp": "2025-03-03T22:06:52.453Z",
+      "responseTime": 375
     }
   ],
   "responseFields": {
@@ -92,7 +110,8 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-03-03T23:15:16.238Z",
+  "updatedAt": "2025-03-03T22:43:17.792Z",
   "version": 1,
-  "selectedEnvironment": "qa01"
+  "selectedEnvironment": "qa01",
+  "timestamp": "2025-03-03T23:15:15.312Z"
 }
