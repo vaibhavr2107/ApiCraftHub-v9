@@ -993,7 +993,8 @@ export function RequestPanel({
                         <SelectValue />```xml
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="text">Text</SelectItem<SelectItem value="file">File</SelectItem>
+                        <SelectItem value="text">Text</SelectItem>
+                         <SelectItem value="file">File</SelectItem>
                       </SelectContent>
                     </Select>
                     <Button
