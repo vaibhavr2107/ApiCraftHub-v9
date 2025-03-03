@@ -52,6 +52,25 @@ export async function makeRequest({
   }
 }
 
+// Generic API request function for internal API calls
+export async function apiRequest(url: string, options: { method: string; body?: string; headers?: Record<string, string> }): Promise<any> {
+  console.log('Making API request:', url, options);
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers
+    }
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || response.statusText);
+  }
+
+  return response.json();
+}
+
 export async function saveRequest(request: Request): Promise<{ request: Request; message: string }> {
   try {
     // Validate request data
@@ -62,9 +81,9 @@ export async function saveRequest(request: Request): Promise<{ request: Request;
     // Get existing request if any
     let existingRequest: Request | null = null;
     try {
-      const response = await fetch(`/api/requests/${request.routeId}`);
-      if (response.ok) {
-        existingRequest = await response.json();
+      const response = await apiRequest(`/api/requests/${request.routeId}`, { method: 'GET' });
+      if (response) {
+        existingRequest = response;
       }
     } catch (error) {
       console.log('No existing request found:', error);
@@ -83,28 +102,14 @@ export async function saveRequest(request: Request): Promise<{ request: Request;
     };
 
     // Save the request
-    const saveResponse = await fetch('/api/requests', {
+    const saveResponse = await apiRequest('/api/requests', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(updatedRequest)
     });
 
-    if (!saveResponse.ok) {
-      const errorData = await saveResponse.json();
-      throw new Error(errorData.message || 'Failed to save request');
-    }
-
-    const result = await saveResponse.json();
-
-    if (!result.request) {
-      throw new Error('Invalid response from server');
-    }
-
     return {
-      request: result.request,
-      message: result.message || 'Request saved successfully'
+      request: saveResponse.request,
+      message: saveResponse.message || 'Request saved successfully'
     };
   } catch (error) {
     console.error('Error saving request:', error);
@@ -130,12 +135,8 @@ export async function loadRequests(): Promise<Collection[]> {
 
     // Start loading
     isLoadingRequests = true;
-    loadRequestsPromise = fetch('/api/requests')
-      .then(async response => {
-        if (!response.ok) {
-          throw new Error('Failed to load requests');
-        }
-        const requests = await response.json();
+    loadRequestsPromise = apiRequest('/api/requests', { method: 'GET' })
+      .then(async requests => {
         loadedRequests = requests;
         isLoadingRequests = false;
         return requests;
@@ -181,12 +182,8 @@ export async function getRequestByRouteId(routeId: string): Promise<Request> {
     }
 
     // If not found, try to fetch from API
-    const response = await fetch(`/api/requests/${routeId}`);
-    if (!response.ok) {
-      throw new Error('Failed to load request');
-    }
-
-    return response.json();
+    const response = await apiRequest(`/api/requests/${routeId}`, { method: 'GET' });
+    return response;
   } catch (error) {
     console.error('Error loading request:', error);
     throw error instanceof Error ? error : new Error('Failed to load request');
@@ -195,14 +192,8 @@ export async function getRequestByRouteId(routeId: string): Promise<Request> {
 
 export async function openRequest(routeId: string): Promise<Request> {
   try {
-    const response = await fetch(`/api/requests/open/${routeId}`);
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to open request');
-    }
-
-    return response.json();
+    const response = await apiRequest(`/api/requests/open/${routeId}`, { method: 'GET' });
+    return response;
   } catch (error) {
     console.error('Error opening request:', error);
     throw error instanceof Error ? error : new Error('Failed to open request');
@@ -211,21 +202,11 @@ export async function openRequest(routeId: string): Promise<Request> {
 
 export async function updateRequest(routeId: string, updates: Partial<Request>): Promise<Request> {
   try {
-    const response = await fetch(`/api/requests/update/${routeId}`, {
+    const response = await apiRequest(`/api/requests/update/${routeId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(updates)
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to update request');
-    }
-
-    const result = await response.json();
-    return result.request;
+    return response.request;
   } catch (error) {
     console.error('Error updating request:', error);
     throw error instanceof Error ? error : new Error('Failed to update request');
@@ -234,13 +215,8 @@ export async function updateRequest(routeId: string, updates: Partial<Request>):
 
 export async function listRequestFiles(): Promise<string[]> {
   try {
-    const response = await fetch('/api/requests/files');
-
-    if (!response.ok) {
-      throw new Error('Failed to list request files');
-    }
-
-    return response.json();
+    const response = await apiRequest('/api/requests/files', { method: 'GET' });
+    return response;
   } catch (error) {
     console.error('Error listing request files:', error);
     throw error instanceof Error ? error : new Error('Failed to list request files');
