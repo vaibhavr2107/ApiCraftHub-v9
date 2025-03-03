@@ -65,24 +65,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get list of existing history files
       const historyFiles = fs.readdirSync(apiFolder)
         .filter(file => file.includes('history-') && file.endsWith('.json'))
-        .sort()
-        .reverse();
-
-      // Remove oldest files if we exceed max
-      if (historyFiles.length >= 10) {
-        historyFiles.slice(9).forEach(file => {
-          fs.unlinkSync(path.join(apiFolder, file));
+        .sort((a, b) => {
+          // Extract timestamps for better sorting
+          const getTimestamp = (filename) => {
+            const matches = filename.match(/\d+/g);
+            return matches ? matches[matches.length - 1] : 0;
+          };
+          // Sort descending (newest first)
+          return parseInt(getTimestamp(b)) - parseInt(getTimestamp(a));
         });
-      }
 
       // Save new history file
       const request = req.body;
       const timestamp = new Date().getTime();
       const fileName = `${request.routeId}-${timestamp}.json`;
+      
       fs.writeFileSync(
         path.join(apiFolder, fileName),
         JSON.stringify(request, null, 2)
       );
+      
+      // Remove oldest files if we exceed max (after adding new one)
+      if (historyFiles.length >= 9) { // 9 + the one we just added = 10 total
+        console.log(`Removing old history files: total count ${historyFiles.length + 1}`);
+        historyFiles.slice(9).forEach(file => {
+          console.log(`Removing old history file: ${file}`);
+          fs.unlinkSync(path.join(apiFolder, file));
+        });
+      }
 
       res.json({ success: true });
     } catch (error) {
