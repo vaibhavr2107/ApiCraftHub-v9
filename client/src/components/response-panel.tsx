@@ -83,7 +83,7 @@ export function ResponsePanel({ response, isLoading, error, exampleResponse }: R
             <div className="text-muted-foreground text-sm">
               Make a request to see the response
             </div>
-            {exampleResponse && (
+            {exampleResponse && Object.keys(exampleResponse).length > 0 && (
               <div className="space-y-2">
                 <div className="text-sm font-medium text-muted-foreground">Example Response:</div>
                 <pre className="whitespace-pre-wrap break-words rounded-lg bg-muted p-4 text-sm font-mono">
