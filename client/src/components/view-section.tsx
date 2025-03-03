@@ -35,8 +35,8 @@ interface ViewSectionProps {
 const generateHistoryRouteId = (entry: any): string => {
   const timestamp = new Date(entry.timestamp).getTime();
   const urlPath = new URL(entry.request.url).pathname;
-  const baseRouteId = `history-${entry.request.method.toLowerCase()}-${urlPath.replace(/[^a-z0-9]+/g, '-')}`;
-  return `${baseRouteId}-${timestamp}`;
+  const method = entry.request.method.toLowerCase();
+  return `history-${method}-${urlPath.replace(/[^a-z0-9]+/g, '-')}-${timestamp}`;
 };
 
 export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionProps) {
@@ -111,6 +111,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
   };
 
   const handleHistoryItemClick = (entry: any) => {
+    const timestamp = new Date(entry.timestamp).getTime();
     const routeId = generateHistoryRouteId(entry);
     console.log('Creating history request with routeId:', routeId);
 
@@ -137,7 +138,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       auth: { type: "none" },
       requestBody: entry.request.body || {},
       responseFields: entry.response.data || {},
-      historyId: routeId,
+      historyId: `${routeId}-${timestamp}`,
       historyRequests: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
