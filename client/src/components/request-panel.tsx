@@ -25,10 +25,10 @@ import { makeRequest } from "@/lib/api";
 import type { Request, RequestHistory } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Send, History, X, ChevronDown, ChevronRight, Settings } from "lucide-react";
+import { saveHistoryRequest } from "@/lib/history";
 
 const ENVIRONMENTS = ['dev', 'qa01', 'qa02', 'qa03', 'perf'] as const;
 
-// Updated interface for environment URL dialog
 interface EnvironmentUrlDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,7 +36,6 @@ interface EnvironmentUrlDialogProps {
   onUpdate: (updates: Partial<Request>) => void;
 }
 
-// Environment URL Dialog Component
 function EnvironmentUrlDialog({ isOpen, onClose, request, onUpdate }: EnvironmentUrlDialogProps) {
   const [urls, setUrls] = useState({
     devUrl: request.devUrl || '',
@@ -88,7 +87,6 @@ function EnvironmentUrlDialog({ isOpen, onClose, request, onUpdate }: Environmen
   );
 }
 
-// History Section Component
 const HistorySection = ({ history }: { history: RequestHistory[] }) => {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
@@ -115,9 +113,8 @@ const HistorySection = ({ history }: { history: RequestHistory[] }) => {
   return (
     <div className="space-y-4">
       {history.map((entry, index) => {
-        // Create a unique ID for each entry using timestamp and index
         const entryId = `${entry.timestamp || ''}-${index}`;
-        
+
         return (
           <Card key={entryId} className="p-4">
             <div className="flex justify-between items-start mb-2 cursor-pointer" onClick={() => toggleExpand(entryId)}>
@@ -166,7 +163,6 @@ const HistorySection = ({ history }: { history: RequestHistory[] }) => {
   );
 };
 
-// Method color mapping
 const METHOD_COLORS = {
   GET: "text-green-500",
   POST: "text-orange-500",
@@ -225,7 +221,6 @@ export function RequestPanel({
   const [authHeaders, setAuthHeaders] = useState({});
 
 
-  // Function to sync URL query params with UI state
   const syncUrlQueryParams = (url: string) => {
     try {
       const urlObj = new URL(url);
@@ -235,17 +230,14 @@ export function RequestPanel({
       });
       setQueryParams(params);
     } catch (e) {
-      // Invalid URL, keep existing params
       console.warn('Invalid URL for query param sync:', e);
     }
   };
 
-  // Initialize UI state from request
   useEffect(() => {
     console.log('Initializing request panel state');
     syncUrlQueryParams(request.baseUrl);
 
-    // Path variables
     const pParams = Object.entries(request.pathVariables || {}).map(([key, value]) => ({
       key,
       value: String(value),
@@ -253,7 +245,6 @@ export function RequestPanel({
     }));
     setPathParams(pParams);
 
-    // Headers
     const hParams = Object.entries(request.headers || {}).map(([key, value]) => ({
       key,
       value: String(value),
@@ -261,20 +252,17 @@ export function RequestPanel({
     }));
     setHeaders(hParams);
 
-    // Request body
     if (request.requestBody && Object.keys(request.requestBody).length > 0) {
       setBodyType("raw");
       setRawFormat("json");
       setRawBody(JSON.stringify(request.requestBody, null, 2));
     }
-    setUnsavedChanges(false); // Reset unsaved changes on new request load
-  }, [request.routeId]); // Only reinitialize when routeId changes
+    setUnsavedChanges(false); 
+  }, [request.routeId]); 
 
-  // Handle environment change
   const handleEnvironmentChange = (env: typeof ENVIRONMENTS[number]) => {
     let baseUrl = request.baseUrl;
 
-    // Update URL based on environment
     if (env !== 'dev') {
       const envUrl = request[`${env}Url` as keyof Request];
       if (envUrl) {
@@ -344,42 +332,41 @@ export function RequestPanel({
         responseData = text;
       }
 
-      // Extract just the data portion for the response panel
-      // Remove the wrapping and get the actual API response data
       const actualResponseData = responseData.data || responseData;
 
-      // Modified: Pass only the necessary data to response panel
       const responseObj = {
         status: res.status,
         statusText: res.statusText,
         headers: Object.fromEntries(res.headers.entries()),
-        data: actualResponseData, // Only pass the actual response data
+        data: actualResponseData,
         time: responseTime,
         size: JSON.stringify(actualResponseData).length
       };
 
-      // Send response to parent component to update response panel
       onResponse(responseObj);
       onError(null);
 
-      // Update history with the new request
       const historyEntry = {
         method: request.method,
         url: request.baseUrl,
         timestamp: new Date().toISOString(),
         responseTime,
         requestBody: reqBody,
-        responseFields: actualResponseData // Store only the actual response data
+        responseFields: actualResponseData
       };
 
       const updatedHistory = [
         historyEntry,
-        ...(request.historyRequests || []).slice(0, 9) // Keep last 10 entries
+        ...(request.historyRequests || []).slice(0, 9)
       ];
 
-      // Only auto-save the request if:
-      // 1. Example response body is empty AND
-      // 2. Response status is 200
+      await saveHistoryRequest({
+        ...request,
+        requestBody: reqBody,
+        responseFields: actualResponseData,
+        historyRequests: updatedHistory
+      });
+
       const shouldAutoSave = 
         (!request.exampleResponseBody || 
          (typeof request.exampleResponseBody === 'object' && 
@@ -388,7 +375,6 @@ export function RequestPanel({
 
       if (shouldAutoSave) {
         console.log('Auto-saving request due to empty example response and successful request');
-        // Create masked example response
         const maskedResponse = maskResponseValues(actualResponseData);
 
         onRequestChange({
@@ -403,7 +389,6 @@ export function RequestPanel({
           description: `${res.status} ${res.statusText} in ${responseTime}ms`,
         });
       } else {
-        // Just update the history without saving
         onRequestChange({
           historyRequests: updatedHistory,
           responseFields: actualResponseData,
@@ -415,6 +400,27 @@ export function RequestPanel({
           description: `${res.status} ${res.statusText} in ${responseTime}ms`,
         });
       }
+
+      const savedHistory = localStorage.getItem("request_history") || "[]";
+      const parsedHistory = JSON.parse(savedHistory);
+      const newHistory = [{
+        id: `${request.method}-${Date.now()}`,
+        request: {
+          method: request.method,
+          url: request.baseUrl,
+          headers: formattedHeaders,
+          body: reqBody
+        },
+        response: {
+          status: res.status,
+          data: actualResponseData
+        },
+        timestamp: new Date().toISOString()
+      }, ...parsedHistory].slice(0, 50); 
+      localStorage.setItem("request_history", JSON.stringify(newHistory));
+
+      window.dispatchEvent(new Event("storage"));
+
     } catch (error) {
       console.error('Error sending request:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -431,7 +437,6 @@ export function RequestPanel({
     }
   };
 
-  // Handle URL change without auto-save
   const handleUrlChange = (newUrl: string) => {
     console.log('URL changed, syncing query params');
     syncUrlQueryParams(newUrl);
@@ -444,7 +449,6 @@ export function RequestPanel({
   const handleSave = () => {
     console.log('Saving request with current state');
     try {
-      // Format headers
       const headersObj = headers
         .filter(h => h.enabled && h.key)
         .reduce((acc, h) => {
@@ -452,7 +456,6 @@ export function RequestPanel({
           return acc;
         }, {} as Record<string, string>);
 
-      // Format query parameters
       const queryParamsObj = queryParams
         .filter(p => p.enabled && p.key)
         .reduce((acc, p) => {
@@ -462,7 +465,6 @@ export function RequestPanel({
 
       console.log('Saving request with example body:', request.exampleResponseBody);
 
-      // Format request body
       let requestBodyObj = {};
       if (bodyType === "raw" && rawBody) {
         try {
@@ -473,7 +475,6 @@ export function RequestPanel({
         }
       }
 
-      // Ensure historyRequests are properly formatted
       const formattedHistoryRequests = (request.historyRequests || []).map(entry => ({
         method: entry.method || request.method,
         url: entry.url || request.baseUrl,
@@ -483,7 +484,6 @@ export function RequestPanel({
         responseFields: entry.responseFields || {}
       }));
 
-      // Update request with all changes
       onRequestChange({
         baseUrl: request.baseUrl,
         headers: headersObj,
@@ -513,20 +513,17 @@ export function RequestPanel({
     setUnsavedChanges(true);
   };
 
-  // Utility function to mask response values while preserving structure
   const maskResponseValues = (data: any): any => {
     if (data === null || data === undefined) {
       return data;
     }
 
     if (Array.isArray(data)) {
-      // For arrays, mask each item (but keep a small sample)
       const sampleSize = Math.min(data.length, 3);
       return Array(sampleSize).fill(0).map((_, i) => maskResponseValues(data[i]));
     }
 
     if (typeof data === 'object') {
-      // For objects, preserve keys but mask values
       const result: Record<string, any> = {};
       for (const key in data) {
         if (Object.prototype.hasOwnProperty.call(data, key)) {
@@ -536,15 +533,14 @@ export function RequestPanel({
       return result;
     }
 
-    // Mask primitive values based on their type
     if (typeof data === 'string') {
       if (data.length > 30) return data.substring(0, 10) + '...';
-      return data.replace(/./g, '*'); // Mask all characters
+      return data.replace(/./g, '*'); 
     }
     if (typeof data === 'number') return 0;
     if (typeof data === 'boolean') return false;
 
-    return data; // Return as is for other types
+    return data; 
   };
 
   return (
@@ -629,7 +625,6 @@ export function RequestPanel({
         </TabsList>
 
         <TabsContent value="params" className="space-y-4">
-          {/* Query Parameters */}
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground">Query Parameters</h3>
             <div className="space-y-2">
@@ -692,7 +687,6 @@ export function RequestPanel({
             </div>
           </div>
 
-          {/* Path Parameters */}
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground">Path Parameters</h3>
             <div className="space-y-2">
@@ -1006,7 +1000,7 @@ export function RequestPanel({
                       </SelectContent>
                     </Select>
                     <Input
-                      placeholder="Value"
+                                            placeholder="Value"
                       value={field.value}
                       onChange={(e) => {
                         const newFormData = [...formData];
