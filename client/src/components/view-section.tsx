@@ -160,9 +160,22 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     window.location.href = `/request/${routeId}`;
   };
 
-  // Enhanced search functionality
+  // Enhanced search functionality with regex support
   const searchInObject = (obj: any, searchTerm: string): boolean => {
-    const searchRegex = new RegExp(searchTerm, 'i');
+    let searchRegex;
+    
+    // Check if search term is in regex format /pattern/flags
+    const regexPattern = searchTerm.match(/^\/(.+)\/([gimuy]*)$/);
+    if (regexPattern) {
+      try {
+        searchRegex = new RegExp(regexPattern[1], regexPattern[2]);
+      } catch (e) {
+        // If regex is invalid, fall back to normal search
+        searchRegex = new RegExp(searchTerm, 'i');
+      }
+    } else {
+      searchRegex = new RegExp(searchTerm, 'i');
+    }
 
     const search = (value: any): boolean => {
       if (typeof value === 'string') {
@@ -188,9 +201,9 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
 
     // Search in URL, method, and status
     if (
-      entry.request.method.toLowerCase().includes(historySearch.toLowerCase()) ||
-      entry.request.url.toLowerCase().includes(historySearch.toLowerCase()) ||
-      entry.response.status.toString().includes(historySearch)
+      searchInObject(entry.request.method, historySearch) ||
+      searchInObject(entry.request.url, historySearch) ||
+      searchInObject(entry.response.status.toString(), historySearch)
     ) {
       return true;
     }
@@ -198,6 +211,8 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
     // Deep search in request body and response data
     if (searchInObject(entry.request.body, historySearch)) return true;
     if (searchInObject(entry.response.data, historySearch)) return true;
+    if (searchInObject(entry.request.headers, historySearch)) return true;
+    if (searchInObject(entry.request.queryParams, historySearch)) return true;
 
     return false;
   }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
