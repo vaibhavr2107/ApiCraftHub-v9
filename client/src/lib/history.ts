@@ -3,10 +3,10 @@ import { apiRequest } from '@/lib/api';
 
 export function generateHistoryRouteId(request: Request): string {
   const timestamp = new Date().getTime();
-  const baseRouteName = request.method.toLowerCase() + '-' + request.baseUrl.split('//')[1]
+  const baseRouteName = request.baseUrl.split('//')[1]
     .split('/').slice(1).join('-')
     .replace(/[^a-z0-9]+/g, '-');
-  return `history-${baseRouteName}-${timestamp}`;
+  return `history-${request.method.toLowerCase()}-${baseRouteName}-${timestamp}`;
 }
 
 export async function saveHistoryRequest(request: Request) {
@@ -16,6 +16,7 @@ export async function saveHistoryRequest(request: Request) {
     const historyRequest = {
       ...request,
       routeId: uniqueRouteId,
+      requestId: uniqueRouteId,
       name: `${request.method} ${request.baseUrl.split('//')[1].split('/').slice(1).join('/')} ${timestamp}`,
       timestamp: new Date().toISOString()
     };
