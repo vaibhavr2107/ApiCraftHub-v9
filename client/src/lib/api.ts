@@ -40,12 +40,13 @@ export async function makeRequest({
       })
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || response.statusText);
-    }
-
-    return response.json();
+    // Always parse the JSON response, even for error status codes
+    // The actual HTTP status from the original request is in the response body
+    const responseData = await response.json();
+    
+    // We want to return the response data regardless of status code
+    // so that the UI can display the original API response
+    return responseData;
   } catch (error: any) {
     const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     throw new Error(errorMessage);

@@ -103,53 +103,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure URL is properly formatted
       const requestUrl = url.startsWith('http') ? url : `https://${url}`;
 
-      // Create request options
-      const requestOptions: any = {
+      // Prepare fetch options
+      const options: RequestInit = {
         method,
-        url: requestUrl,
-        headers: {
-          'Content-Type': 'application/json',
-          ...headers
-        },
-        httpsAgent,
-        validateStatus: null,
+        headers: { ...headers },
       };
 
-      // Add body for non-GET/HEAD requests
-      if (body && !['GET', 'HEAD'].includes(method.toUpperCase())) {
-        requestOptions.data = body;
+      // Add body for non-GET requests
+      if (method !== 'GET' && body) {
+        options.body = typeof body === 'string' ? body : JSON.stringify(body);
       }
 
-      // Make the request using axios
-      const startTime = Date.now();
-      const response = await axios(requestOptions);
-      const endTime = Date.now();
+      // Make the request
+      const startTime = performance.now();
+      const response = await fetch(requestUrl, options);
+      const endTime = performance.now();
+      const responseTime = endTime - startTime;
 
-      // Format headers for response
-      const responseHeaders: Record<string, string> = {};
-      Object.entries(response.headers).forEach(([key, value]) => {
-        if (typeof value === 'string') {
-          responseHeaders[key] = value;
-        } else if (Array.isArray(value)) {
-          responseHeaders[key] = value.join(', ');
+      // Process response
+      const responseData = await (async () => {
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            return await response.json();
+          }
+          return await response.text();
+        } catch (error) {
+          return await response.text();
         }
+      })();
+
+      // Get response headers
+      const responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
       });
 
-      // Send response
-      res.json({
+      // Create response object
+      const result = {
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
-        data: response.data,
-        time: endTime - startTime,
-        size: JSON.stringify(response.data).length
-      });
+        data: responseData,
+        time: Math.round(responseTime),
+        size: JSON.stringify(responseData).length
+      };
 
-    } catch (error: any) {
+      // Forward the actual status code from the original request
+      res.status(response.status).json(result);
+    } catch (error) {
       console.error('Proxy error:', error);
-      res.status(500).json({
-        message: error.message || 'Internal server error',
-        error: error.toString()
+      res.status(500).json({ 
+        status: 500,
+        statusText: 'Internal Server Error',
+        data: { message: error instanceof Error ? error.message : 'An unknown error occurred' },
+        time: 0,
+        size: 0
       });
     }
   });
