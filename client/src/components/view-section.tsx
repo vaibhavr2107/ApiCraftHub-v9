@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { FolderTree, Settings, History, Search, FileJson, Database } from "lucide-react";
 import {
   SidebarGroup,
@@ -69,8 +69,8 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
 
   const handleHistoryItemClick = (entry: any) => {
     try {
-      const timestamp = new Date(entry.timestamp).getTime();
-      const routeId = generateHistoryRouteId(entry.request.method, timestamp);
+      const currentTimestamp = new Date().getTime();
+      const routeId = generateHistoryRouteId(entry.request.method, currentTimestamp);
 
       console.log('Creating history request with routeId:', routeId);
 
@@ -80,7 +80,7 @@ export function ViewSection({ onEnvironmentSelect, onViewChange }: ViewSectionPr
       const historyRequest = {
         requestId: routeId,
         routeId: routeId,
-        name: `${entry.request.method} Request (${new Date(timestamp).toLocaleString()})`,
+        name: `${entry.request.method} Request (${new Date(currentTimestamp).toLocaleString()})`,
         method: entry.request.method,
         baseUrl: entry.request.url,
         headers: entry.request.headers || {},
