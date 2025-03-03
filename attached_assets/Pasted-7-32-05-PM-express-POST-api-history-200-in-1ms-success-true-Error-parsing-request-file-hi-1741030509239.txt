@@ -1,0 +1,74 @@
+7:32:05 PM [express] POST /api/history 200 in 1ms :: {"success":true}
+Error parsing request file history-get-1741030314920-1741030325535.json: ZodError: [
+  {
+    "code": "invalid_type",
+    "expected": "object",
+    "received": "array",
+    "path": [
+      "exampleResponseBody"
+    ],
+    "message": "Expected object, received array"
+  }
+]
+    at get error [as error] (file:///home/runner/workspace/node_modules/zod/lib/index.mjs:587:31)
+    at ZodObject.parse (file:///home/runner/workspace/node_modules/zod/lib/index.mjs:692:22)
+    at <anonymous> (/home/runner/workspace/server/routes/requests.ts:69:46) {
+  issues: [
+    {
+      code: 'invalid_type',
+      expected: 'object',
+      received: 'array',
+      path: [Array],
+      message: 'Expected object, received array'
+    }
+  ],
+  addIssue: [Function (anonymous)],
+  addIssues: [Function (anonymous)],
+  errors: [
+    {
+      code: 'invalid_type',
+      expected: 'object',
+      received: 'array',
+      path: [Array],
+      message: 'Expected object, received array'
+    }
+  ]
+}
+7:32:05 PM [express] GET /api/requests/open/history-get-1741030314920 500 in 7ms :: {"error":"Failed…
+7:33:16 PM [express] POST /api/history 200 in 1ms :: {"success":true}
+Error parsing request file history-get-1741030314920-1741030325535.json: ZodError: [
+  {
+    "code": "invalid_type",
+    "expected": "object",
+    "received": "array",
+    "path": [
+      "exampleResponseBody"
+    ],
+    "message": "Expected object, received array"
+  }
+]
+    at get error [as error] (file:///home/runner/workspace/node_modules/zod/lib/index.mjs:587:31)
+    at ZodObject.parse (file:///home/runner/workspace/node_modules/zod/lib/index.mjs:692:22)
+    at <anonymous> (/home/runner/workspace/server/routes/requests.ts:69:46) {
+  issues: [
+    {
+      code: 'invalid_type',
+      expected: 'object',
+      received: 'array',
+      path: [Array],
+      message: 'Expected object, received array'
+    }
+  ],
+  addIssue: [Function (anonymous)],
+  addIssues: [Function (anonymous)],
+  errors: [
+    {
+      code: 'invalid_type',
+      expected: 'object',
+      received: 'array',
+      path: [Array],
+      message: 'Expected object, received array'
+    }
+  ]
+}
+7:33:16 PM [express] GET /api/requests/open/history-get-1741030314920 500 in 2ms :: {"error":"Failed
