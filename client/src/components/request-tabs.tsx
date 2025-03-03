@@ -267,6 +267,20 @@ export function RequestTabs() {
             <Plus className="h-4 w-4" />
             New Request
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              // Only keep the first tab, close all others
+              if (activeRequests.length > 0) {
+                setActiveRequests([activeRequests[0]]);
+                setLocation(`/request/${activeRequests[0].routeId}`);
+              }
+            }}
+          >
+            <X className="h-4 w-4" />
+            Close All
+          </Button>
         </div>
 
         {activeRequests.map(request => (

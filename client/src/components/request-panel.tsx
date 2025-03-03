@@ -518,10 +518,12 @@ export function RequestPanel({
           {unsavedChanges && "*"}
         </Button>
 
-        <Button onClick={handleSend}>
+        <Button onClick={handleSend} className="bg-indigo-600 hover:bg-indigo-700">
           <Send className="mr-2 h-4 w-4" />
           Send
         </Button>
+
+        <Button variant="default" onClick={() => {/* Add close all functionality here */}}>Close All</Button> {/* Added Close All button */}
 
         <Select
           value={request.selectedEnvironment || 'qa01'}
