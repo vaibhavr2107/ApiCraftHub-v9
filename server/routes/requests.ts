@@ -98,7 +98,6 @@ router.put('/requests/update/:routeId', async (req, res) => {
   try {
     const { routeId } = req.params;
     const updates = req.body;
-
     await ensureApiFolder();
 
     // Find the request file
@@ -115,7 +114,15 @@ router.put('/requests/update/:routeId', async (req, res) => {
 
     const filePath = path.join(API_FOLDER, requestFile);
     const content = await fs.readFile(filePath, 'utf-8');
-    const existingRequest = JSON.parse(content);
+    let existingRequest = JSON.parse(content);
+
+    // Handle history requests limit
+    if (updates.historyRequests && updates.historyRequests.length > 5) {
+      updates.historyRequests = updates.historyRequests
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 5);
+    }
+
 
     // Merge updates with existing request
     const updatedRequest = {
