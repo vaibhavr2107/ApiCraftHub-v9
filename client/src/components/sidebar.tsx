@@ -10,12 +10,12 @@ import yaml from 'js-yaml';
 import { useQuery } from "@tanstack/react-query";
 import { loadRequests, saveRequest } from "@/lib/api";
 import { useLocation } from "wouter";
+import { saveHistoryRequest } from '@/lib/history';
 
 interface SidebarProps {
   onRequestSelect: (request: Request) => void;
 }
 
-// Add interface for history entries
 interface HistoryEntry {
   id: string;
   timestamp: string;
@@ -46,7 +46,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Load requests from API
   const { data: rawRequests = [], isLoading, error } = useQuery({
     queryKey: ['/api/requests'],
     queryFn: async () => {
@@ -57,7 +56,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     },
   });
 
-  // Listen for history updates
   useEffect(() => {
     const handleStorageChange = () => {
       const saved = localStorage.getItem("request_history");
@@ -70,7 +68,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  // Deep search in objects
   const searchInObject = (obj: any, searchTerm: string): boolean => {
     const searchRegex = new RegExp(searchTerm, 'i');
 
@@ -93,11 +90,9 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     return search(obj);
   };
 
-  // Filter history entries
   const filteredHistory = historyEntries.filter(entry => {
     if (!historySearch) return true;
 
-    // Search in URL, method, and status
     if (
       entry.request.method.toLowerCase().includes(historySearch.toLowerCase()) ||
       entry.request.url.toLowerCase().includes(historySearch.toLowerCase()) ||
@@ -106,14 +101,12 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       return true;
     }
 
-    // Deep search in request body and response data
     if (searchInObject(entry.request.body, historySearch)) return true;
     if (searchInObject(entry.response.data, historySearch)) return true;
 
     return false;
   });
 
-  // Group requests by collection
   const collections = groupRequestsByCollection(rawRequests);
   console.log('Grouped collections:', collections);
 
@@ -123,11 +116,10 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     setLocation(`/request/${request.routeId}`);
   };
 
-  const handleHistoryItemClick = (entry: HistoryEntry) => {
+  const handleHistoryItemClick = async (entry: HistoryEntry) => {
     const timestamp = new Date(entry.timestamp).getTime();
     const routeId = generateRouteId(`history-${entry.request.method.toLowerCase()}-${timestamp}`);
 
-    // Create a new request from history entry
     const historyRequest: Request = {
       requestId: routeId,
       routeId,
@@ -164,25 +156,28 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       collectionName: "History Requests"
     };
 
-    // Save to active requests and navigate
-    const savedRequests = localStorage.getItem("active_requests");
-    const requests = savedRequests ? JSON.parse(savedRequests) : [];
+    try {
+      await saveHistoryRequest(historyRequest);
+      const savedRequests = localStorage.getItem("active_requests");
+      const requests = savedRequests ? JSON.parse(savedRequests) : [];
+      const existingIndex = requests.findIndex((r: Request) => r.routeId === routeId);
+      if (existingIndex !== -1) {
+        requests[existingIndex] = historyRequest;
+      } else {
+        requests.push(historyRequest);
+      }
 
-    // Check if the request already exists
-    const existingIndex = requests.findIndex((r: Request) => r.routeId === routeId);
-    if (existingIndex !== -1) {
-      // Replace existing request
-      requests[existingIndex] = historyRequest;
-    } else {
-      // Add new request
-      requests.push(historyRequest);
+      localStorage.setItem("active_requests", JSON.stringify(requests));
+      window.dispatchEvent(new Event("storage"));
+      onRequestSelect(historyRequest);
+    } catch (error) {
+      console.error('Error creating history request:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create history request",
+      });
     }
-
-    localStorage.setItem("active_requests", JSON.stringify(requests));
-    window.dispatchEvent(new Event("storage"));
-
-    // Call onRequestSelect to trigger the tab creation
-    onRequestSelect(historyRequest);
   };
 
   function groupRequestsByCollection(requests: Request[]): Collection[] {
@@ -217,25 +212,18 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
       const content = await file.text();
       let requests: Request[] = [];
 
-      // Try to parse as JSON first
       try {
         const json = JSON.parse(content);
         console.log('Parsed JSON:', json);
 
-        // Check if it's a Postman collection
         if (json.info && json.item) {
           requests = processPostmanCollection(json);
-        }
-        // Check if it's an OpenAPI spec
-        else if (json.openapi || json.swagger) {
+        } else if (json.openapi || json.swagger) {
           requests = processOpenAPI(json);
-        }
-        // Assume it's our own request format
-        else if (Array.isArray(json)) {
+        } else if (Array.isArray(json)) {
           requests = json;
         }
       } catch (e) {
-        // If JSON parsing fails, try YAML
         try {
           const spec = yaml.load(content);
           if (spec && typeof spec === 'object' && ('openapi' in spec || 'swagger' in spec)) {
@@ -252,7 +240,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
 
       console.log('Processed requests:', requests);
 
-      // Save each request
       const savedPromises = requests.map(async (request) => {
         try {
           await saveRequest(request);
@@ -406,7 +393,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     setExpandedFolders(newExpanded);
   };
 
-  // Filter collections based on search
   const filteredCollections = collections.map(collection => ({
     ...collection,
     requests: collection.requests.filter(request =>
@@ -471,7 +457,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
             />
           </div>
 
-          {/* History Section */}
           <Button
             variant="ghost"
             className="w-full justify-start"

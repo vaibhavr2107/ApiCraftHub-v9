@@ -28,6 +28,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register API routes
   app.use('/api', requestRoutes);
 
+  // History routes
+  app.get('/api/history/:routeId', (req, res) => {
+    try {
+      const historyFolder = path.join(process.cwd(), 'client', 'collections', 'history');
+      if (!fs.existsSync(historyFolder)) {
+        fs.mkdirSync(historyFolder, { recursive: true });
+      }
+
+      const { routeId } = req.params;
+      const historyFile = fs.readdirSync(historyFolder)
+        .find(file => file.startsWith(routeId));
+
+      if (!historyFile) {
+        return res.status(404).json({ error: 'History request not found' });
+      }
+
+      const content = fs.readFileSync(
+        path.join(historyFolder, historyFile),
+        'utf-8'
+      );
+      res.json(JSON.parse(content));
+    } catch (error) {
+      console.error('Error loading history request:', error);
+      res.status(500).json({ error: 'Failed to load history request' });
+    }
+  });
+
+  app.post('/api/history', (req, res) => {
+    try {
+      const historyFolder = path.join(process.cwd(), 'client', 'collections', 'history');
+      if (!fs.existsSync(historyFolder)) {
+        fs.mkdirSync(historyFolder, { recursive: true });
+      }
+
+      // Get list of existing history files
+      const files = fs.readdirSync(historyFolder)
+        .filter(file => file.endsWith('.json'))
+        .sort()
+        .reverse();
+
+      // Remove oldest files if we exceed max
+      if (files.length >= 10) {
+        files.slice(9).forEach(file => {
+          fs.unlinkSync(path.join(historyFolder, file));
+        });
+      }
+
+      // Save new history file
+      const request = req.body;
+      const timestamp = new Date().getTime();
+      const fileName = `${request.routeId}-${timestamp}.json`;
+      fs.writeFileSync(
+        path.join(historyFolder, fileName),
+        JSON.stringify(request, null, 2)
+      );
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error saving history request:', error);
+      res.status(500).json({ error: 'Failed to save history request' });
+    }
+  });
+
   // Proxy route for making external API calls
   app.post('/api/proxy', async (req, res) => {
     try {
