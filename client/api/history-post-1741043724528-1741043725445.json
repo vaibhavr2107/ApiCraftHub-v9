@@ -1,0 +1,55 @@
+{
+  "requestId": "history-post-1741043724528",
+  "routeId": "history-post-1741043724528",
+  "name": "POST Request (3/4/2025, 4:45:24 AM)",
+  "method": "POST",
+  "baseUrl": "https://api.notion.com/v1/oauth/",
+  "headers": {},
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "none"
+  },
+  "requestBody": {},
+  "responseFields": {
+    "object": "error",
+    "status": 400,
+    "code": "invalid_request_url",
+    "message": "Invalid request URL."
+  },
+  "historyId": "history-post-1741043715349",
+  "historyRequests": [
+    {
+      "method": "POST",
+      "url": "https://api.notion.com/v1/oauth/",
+      "timestamp": "2025-03-03T23:15:15.349Z",
+      "responseTime": 0,
+      "requestBody": {},
+      "responseFields": {
+        "object": "error",
+        "status": 400,
+        "code": "invalid_request_url",
+        "message": "Invalid request URL."
+      }
+    }
+  ],
+  "createdAt": "2025-03-03T23:15:24.528Z",
+  "updatedAt": "2025-03-03T23:15:24.528Z",
+  "selectedEnvironment": "qa01",
+  "devUrl": "",
+  "qa01Url": "",
+  "qa02Url": "",
+  "qa03Url": "",
+  "perfUrl": "",
+  "exampleResponseBody": {
+    "object": "error",
+    "status": 400,
+    "code": "invalid_request_url",
+    "message": "Invalid request URL."
+  },
+  "tags": [],
+  "version": 1,
+  "collectionId": "history",
+  "collectionName": "History Requests",
+  "timestamp": "2025-03-03T23:15:24.528Z"
+}

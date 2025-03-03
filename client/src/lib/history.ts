@@ -1,20 +1,21 @@
 import { Request } from '@shared/schema';
 import { apiRequest } from '@/lib/api';
 
-export function generateHistoryRouteId(method: string, timestamp: number): string {
+export function generateHistoryRouteId(method: string, timestamp: string): string {
   return `history-${method.toLowerCase()}-${timestamp}`;
 }
 
 export async function saveHistoryRequest(request: Request) {
   try {
-    const timestamp = new Date().getTime();
+    const timestamp = request.id || request.routeId?.split('-').pop() || new Date().getTime().toString();
     const uniqueRouteId = generateHistoryRouteId(request.method, timestamp);
+
     const historyRequest = {
       ...request,
       routeId: uniqueRouteId,
       requestId: uniqueRouteId,
-      name: `${request.method} Request (${new Date(timestamp).toLocaleString()})`,
-      timestamp: new Date().toISOString()
+      name: `${request.method} Request (${new Date().toLocaleString()})`,
+      timestamp: request.timestamp || new Date().toISOString() //Use existing timestamp if available
     };
 
     const existingFiles = await listRequestFiles();
