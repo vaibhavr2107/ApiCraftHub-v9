@@ -24,11 +24,12 @@ export class SpringParser {
 
       // First pass: Scan and cache all models/DTOs
       await this.scanForModels(springBootInfo.srcMainJava);
-      console.log(`Found ${this.modelCache.size} models/DTOs`);
+      console.log(`Found ${this.modelCache.size} models/DTOs:`, Array.from(this.modelCache.keys()));
 
       // Second pass: Scan for endpoints
       await this.scanForEndpoints(springBootInfo.srcMainJava, endpoints);
-      console.log(`Found ${endpoints.length} endpoints`);
+      console.log(`Found ${endpoints.length} endpoints:`, 
+        endpoints.map(e => `${e.type} ${e.method} ${e.path}`));
 
       return {
         endpoints,
@@ -42,7 +43,7 @@ export class SpringParser {
   }
 
   private static async scanForModels(srcMainJava: string) {
-    console.log('Scanning for models...');
+    console.log('Scanning for models in:', srcMainJava);
 
     const processJavaFile = async (filePath: string) => {
       try {
@@ -56,7 +57,10 @@ export class SpringParser {
 
           console.log('Processing potential model file:', filePath);
           const ast = JavaParser.parseContent(content);
-          if (!ast) return;
+          if (!ast) {
+            console.warn('Failed to parse AST for:', filePath);
+            return;
+          }
 
           const modelClasses = JavaParser.findAnnotatedClasses(ast, [
             '@Entity', 
@@ -69,6 +73,7 @@ export class SpringParser {
           for (const modelClass of modelClasses) {
             console.log('Found model class:', modelClass.name);
             const fields = this.extractModelFields(modelClass);
+            console.log('Extracted fields:', fields);
             this.modelCache.set(modelClass.name, fields);
           }
         }
@@ -97,24 +102,33 @@ export class SpringParser {
   }
 
   private static async scanForEndpoints(srcMainJava: string, endpoints: SpringEndpoint[]) {
-    console.log('Scanning for endpoints...');
+    console.log('Scanning for endpoints in:', srcMainJava);
 
     const processJavaFile = async (filePath: string) => {
       try {
         const content = await fs.promises.readFile(filePath, 'utf8');
+        console.log('Processing file for endpoints:', filePath);
+
         const ast = JavaParser.parseContent(content);
-        if (!ast) return;
+        if (!ast) {
+          console.warn('Failed to parse AST for:', filePath);
+          return;
+        }
 
         // Process REST controllers
         if (content.includes('@RestController') || content.includes('@Controller')) {
-          console.log('Processing REST controller:', filePath);
+          console.log('Found REST controller in:', filePath);
           const controllers = JavaParser.findAnnotatedClasses(ast, ['@RestController', '@Controller']);
+          console.log('Found controllers:', controllers.map(c => c.name));
 
           for (const controller of controllers) {
-            console.log('Found controller:', controller.name);
+            console.log('Processing controller:', controller.name);
+            console.log('Controller annotations:', controller.annotations);
+
             const restEndpoints = this.processRestController(controller);
             if (restEndpoints.length > 0) {
-              console.log(`Found ${restEndpoints.length} REST endpoints in ${controller.name}`);
+              console.log(`Found ${restEndpoints.length} REST endpoints in ${controller.name}:`,
+                restEndpoints.map(e => `${e.method} ${e.path}`));
               endpoints.push(...restEndpoints);
             }
           }
@@ -122,14 +136,18 @@ export class SpringParser {
 
         // Process SOAP endpoints
         if (content.includes('@WebService') || content.includes('@Endpoint')) {
-          console.log('Processing SOAP service:', filePath);
+          console.log('Found SOAP service in:', filePath);
           const services = JavaParser.findAnnotatedClasses(ast, ['@WebService', '@Endpoint']);
+          console.log('Found SOAP services:', services.map(s => s.name));
 
           for (const service of services) {
-            console.log('Found SOAP service:', service.name);
+            console.log('Processing SOAP service:', service.name);
+            console.log('Service annotations:', service.annotations);
+
             const soapEndpoints = this.processSoapService(service);
             if (soapEndpoints.length > 0) {
-              console.log(`Found ${soapEndpoints.length} SOAP endpoints in ${service.name}`);
+              console.log(`Found ${soapEndpoints.length} SOAP endpoints in ${service.name}:`,
+                soapEndpoints.map(e => e.path));
               endpoints.push(...soapEndpoints);
             }
           }
@@ -159,15 +177,26 @@ export class SpringParser {
   }
 
   private static processRestController(controller: any): SpringEndpoint[] {
+    console.log('Processing REST controller methods:', controller.methods?.length || 0);
+
     const endpoints: SpringEndpoint[] = [];
     const basePath = this.getBaseRequestMapping(controller.annotations);
+    console.log('Controller base path:', basePath);
 
-    controller.methods.forEach((method: any) => {
+    controller.methods?.forEach((method: any) => {
+      console.log('Processing method:', method.name);
+      console.log('Method annotations:', method.annotations);
+
       const mappingAnn = method.annotations.find((ann: any) => 
         ann.name.endsWith('Mapping') || ann.name === '@RequestMapping'
       );
 
-      if (!mappingAnn) return;
+      if (!mappingAnn) {
+        console.log('No mapping annotation found for method:', method.name);
+        return;
+      }
+
+      console.log('Found mapping annotation:', mappingAnn);
 
       const endpoint: SpringEndpoint = {
         type: 'REST',
@@ -180,11 +209,12 @@ export class SpringParser {
       };
 
       // Process request body
-      const requestBodyParam = method.parameters.find((p: any) => 
+      const requestBodyParam = method.parameters?.find((p: any) => 
         p.annotations.some((a: any) => a.name === '@RequestBody')
       );
 
       if (requestBodyParam) {
+        console.log('Found request body parameter:', requestBodyParam);
         endpoint.requestBody = {
           type: requestBodyParam.type,
           fields: this.modelCache.get(requestBodyParam.type) || {},
@@ -194,12 +224,14 @@ export class SpringParser {
 
       // Process response body
       if (method.returnType !== 'void' && this.modelCache.has(method.returnType)) {
+        console.log('Found response type:', method.returnType);
         endpoint.responseBody = {
           type: method.returnType,
           fields: this.modelCache.get(method.returnType) || {}
         };
       }
 
+      console.log('Created REST endpoint:', endpoint);
       endpoints.push(endpoint);
     });
 
@@ -207,23 +239,37 @@ export class SpringParser {
   }
 
   private static processSoapService(service: any): SpringEndpoint[] {
+    console.log('Processing SOAP service methods:', service.methods?.length || 0);
+
     const endpoints: SpringEndpoint[] = [];
     const webServiceAnn = service.annotations.find((ann: any) => 
       ann.name === '@WebService' || ann.name === '@Endpoint'
     );
 
-    if (!webServiceAnn) return endpoints;
+    if (!webServiceAnn) {
+      console.log('No WebService annotation found');
+      return endpoints;
+    }
 
     const namespace = webServiceAnn.args?.targetNamespace || '';
+    console.log('SOAP namespace:', namespace);
 
-    service.methods.forEach((method: any) => {
+    service.methods?.forEach((method: any) => {
+      console.log('Processing SOAP method:', method.name);
+      console.log('Method annotations:', method.annotations);
+
       const webMethodAnn = method.annotations.find((ann: any) => 
         ann.name === '@WebMethod' || ann.name === '@PayloadRoot'
       );
 
-      if (!webMethodAnn) return;
+      if (!webMethodAnn) {
+        console.log('No WebMethod annotation found for method:', method.name);
+        return;
+      }
 
       const operationName = webMethodAnn.args?.operationName || method.name;
+      console.log('Operation name:', operationName);
+
       const endpoint: SpringEndpoint = {
         type: 'SOAP',
         path: `${namespace}/${operationName}`,
@@ -244,6 +290,7 @@ export class SpringParser {
 
       if (requestWrapperAnn && method.parameters.length > 0) {
         const paramType = method.parameters[0].type;
+        console.log('Found request wrapper type:', paramType);
         endpoint.requestBody = {
           type: paramType,
           fields: this.modelCache.get(paramType) || {},
@@ -257,12 +304,14 @@ export class SpringParser {
       );
 
       if (responseWrapperAnn && method.returnType !== 'void') {
+        console.log('Found response wrapper type:', method.returnType);
         endpoint.responseBody = {
           type: method.returnType,
           fields: this.modelCache.get(method.returnType) || {}
         };
       }
 
+      console.log('Created SOAP endpoint:', endpoint);
       endpoints.push(endpoint);
     });
 
@@ -287,18 +336,23 @@ export class SpringParser {
   }
 
   private static processMethodParameters(method: any) {
-    return method.parameters.map((param: any) => {
+    console.log('Processing method parameters:', method.parameters?.length || 0);
+
+    return method.parameters?.map((param: any) => {
       const paramAnn = param.annotations.find((a: any) => 
         ['@PathVariable', '@RequestParam', '@RequestHeader', '@RequestBody'].includes(a.name)
       );
 
-      return {
+      const paramInfo = {
         name: param.name,
         type: param.type,
         required: true,
         in: this.getParameterType(paramAnn?.name)
       };
-    });
+
+      console.log('Processed parameter:', paramInfo);
+      return paramInfo;
+    }) || [];
   }
 
   private static getParameterType(annotationType: string | undefined): string {
@@ -312,9 +366,12 @@ export class SpringParser {
   }
 
   private static extractModelFields(modelClass: any): Record<string, any> {
+    console.log('Extracting fields from model:', modelClass.name);
+
     const fields: Record<string, any> = {};
 
     if (!modelClass.body || !modelClass.body.declarations) {
+      console.warn('No declarations found in model class');
       return fields;
     }
 
@@ -330,6 +387,8 @@ export class SpringParser {
             ann.name === '@Nullable' || ann.name === '@JsonIgnore'
           )
         };
+
+        console.log('Extracted field:', name, fields[name]);
       });
 
     return fields;
