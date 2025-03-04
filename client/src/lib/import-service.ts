@@ -1,66 +1,76 @@
 import type { ImportData } from "@/components/import-wizard";
-import { Request, Collection } from "@shared/schema";
+import { Request, Collection, RequestSchema } from "@shared/schema";
 import { generateRouteId } from "@/lib/utils";
+import yaml from 'js-yaml';
 
-interface ImportedEndpoint {
+// Internal type for imported OpenAPI endpoint
+interface OpenAPIEndpoint {
   path: string;
   method: string;
-  headers: Record<string, string>;
+  description?: string;
+  parameters?: any[];
   requestBody?: any;
-  responseBody?: any;
+  responses?: any;
 }
 
-interface ImportMetadata {
-  serviceName: string;
-  timestamp: string;
-  gitUrl: string;
-  environments: {
-    dev: string;
-    qa01: string;
-    qa02: string;
-    qa03: string;
-    perf: string;
-  };
-  endpoints: ImportedEndpoint[];
+// Internal type for imported collection endpoint
+interface CollectionEndpoint {
+  name: string;
+  method: string;
+  url: string;
+  headers?: Record<string, string>;
+  body?: any;
+  parameters?: any[];
 }
 
 export async function importService(data: ImportData): Promise<void> {
   try {
-    // Make API call to backend to initiate Git scanning
-    const response = await fetch('/api/import', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-    });
+    console.log('Starting import for service:', data.serviceName);
+    let importedEndpoints: Request[] = [];
 
-    if (!response.ok) {
-      throw new Error('Failed to import service');
+    if (data.type === 'openapi') {
+      console.log('Processing OpenAPI import...');
+      importedEndpoints = await importOpenAPI(data);
+    } else if (data.type === 'collection') {
+      console.log('Processing Collection import...');
+      importedEndpoints = await importCollection(data);
+    } else {
+      // Git repository scanning case
+      console.log('Processing Git repository scan...');
+      const response = await fetch('/api/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to import service');
+      }
+
+      const importResults = await response.json();
+      importedEndpoints = convertScannedEndpoints(importResults.endpoints, data);
     }
 
-    const importResults = await response.json();
+    console.log(`Converted ${importedEndpoints.length} endpoints`);
 
-    // Create import metadata
-    const metadata: ImportMetadata = {
-      serviceName: data.serviceName,
-      timestamp: new Date().toISOString(),
-      gitUrl: data.gitUrl,
-      environments: {
-        dev: data.devUrl,
-        qa01: data.qa01Url,
-        qa02: data.qa02Url,
-        qa03: data.qa03Url,
-        perf: data.perfUrl,
-      },
-      endpoints: importResults.endpoints,
+    // Save as a collection
+    const collection: Collection = {
+      id: `collection-${data.serviceName.toLowerCase()}`,
+      name: data.serviceName,
+      description: `Imported from ${data.gitUrl || data.file?.name}`,
+      requests: importedEndpoints,
+      importData: {
+        timestamp: new Date().toISOString(),
+        source: data.gitUrl || data.file?.name,
+        type: data.type
+      }
     };
 
-    // Save import metadata
-    await saveImportMetadata(data.serviceName, metadata);
-
-    // Generate and save API requests
-    await generateApiRequests(metadata);
+    // Save collection to localStorage
+    await saveCollection(collection);
+    console.log('Import completed successfully');
 
   } catch (error) {
     console.error('Import service error:', error);
@@ -68,79 +78,224 @@ export async function importService(data: ImportData): Promise<void> {
   }
 }
 
-async function saveImportMetadata(serviceName: string, metadata: ImportMetadata): Promise<void> {
-  try {
-    const key = `import-${serviceName.toLowerCase()}`;
-    localStorage.setItem(key, JSON.stringify(metadata));
-  } catch (error) {
-    console.error('Error saving import metadata:', error);
-    throw error;
+async function importOpenAPI(data: ImportData): Promise<Request[]> {
+  if (!data.file) {
+    throw new Error('No file provided for OpenAPI import');
   }
+
+  const content = await data.file.text();
+  let spec;
+
+  try {
+    // Try parsing as JSON first
+    spec = JSON.parse(content);
+  } catch {
+    try {
+      // If JSON fails, try YAML
+      spec = yaml.load(content);
+    } catch {
+      throw new Error('Invalid OpenAPI specification format');
+    }
+  }
+
+  if (!spec || !spec.paths) {
+    throw new Error('Invalid OpenAPI specification');
+  }
+
+  const requests: Request[] = [];
+  const timestamp = new Date().toISOString();
+
+  // Process each path and method
+  for (const [path, methods] of Object.entries(spec.paths)) {
+    for (const [method, operation] of Object.entries(methods)) {
+      if (method === 'parameters' || method === '$ref') continue;
+
+      const endpoint: OpenAPIEndpoint = {
+        path,
+        method: method.toUpperCase(),
+        description: operation.description,
+        parameters: operation.parameters,
+        requestBody: operation.requestBody,
+        responses: operation.responses
+      };
+
+      const request = convertOpenAPIEndpoint(endpoint, data.serviceName, timestamp);
+      requests.push(request);
+    }
+  }
+
+  return requests;
 }
 
-async function generateApiRequests(metadata: ImportMetadata): Promise<void> {
-  const timestamp = new Date().toISOString();
-  const collectionId = `collection-${metadata.serviceName.toLowerCase()}`;
+async function importCollection(data: ImportData): Promise<Request[]> {
+  if (!data.file) {
+    throw new Error('No file provided for collection import');
+  }
 
-  const requests: Request[] = metadata.endpoints.map(endpoint => {
-    const routeId = generateRouteId(`${metadata.serviceName}-${endpoint.method}-${endpoint.path}`);
-    const name = `${endpoint.method} ${endpoint.path}`;
+  const content = await data.file.text();
+  let collection;
+
+  try {
+    collection = JSON.parse(content);
+  } catch {
+    throw new Error('Invalid collection format');
+  }
+
+  // Support different collection formats
+  const items = collection.item || collection.requests || collection.items;
+  if (!items) {
+    throw new Error('No requests found in collection');
+  }
+
+  const requests: Request[] = [];
+  const timestamp = new Date().toISOString();
+
+  // Process each request in the collection
+  for (const item of items) {
+    if (!item.request) continue;
+
+    const endpoint: CollectionEndpoint = {
+      name: item.name,
+      method: item.request.method,
+      url: item.request.url.raw || item.request.url,
+      headers: item.request.header,
+      body: item.request.body,
+      parameters: item.request.params
+    };
+
+    const request = convertCollectionEndpoint(endpoint, data.serviceName, timestamp);
+    requests.push(request);
+  }
+
+  return requests;
+}
+
+function convertOpenAPIEndpoint(endpoint: OpenAPIEndpoint, serviceName: string, timestamp: string): Request {
+  const requestId = generateRouteId(`${serviceName}-${endpoint.method}-${endpoint.path}`);
+
+  return {
+    requestId,
+    routeId: requestId,
+    name: `${endpoint.method} ${endpoint.path}`,
+    method: endpoint.method,
+    baseUrl: endpoint.path,
+    headers: {},
+    queryParams: {},
+    pathVariables: {},
+    requestBody: endpoint.requestBody?.content?.['application/json']?.schema || {},
+    responseFields: endpoint.responses?.['200']?.content?.['application/json']?.schema || {},
+    historyId: `history-${requestId}`,
+    historyRequests: [],
+    devUrl: '',
+    qa01Url: '',
+    qa02Url: '',
+    qa03Url: '',
+    perfUrl: '',
+    selectedEnvironment: 'qa01',
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    version: 1,
+    auth: { type: 'none' },
+    tags: [],
+    collectionId: `collection-${serviceName.toLowerCase()}`
+  };
+}
+
+function convertCollectionEndpoint(endpoint: CollectionEndpoint, serviceName: string, timestamp: string): Request {
+  const requestId = generateRouteId(`${serviceName}-${endpoint.method}-${endpoint.url}`);
+
+  return {
+    requestId,
+    routeId: requestId,
+    name: endpoint.name || `${endpoint.method} ${endpoint.url}`,
+    method: endpoint.method,
+    baseUrl: endpoint.url,
+    headers: endpoint.headers || {},
+    queryParams: {},
+    pathVariables: {},
+    requestBody: endpoint.body || {},
+    responseFields: {},
+    historyId: `history-${requestId}`,
+    historyRequests: [],
+    devUrl: '',
+    qa01Url: '',
+    qa02Url: '',
+    qa03Url: '',
+    perfUrl: '',
+    selectedEnvironment: 'qa01',
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    version: 1,
+    auth: { type: 'none' },
+    tags: [],
+    collectionId: `collection-${serviceName.toLowerCase()}`
+  };
+}
+
+function convertScannedEndpoints(endpoints: any[], data: ImportData): Request[] {
+  const timestamp = new Date().toISOString();
+
+  return endpoints.map(endpoint => {
+    const requestId = generateRouteId(`${data.serviceName}-${endpoint.method}-${endpoint.path}`);
 
     return {
-      requestId: routeId,
-      routeId: routeId,
-      name: name,
+      requestId,
+      routeId: requestId,
+      name: `${endpoint.method} ${endpoint.path}`,
       method: endpoint.method,
-      baseUrl: metadata.environments.qa01 + endpoint.path,
+      baseUrl: endpoint.path,
       headers: endpoint.headers || {},
+      queryParams: {},
+      pathVariables: {},
       requestBody: endpoint.requestBody || {},
-      exampleResponseBody: endpoint.responseBody || {},
-      devUrl: metadata.environments.dev + endpoint.path,
-      qa01Url: metadata.environments.qa01 + endpoint.path,
-      qa02Url: metadata.environments.qa02 + endpoint.path,
-      qa03Url: metadata.environments.qa03 + endpoint.path,
-      perfUrl: metadata.environments.perf + endpoint.path,
-      selectedEnvironment: 'qa01',
+      responseFields: endpoint.responseBody || {},
+      historyId: `history-${requestId}`,
       historyRequests: [],
-      historyId: `history-${routeId}`,
+      devUrl: data.devUrl + endpoint.path,
+      qa01Url: data.qa01Url + endpoint.path,
+      qa02Url: data.qa02Url + endpoint.path,
+      qa03Url: data.qa03Url + endpoint.path,
+      perfUrl: data.perfUrl + endpoint.path,
+      selectedEnvironment: 'qa01',
       createdAt: timestamp,
       updatedAt: timestamp,
       version: 1,
-      collectionId: collectionId,
-      collectionName: metadata.serviceName,
-      queryParams: {},
-      pathVariables: {},
-      responseFields: {},
+      auth: { type: 'none' },
       tags: [],
-      auth: { type: 'bearer-tiaa' }
+      collectionId: `collection-${data.serviceName.toLowerCase()}`
     };
   });
+}
 
-  // Create or update collection
-  const collection: Collection = {
-    id: collectionId,
-    name: metadata.serviceName,
-    description: `Imported from ${metadata.gitUrl}`,
-    requests: requests,
-    importData: metadata // Store import metadata for refresh functionality
-  };
-
-  // Save collection
+async function saveCollection(collection: Collection): Promise<void> {
   try {
+    // Get existing collections
     const existingCollections = JSON.parse(localStorage.getItem('collections') || '[]');
-    const collectionIndex = existingCollections.findIndex((c: Collection) => c.id === collectionId);
+
+    // Check if collection already exists
+    const collectionIndex = existingCollections.findIndex((c: Collection) => c.id === collection.id);
 
     if (collectionIndex >= 0) {
+      // Update existing collection
       existingCollections[collectionIndex] = collection;
     } else {
+      // Add new collection
       existingCollections.push(collection);
     }
 
+    // Save back to localStorage
     localStorage.setItem('collections', JSON.stringify(existingCollections));
+
+    console.log(`Collection ${collection.name} saved successfully`);
   } catch (error) {
     console.error('Error saving collection:', error);
     throw error;
   }
+}
+
+// Placeholder for generateRouteId function - replace with actual implementation
+function generateRouteId(input: string): string {
+  return input.toLowerCase().replace(/[^a-z0-9]/g, '-');
 }
 
 export async function refreshServiceImport(serviceName: string): Promise<void> {
@@ -166,6 +321,8 @@ export async function refreshServiceImport(serviceName: string): Promise<void> {
       perfUrl: metadata.environments.perf,
       username: '', // Would need secure credential storage
       password: '', // Would need secure credential storage
+      type: '',
+      file: null
     };
 
     await importService(importData);
@@ -175,7 +332,24 @@ export async function refreshServiceImport(serviceName: string): Promise<void> {
   }
 }
 
-// Placeholder for generateRouteId function - replace with actual implementation
-function generateRouteId(input: string): string {
-  return input.toLowerCase().replace(/[^a-z0-9]/g, '-');
+interface ImportMetadata {
+  serviceName: string;
+  timestamp: string;
+  gitUrl: string;
+  environments: {
+    dev: string;
+    qa01: string;
+    qa02: string;
+    qa03: string;
+    perf: string;
+  };
+  endpoints: ImportedEndpoint[];
+}
+
+interface ImportedEndpoint {
+  path: string;
+  method: string;
+  headers: Record<string, string>;
+  requestBody?: any;
+  responseBody?: any;
 }
