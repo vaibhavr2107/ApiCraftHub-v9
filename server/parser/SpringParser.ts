@@ -2,107 +2,168 @@ import { JavaParser } from './JavaParser';
 import { SpringEndpoint } from '../types/spring';
 import fs from 'fs';
 import path from 'path';
+import { SpringBootScanner } from '../services/SpringBootScanner';
 
 export class SpringParser {
   private static modelCache: Map<string, Record<string, any>> = new Map();
 
   static async scanProject(projectPath: string) {
     console.log('Starting Spring project scan...');
-    
+
     const endpoints: SpringEndpoint[] = [];
     this.modelCache.clear();
 
-    // First pass: Scan and cache all models/DTOs
-    await this.scanForModels(projectPath);
-    console.log(`Found ${this.modelCache.size} models/DTOs`);
+    try {
+      // First find Spring Boot application and project structure
+      const springBootInfo = await SpringBootScanner.findSpringBootApp(projectPath);
+      if (!springBootInfo.srcMainJava) {
+        throw new Error('Could not find Java source directory');
+      }
 
-    // Second pass: Scan for endpoints
-    await this.scanForEndpoints(projectPath, endpoints);
-    console.log(`Found ${endpoints.length} endpoints`);
+      console.log('Spring Boot application info:', springBootInfo);
 
-    return {
-      endpoints,
-      models: Object.fromEntries(this.modelCache)
-    };
+      // First pass: Scan and cache all models/DTOs
+      await this.scanForModels(springBootInfo.srcMainJava);
+      console.log(`Found ${this.modelCache.size} models/DTOs`);
+
+      // Second pass: Scan for endpoints
+      await this.scanForEndpoints(springBootInfo.srcMainJava, endpoints);
+      console.log(`Found ${endpoints.length} endpoints`);
+
+      return {
+        endpoints,
+        models: Object.fromEntries(this.modelCache),
+        basePackage: springBootInfo.basePackage
+      };
+    } catch (error) {
+      console.error('Error scanning Spring project:', error);
+      throw error;
+    }
   }
 
-  private static async scanForModels(dir: string) {
-    const files = await fs.promises.readdir(dir);
+  private static async scanForModels(srcMainJava: string) {
+    console.log('Scanning for models...');
 
-    for (const file of files) {
-      const filePath = path.join(dir, file);
-      const stat = await fs.promises.stat(filePath);
-
-      if (stat.isDirectory()) {
-        if (!['build', 'target', 'node_modules', '.git'].includes(file)) {
-          await this.scanForModels(filePath);
-        }
-      } else if (file.endsWith('.java')) {
+    const processJavaFile = async (filePath: string) => {
+      try {
         const content = await fs.promises.readFile(filePath, 'utf8');
-        
+
         // Check if file contains model/DTO
-        if (file.endsWith('DTO.java') || file.endsWith('Model.java') || content.includes('@Entity')) {
-          const ast = JavaParser.parseContent(content);
-          if (!ast) continue;
+        if (filePath.endsWith('DTO.java') || 
+            filePath.endsWith('Model.java') || 
+            content.includes('@Entity') ||
+            content.includes('implements Serializable')) {
 
-          const modelClasses = JavaParser.findAnnotatedClasses(ast, ['@Entity', '@Data', '@Getter', '@Setter']);
-          modelClasses.forEach(modelClass => {
-            this.modelCache.set(modelClass.name, this.extractModelFields(modelClass));
-          });
+          console.log('Processing potential model file:', filePath);
+          const ast = JavaParser.parseContent(content);
+          if (!ast) return;
+
+          const modelClasses = JavaParser.findAnnotatedClasses(ast, [
+            '@Entity', 
+            '@Data', 
+            '@Getter', 
+            '@Setter',
+            '@JsonIgnoreProperties'
+          ]);
+
+          for (const modelClass of modelClasses) {
+            console.log('Found model class:', modelClass.name);
+            const fields = this.extractModelFields(modelClass);
+            this.modelCache.set(modelClass.name, fields);
+          }
+        }
+      } catch (error) {
+        console.error('Error processing Java file:', filePath, error);
+      }
+    };
+
+    const scanDir = async (dir: string) => {
+      const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          if (!['build', 'target', 'node_modules', '.git'].includes(entry.name)) {
+            await scanDir(fullPath);
+          }
+        } else if (entry.name.endsWith('.java')) {
+          await processJavaFile(fullPath);
         }
       }
-    }
+    };
+
+    await scanDir(srcMainJava);
   }
 
-  private static async scanForEndpoints(dir: string, endpoints: SpringEndpoint[]) {
-    const files = await fs.promises.readdir(dir);
+  private static async scanForEndpoints(srcMainJava: string, endpoints: SpringEndpoint[]) {
+    console.log('Scanning for endpoints...');
 
-    for (const file of files) {
-      const filePath = path.join(dir, file);
-      const stat = await fs.promises.stat(filePath);
-
-      if (stat.isDirectory()) {
-        if (!['build', 'target', 'node_modules', '.git'].includes(file)) {
-          await this.scanForEndpoints(filePath, endpoints);
-        }
-      } else if (file.endsWith('.java')) {
+    const processJavaFile = async (filePath: string) => {
+      try {
         const content = await fs.promises.readFile(filePath, 'utf8');
-        
-        // Parse REST controllers
-        if (content.includes('@RestController') || content.includes('@Controller')) {
-          console.log(`Processing REST controller: ${file}`);
-          const ast = JavaParser.parseContent(content);
-          if (!ast) continue;
+        const ast = JavaParser.parseContent(content);
+        if (!ast) return;
 
+        // Process REST controllers
+        if (content.includes('@RestController') || content.includes('@Controller')) {
+          console.log('Processing REST controller:', filePath);
           const controllers = JavaParser.findAnnotatedClasses(ast, ['@RestController', '@Controller']);
-          controllers.forEach(controller => {
+
+          for (const controller of controllers) {
+            console.log('Found controller:', controller.name);
             const restEndpoints = this.processRestController(controller);
-            endpoints.push(...restEndpoints);
-          });
+            if (restEndpoints.length > 0) {
+              console.log(`Found ${restEndpoints.length} REST endpoints in ${controller.name}`);
+              endpoints.push(...restEndpoints);
+            }
+          }
         }
 
-        // Parse SOAP endpoints
-        if (content.includes('@WebService')) {
-          console.log(`Processing SOAP service: ${file}`);
-          const ast = JavaParser.parseContent(content);
-          if (!ast) continue;
+        // Process SOAP endpoints
+        if (content.includes('@WebService') || content.includes('@Endpoint')) {
+          console.log('Processing SOAP service:', filePath);
+          const services = JavaParser.findAnnotatedClasses(ast, ['@WebService', '@Endpoint']);
 
-          const services = JavaParser.findAnnotatedClasses(ast, ['@WebService']);
-          services.forEach(service => {
+          for (const service of services) {
+            console.log('Found SOAP service:', service.name);
             const soapEndpoints = this.processSoapService(service);
-            endpoints.push(...soapEndpoints);
-          });
+            if (soapEndpoints.length > 0) {
+              console.log(`Found ${soapEndpoints.length} SOAP endpoints in ${service.name}`);
+              endpoints.push(...soapEndpoints);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error processing Java file:', filePath, error);
+      }
+    };
+
+    const scanDir = async (dir: string) => {
+      const entries = await fs.promises.readdir(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          if (!['build', 'target', 'node_modules', '.git'].includes(entry.name)) {
+            await scanDir(fullPath);
+          }
+        } else if (entry.name.endsWith('.java')) {
+          await processJavaFile(fullPath);
         }
       }
-    }
+    };
+
+    await scanDir(srcMainJava);
   }
 
   private static processRestController(controller: any): SpringEndpoint[] {
     const endpoints: SpringEndpoint[] = [];
     const basePath = this.getBaseRequestMapping(controller.annotations);
 
-    controller.methods.forEach(method => {
-      const mappingAnn = method.annotations.find(ann => 
+    controller.methods.forEach((method: any) => {
+      const mappingAnn = method.annotations.find((ann: any) => 
         ann.name.endsWith('Mapping') || ann.name === '@RequestMapping'
       );
 
@@ -119,9 +180,10 @@ export class SpringParser {
       };
 
       // Process request body
-      const requestBodyParam = method.parameters.find(p => 
-        p.annotations.some(a => a.name === '@RequestBody')
+      const requestBodyParam = method.parameters.find((p: any) => 
+        p.annotations.some((a: any) => a.name === '@RequestBody')
       );
+
       if (requestBodyParam) {
         endpoint.requestBody = {
           type: requestBodyParam.type,
@@ -146,28 +208,40 @@ export class SpringParser {
 
   private static processSoapService(service: any): SpringEndpoint[] {
     const endpoints: SpringEndpoint[] = [];
-    const webServiceAnn = service.annotations.find(ann => ann.name === '@WebService');
-    const namespace = webServiceAnn?.args?.targetNamespace || '';
+    const webServiceAnn = service.annotations.find((ann: any) => 
+      ann.name === '@WebService' || ann.name === '@Endpoint'
+    );
 
-    service.methods.forEach(method => {
-      const webMethodAnn = method.annotations.find(ann => ann.name === '@WebMethod');
+    if (!webServiceAnn) return endpoints;
+
+    const namespace = webServiceAnn.args?.targetNamespace || '';
+
+    service.methods.forEach((method: any) => {
+      const webMethodAnn = method.annotations.find((ann: any) => 
+        ann.name === '@WebMethod' || ann.name === '@PayloadRoot'
+      );
+
       if (!webMethodAnn) return;
 
+      const operationName = webMethodAnn.args?.operationName || method.name;
       const endpoint: SpringEndpoint = {
         type: 'SOAP',
-        path: `${namespace}/${webMethodAnn.args.operationName || method.name}`,
+        path: `${namespace}/${operationName}`,
         method: 'POST',
         parameters: this.processMethodParameters(method),
         headers: {
           'Content-Type': 'text/xml',
-          'SOAPAction': `${namespace}/${webMethodAnn.args.operationName || method.name}`
+          'SOAPAction': `${namespace}/${operationName}`
         },
         consumes: ['text/xml'],
         produces: ['text/xml']
       };
 
       // Process request wrapper
-      const requestWrapperAnn = method.annotations.find(ann => ann.name === '@RequestWrapper');
+      const requestWrapperAnn = method.annotations.find((ann: any) => 
+        ann.name === '@RequestWrapper'
+      );
+
       if (requestWrapperAnn && method.parameters.length > 0) {
         const paramType = method.parameters[0].type;
         endpoint.requestBody = {
@@ -178,7 +252,10 @@ export class SpringParser {
       }
 
       // Process response wrapper
-      const responseWrapperAnn = method.annotations.find(ann => ann.name === '@ResponseWrapper');
+      const responseWrapperAnn = method.annotations.find((ann: any) => 
+        ann.name === '@ResponseWrapper'
+      );
+
       if (responseWrapperAnn && method.returnType !== 'void') {
         endpoint.responseBody = {
           type: method.returnType,
@@ -210,8 +287,8 @@ export class SpringParser {
   }
 
   private static processMethodParameters(method: any) {
-    return method.parameters.map(param => {
-      const paramType = param.annotations.find(a => 
+    return method.parameters.map((param: any) => {
+      const paramAnn = param.annotations.find((a: any) => 
         ['@PathVariable', '@RequestParam', '@RequestHeader', '@RequestBody'].includes(a.name)
       );
 
@@ -219,7 +296,7 @@ export class SpringParser {
         name: param.name,
         type: param.type,
         required: true,
-        in: this.getParameterType(paramType?.name)
+        in: this.getParameterType(paramAnn?.name)
       };
     });
   }
@@ -236,8 +313,25 @@ export class SpringParser {
 
   private static extractModelFields(modelClass: any): Record<string, any> {
     const fields: Record<string, any> = {};
-    // Process fields based on JavaParser's structure
-    // Add field extraction logic here
+
+    if (!modelClass.body || !modelClass.body.declarations) {
+      return fields;
+    }
+
+    modelClass.body.declarations
+      .filter((decl: any) => decl.type === 'FieldDeclaration')
+      .forEach((field: any) => {
+        const name = field.declarator.name;
+        const type = field.type.name;
+
+        fields[name] = {
+          type,
+          required: !field.annotations.some((ann: any) => 
+            ann.name === '@Nullable' || ann.name === '@JsonIgnore'
+          )
+        };
+      });
+
     return fields;
   }
 }
