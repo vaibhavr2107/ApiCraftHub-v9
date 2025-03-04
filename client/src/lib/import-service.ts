@@ -23,67 +23,68 @@ interface CollectionEndpoint {
   parameters?: any[];
 }
 
-export async function importService(data: ImportData): Promise<void> {
+interface FileImportData {
+  file: File;
+  type: 'openapi' | 'collection';
+}
+
+export async function importFromFile(data: FileImportData): Promise<void> {
   try {
-    console.log('Starting import for service:', data.serviceName);
+    console.log('Starting file import:', data.file.name);
     let importedEndpoints: Request[] = [];
+    let collectionName = data.file.name.split('.')[0];
 
     if (data.type === 'openapi') {
       console.log('Processing OpenAPI import...');
-      importedEndpoints = await importOpenAPI(data);
-    } else if (data.type === 'collection') {
-      console.log('Processing Collection import...');
-      importedEndpoints = await importCollection(data);
+      importedEndpoints = await importOpenAPI(data.file);
     } else {
-      // Git repository scanning case
-      console.log('Processing Git repository scan...');
-      const response = await fetch('/api/import', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to import service');
-      }
-
-      const importResults = await response.json();
-      importedEndpoints = convertScannedEndpoints(importResults.endpoints, data);
+      console.log('Processing Collection import...');
+      importedEndpoints = await importCollection(data.file);
     }
 
     console.log(`Converted ${importedEndpoints.length} endpoints`);
 
-    // Save as a collection
-    const collection: Collection = {
-      id: `collection-${data.serviceName.toLowerCase()}`,
-      name: data.serviceName,
-      description: `Imported from ${data.gitUrl || data.file?.name}`,
-      requests: importedEndpoints,
-      importData: {
-        timestamp: new Date().toISOString(),
-        source: data.gitUrl || data.file?.name,
-        type: data.type
-      }
-    };
+    // Generate or reuse collection ID
+    const collectionId = `collection-${collectionName.toLowerCase()}`;
 
-    // Save collection to localStorage
-    await saveCollection(collection);
+    // Get existing collections
+    const existingCollections = JSON.parse(localStorage.getItem('collections') || '[]');
+    let collection = existingCollections.find((c: Collection) => c.id === collectionId);
+
+    if (collection) {
+      // Merge new requests with existing collection
+      const existingRequestIds = new Set(collection.requests.map(r => r.routeId));
+      const newRequests = importedEndpoints.filter(r => !existingRequestIds.has(r.routeId));
+      collection.requests = [...collection.requests, ...newRequests];
+      collection.updatedAt = new Date().toISOString();
+    } else {
+      // Create new collection
+      collection = {
+        id: collectionId,
+        name: collectionName,
+        description: `Imported from ${data.file.name}`,
+        requests: importedEndpoints,
+        importData: {
+          timestamp: new Date().toISOString(),
+          source: data.file.name,
+          type: data.type
+        }
+      };
+      existingCollections.push(collection);
+    }
+
+    // Save collections
+    localStorage.setItem('collections', JSON.stringify(existingCollections));
     console.log('Import completed successfully');
 
   } catch (error) {
-    console.error('Import service error:', error);
+    console.error('Import file error:', error);
     throw error;
   }
 }
 
-async function importOpenAPI(data: ImportData): Promise<Request[]> {
-  if (!data.file) {
-    throw new Error('No file provided for OpenAPI import');
-  }
-
-  const content = await data.file.text();
+async function importOpenAPI(file: File): Promise<Request[]> {
+  const content = await file.text();
   let spec;
 
   try {
@@ -104,6 +105,8 @@ async function importOpenAPI(data: ImportData): Promise<Request[]> {
 
   const requests: Request[] = [];
   const timestamp = new Date().toISOString();
+  const serviceName = file.name.split('.')[0];
+  const collectionId = `collection-${serviceName.toLowerCase()}`;
 
   // Process each path and method
   for (const [path, methods] of Object.entries(spec.paths)) {
@@ -119,7 +122,20 @@ async function importOpenAPI(data: ImportData): Promise<Request[]> {
         responses: operation.responses
       };
 
-      const request = convertOpenAPIEndpoint(endpoint, data.serviceName, timestamp);
+      const request = await createRequest({
+        method: endpoint.method,
+        path: endpoint.path,
+        description: endpoint.description,
+        serviceName,
+        collectionId,
+        timestamp,
+        requestBody: endpoint.requestBody?.content?.['application/json']?.schema,
+        responseBody: endpoint.responses?.['200']?.content?.['application/json']?.schema,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
       requests.push(request);
     }
   }
@@ -127,12 +143,8 @@ async function importOpenAPI(data: ImportData): Promise<Request[]> {
   return requests;
 }
 
-async function importCollection(data: ImportData): Promise<Request[]> {
-  if (!data.file) {
-    throw new Error('No file provided for collection import');
-  }
-
-  const content = await data.file.text();
+async function importCollection(file: File): Promise<Request[]> {
+  const content = await file.text();
   let collection;
 
   try {
@@ -149,6 +161,8 @@ async function importCollection(data: ImportData): Promise<Request[]> {
 
   const requests: Request[] = [];
   const timestamp = new Date().toISOString();
+  const serviceName = file.name.split('.')[0];
+  const collectionId = `collection-${serviceName.toLowerCase()}`;
 
   // Process each request in the collection
   for (const item of items) {
@@ -163,11 +177,160 @@ async function importCollection(data: ImportData): Promise<Request[]> {
       parameters: item.request.params
     };
 
-    const request = convertCollectionEndpoint(endpoint, data.serviceName, timestamp);
+    const request = await createRequest({
+      method: endpoint.method,
+      path: endpoint.url,
+      name: endpoint.name,
+      serviceName,
+      collectionId,
+      timestamp,
+      requestBody: endpoint.body?.raw ? JSON.parse(endpoint.body.raw) : undefined,
+      headers: endpoint.headers
+    });
+
     requests.push(request);
   }
 
   return requests;
+}
+
+async function createRequest({
+  method,
+  path,
+  name,
+  description,
+  serviceName,
+  collectionId,
+  timestamp,
+  requestBody,
+  responseBody,
+  headers
+}: {
+  method: string;
+  path: string;
+  name?: string;
+  description?: string;
+  serviceName: string;
+  collectionId: string;
+  timestamp: string;
+  requestBody?: any;
+  responseBody?: any;
+  headers?: Record<string, string>;
+}): Promise<Request> {
+  const routeId = generateRouteId(`${serviceName}-${method}-${path}`);
+
+  const request: Request = {
+    requestId: routeId,
+    routeId: routeId,
+    name: name || `${method} ${path}`,
+    description,
+    method,
+    baseUrl: path,
+    headers: headers || {},
+    queryParams: {},
+    pathVariables: {},
+    requestBody: requestBody || {},
+    responseFields: responseBody || {},
+    exampleResponseBody: {}, // Required by schema
+    historyId: `history-${routeId}`,
+    historyRequests: [],
+    devUrl: '',
+    qa01Url: '',
+    qa02Url: '',
+    qa03Url: '',
+    perfUrl: '',
+    selectedEnvironment: 'qa01',
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    version: 1,
+    auth: { type: 'none' },
+    tags: [],
+    collectionId
+  };
+
+  return RequestSchema.parse(request);
+}
+
+export async function importService(data: ImportData): Promise<void> {
+  try {
+    // Make API call to backend to initiate Git scanning
+    const response = await fetch('/api/import', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to import service');
+    }
+
+    const result = await response.json();
+    const serviceName = data.serviceName;
+    const collectionId = `collection-${serviceName.toLowerCase()}`;
+
+    // Convert scanned endpoints to requests
+    const requests = result.endpoints.map((endpoint: any) => {
+      const routeId = generateRouteId(`${serviceName}-${endpoint.method}-${endpoint.path}`);
+      return RequestSchema.parse({
+        requestId: routeId,
+        routeId: routeId,
+        name: `${endpoint.method} ${endpoint.path}`,
+        method: endpoint.method,
+        baseUrl: endpoint.path,
+        headers: endpoint.headers || {},
+        queryParams: {},
+        pathVariables: {},
+        requestBody: endpoint.requestBody || {},
+        responseFields: endpoint.responseBody || {},
+        exampleResponseBody: {},
+        historyId: `history-${routeId}`,
+        historyRequests: [],
+        devUrl: data.devUrl + endpoint.path,
+        qa01Url: data.qa01Url + endpoint.path,
+        qa02Url: data.qa02Url + endpoint.path,
+        qa03Url: data.qa03Url + endpoint.path,
+        perfUrl: data.perfUrl + endpoint.path,
+        selectedEnvironment: 'qa01',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: 1,
+        auth: { type: 'none' },
+        tags: [],
+        collectionId
+      });
+    });
+
+    // Create or update collection
+    const collection: Collection = {
+      id: collectionId,
+      name: serviceName,
+      description: `Imported from ${data.gitUrl}`,
+      requests,
+      importData: {
+        timestamp: new Date().toISOString(),
+        source: data.gitUrl,
+        type: 'git'
+      }
+    };
+
+    // Save collection
+    const existingCollections = JSON.parse(localStorage.getItem('collections') || '[]');
+    const collectionIndex = existingCollections.findIndex((c: Collection) => c.id === collectionId);
+
+    if (collectionIndex >= 0) {
+      existingCollections[collectionIndex] = collection;
+    } else {
+      existingCollections.push(collection);
+    }
+
+    localStorage.setItem('collections', JSON.stringify(existingCollections));
+
+  } catch (error) {
+    console.error('Import service error:', error);
+    throw error;
+  }
 }
 
 function convertOpenAPIEndpoint(endpoint: OpenAPIEndpoint, serviceName: string, timestamp: string): Request {
