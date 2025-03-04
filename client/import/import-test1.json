@@ -1,0 +1,18 @@
+{
+  "timestamp": "2025-03-04T00:05:39.342Z",
+  "serviceName": "test1",
+  "gitUrl": "https://github.com/jonashackt/soap-spring-boot-cxf",
+  "environments": {
+    "dev": "",
+    "qa01": "",
+    "qa02": "",
+    "qa03": "",
+    "perf": ""
+  },
+  "endpointStats": {
+    "total": 0,
+    "rest": 0,
+    "soap": 0
+  },
+  "models": {}
+}

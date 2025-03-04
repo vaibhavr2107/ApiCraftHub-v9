@@ -3,7 +3,7 @@
   "routeId": "notion-api-append-block-children",
   "name": "Append block children",
   "method": "PUT",
-  "baseUrl": "https://api.notion.com/v1/blocks/{block_id}/children123dffdfd",
+  "baseUrl": "https://api.notion.com/v1/blocks/{block_id}/children",
   "queryParams": {},
   "pathVariables": {},
   "auth": {
@@ -121,7 +121,7 @@
   "collectionId": "notion-api",
   "collectionName": "Notion API",
   "createdAt": "2025-02-28T21:39:02.537Z",
-  "updatedAt": "2025-03-03T22:52:02.903Z",
+  "updatedAt": "2025-03-04T00:06:58.372Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }
