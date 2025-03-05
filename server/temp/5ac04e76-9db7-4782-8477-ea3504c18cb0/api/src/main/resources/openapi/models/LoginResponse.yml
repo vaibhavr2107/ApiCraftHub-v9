@@ -1,0 +1,13 @@
+type: object
+description: Login response model
+properties:
+  token:
+    type: string
+    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  expiresIn:
+    type: integer
+    format: int64
+    example: 3600
+required:
+  - token
+  - expiresIn 

@@ -200,4 +200,83 @@ router.post('/api/history', (req, res) => {
   }
 });
 
+// Create a new request file
+router.post('/requests', async (req, res) => {
+  try {
+    await ensureApiFolder();
+    const requestData = req.body;
+    
+    // Generate IDs if not provided
+    const timestamp = new Date().getTime();
+    if (!requestData.requestId) {
+      requestData.requestId = `${requestData.method.toLowerCase()}-${timestamp}`;
+    }
+    if (!requestData.routeId) {
+      requestData.routeId = requestData.requestId;
+    }
+    if (!requestData.historyId) {
+      requestData.historyId = `history-${requestData.requestId}`;
+    }
+    
+    // Set created/updated timestamps
+    const now = new Date().toISOString();
+    requestData.createdAt = now;
+    requestData.updatedAt = now;
+    
+    // Validate request with our schema
+    const validatedRequest = RequestSchema.parse(requestData);
+    
+    // Save to file
+    const filename = `${validatedRequest.routeId}.json`;
+    const filePath = path.join(API_FOLDER, filename);
+    
+    await fs.writeFile(filePath, JSON.stringify(validatedRequest, null, 2));
+    
+    res.status(201).json({
+      message: 'Request created successfully',
+      request: validatedRequest,
+      filename
+    });
+  } catch (error) {
+    console.error('Error creating request:', error);
+    res.status(500).json({
+      error: 'Failed to create request',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Delete a request file
+router.delete('/requests/:routeId', async (req, res) => {
+  try {
+    await ensureApiFolder();
+    const { routeId } = req.params;
+    
+    const files = await fs.readdir(API_FOLDER);
+    let requestFile = files.find(file => file === `${routeId}.json`);
+    
+    if (!requestFile) {
+      requestFile = files.find(file => file.includes(routeId) && file.endsWith('.json'));
+    }
+    
+    if (!requestFile) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+    
+    const filePath = path.join(API_FOLDER, requestFile);
+    await fs.unlink(filePath);
+    
+    res.json({
+      message: 'Request deleted successfully',
+      deletedFile: requestFile
+    });
+  } catch (error) {
+    console.error('Error deleting request:', error);
+    res.status(500).json({
+      error: 'Failed to delete request',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

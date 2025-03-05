@@ -1,0 +1,203 @@
+/auth/login:
+  post:
+    summary: User login
+    description: Authenticate user and get access token
+    operationId: loginUser
+    tags:
+      - Authentication
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../models/LoginRequest.yml'
+    responses:
+      '200':
+        description: Login successful
+        content:
+          application/json:
+            schema:
+              $ref: '../models/LoginResponse.yml'
+
+/users:
+  get:
+    summary: Get all users
+    description: Retrieve a list of all users
+    operationId: getUsers
+    tags:
+      - Users
+    parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - in: query
+        name: size
+        schema:
+          type: integer
+          minimum: 1
+          default: 10
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: Successful operation
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: '../models/User.yml'
+                pagination:
+                  $ref: '../components/schemas.yml#/Pagination'
+  post:
+    summary: Create a new user
+    description: Create a new user in the system
+    operationId: createUser
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../models/User.yml'
+    responses:
+      '201':
+        description: User created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../models/User.yml'
+
+/users/{userId}:
+  parameters:
+    - name: userId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+  get:
+    summary: Get user by ID
+    description: Retrieve user details by their ID
+    operationId: getUserById
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: Successful operation
+        content:
+          application/json:
+            schema:
+              $ref: '../models/User.yml'
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yml#/Error'
+
+  put:
+    summary: Update user
+    description: Update user information
+    operationId: updateUser
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../models/UserUpdateRequest.yml'
+    responses:
+      '200':
+        description: User updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../models/User.yml'
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yml#/Error'
+
+  delete:
+    summary: Delete user
+    description: Delete user by ID
+    operationId: deleteUser
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    responses:
+      '204':
+        description: User deleted successfully
+      '404':
+        description: User not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yml#/Error'
+
+/users/search:
+  get:
+    summary: Search users
+    description: Search users by various criteria
+    operationId: searchUsers
+    tags:
+      - Users
+    security:
+      - BearerAuth: []
+    parameters:
+      - in: query
+        name: firstName
+        schema:
+          type: string
+      - in: query
+        name: lastName
+        schema:
+          type: string
+      - in: query
+        name: email
+        schema:
+          type: string
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+      - in: query
+        name: size
+        schema:
+          type: integer
+          minimum: 1
+          default: 10
+    responses:
+      '200':
+        description: Successful operation
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                data:
+                  type: array
+                  items:
+                    $ref: '../models/User.yml'
+                pagination:
+                  $ref: '../components/schemas.yml#/Pagination' 
