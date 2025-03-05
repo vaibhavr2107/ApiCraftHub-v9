@@ -6,9 +6,11 @@ import yaml from 'js-yaml';
 import crypto from 'crypto';
 import axios from 'axios';
 import { Request, RequestSchema } from '@shared/schema';
+import { createLogger } from '../utils/logger';
 
 const TEMP_DIR = path.join(process.cwd(), 'server', 'temp');
 const API_FOLDER = path.join(process.cwd(), 'client', 'api');
+const logger = createLogger('ApiDefinitionService');
 
 export interface ApiEnvironments {
   dev?: string;
@@ -23,17 +25,23 @@ export class ApiDefinitionService {
    * Ensures necessary directories exist
    */
   private static async ensureDirectories() {
+    logger.debug('Ensuring necessary directories exist');
+    
     // Ensure temp directory exists
     try {
       await fs.access(TEMP_DIR);
+      logger.debug(`Temp directory exists at ${TEMP_DIR}`);
     } catch {
+      logger.info(`Creating temp directory at ${TEMP_DIR}`);
       await fs.mkdir(TEMP_DIR, { recursive: true });
     }
 
     // Ensure API folder exists
     try {
       await fs.access(API_FOLDER);
+      logger.debug(`API folder exists at ${API_FOLDER}`);
     } catch {
+      logger.info(`Creating API folder at ${API_FOLDER}`);
       await fs.mkdir(API_FOLDER, { recursive: true });
     }
   }
@@ -46,14 +54,17 @@ export class ApiDefinitionService {
     username: string,
     password: string
   ): Promise<string> {
+    logger.info(`Cloning repository from ${githubUrl}`);
     await this.ensureDirectories();
 
     // Create a unique directory for this import
     const importId = crypto.randomUUID();
     const repoDir = path.join(TEMP_DIR, importId);
+    logger.debug(`Using temporary directory: ${repoDir}`);
 
     // Clean up existing directory if it exists
     if (fsSync.existsSync(repoDir)) {
+      logger.debug(`Cleaning up existing directory: ${repoDir}`);
       fsSync.rmSync(repoDir, { recursive: true, force: true });
     }
 
@@ -61,13 +72,15 @@ export class ApiDefinitionService {
       // Format git URL for authentication
       const gitUrl = githubUrl.replace('https://', '');
       const gitCommand = `git clone https://${username}:${password}@${gitUrl} ${repoDir}`;
-
+      
+      logger.info('Executing git clone command');
       // Execute git clone command
       execSync(gitCommand);
-
+      
+      logger.info(`Repository cloned successfully to ${repoDir}`);
       return repoDir;
     } catch (error) {
-      console.error('Error cloning repository:', error);
+      logger.error('Error cloning repository', error);
       throw new Error(`Failed to clone repository: ${error}`);
     }
   }
@@ -79,6 +92,7 @@ export class ApiDefinitionService {
     type: 'REST' | 'SOAP' | 'UNKNOWN',
     mainFilePath: string | null
   }> {
+    logger.info(`Identifying API type in repository: ${repoDir}`);
     try {
       // Get all files recursively
       const getAllFiles = async (dir: string): Promise<string[]> => {
@@ -90,9 +104,12 @@ export class ApiDefinitionService {
         return paths.flat();
       };
 
+      logger.debug('Scanning repository files');
       const allFiles = await getAllFiles(repoDir);
+      logger.debug(`Found ${allFiles.length} files in the repository`);
 
       // Look for OpenAPI files
+      logger.debug('Searching for OpenAPI files');
       const openApiFiles = allFiles.filter(file => {
         const fileName = path.basename(file).toLowerCase();
         const ext = path.extname(file).toLowerCase();
@@ -108,12 +125,15 @@ export class ApiDefinitionService {
           fsSync.readFileSync(file, 'utf8').includes('openapi:')
         );
       });
+      logger.debug(`Found ${openApiFiles.length} OpenAPI files`);
 
       // Look for WSDL files
+      logger.debug('Searching for WSDL files');
       const wsdlFiles = allFiles.filter(file => {
         const ext = path.extname(file).toLowerCase();
         return ext === '.wsdl' || ext === '.xsd';
       });
+      logger.debug(`Found ${wsdlFiles.length} WSDL/XSD files`);
 
       if (openApiFiles.length > 0) {
         // Find main OpenAPI file (prefer root-level files)
@@ -123,6 +143,7 @@ export class ApiDefinitionService {
         });
 
         const mainFilePath = rootOpenApiFiles.length > 0 ? rootOpenApiFiles[0] : openApiFiles[0];
+        logger.info(`Identified as REST API with main file: ${mainFilePath}`);
         return { type: 'REST', mainFilePath };
       }
 
@@ -130,12 +151,14 @@ export class ApiDefinitionService {
         // Find main WSDL file (look for .wsdl files, not .xsd)
         const wsdlOnlyFiles = wsdlFiles.filter(file => path.extname(file).toLowerCase() === '.wsdl');
         const mainFilePath = wsdlOnlyFiles.length > 0 ? wsdlOnlyFiles[0] : wsdlFiles[0];
+        logger.info(`Identified as SOAP API with main file: ${mainFilePath}`);
         return { type: 'SOAP', mainFilePath };
       }
 
+      logger.warn('Could not identify API type, no OpenAPI or WSDL files found');
       return { type: 'UNKNOWN', mainFilePath: null };
     } catch (error) {
-      console.error('Error identifying API type:', error);
+      logger.error('Error identifying API type', error);
       return { type: 'UNKNOWN', mainFilePath: null };
     }
   }
@@ -734,6 +757,7 @@ export class ApiDefinitionService {
    * Creates requests in the API system
    */
   private static async createRequests(requests: Request[]): Promise<{ success: number, failure: number, updated: number }> {
+    logger.info(`Creating ${requests.length} API requests`);
     let success = 0;
     let failure = 0;
     let updated = 0;
@@ -744,17 +768,23 @@ export class ApiDefinitionService {
     // Save each request to a file
     for (const request of requests) {
       try {
+        logger.debug(`Processing request: ${request.name} (${request.method} ${request.baseUrl})`);
+        
         // Set default auth to bearer-tiaa if not specified
         if (!request.auth || request.auth.type === 'none') {
+          logger.debug('Setting default auth type to bearer-tiaa');
           request.auth = { type: "bearer-tiaa" };
         }
 
         // Validate request with schema
+        logger.debug('Validating request against schema');
         const validatedRequest = RequestSchema.parse(request);
 
         // Check for duplicates by matching path and method
+        logger.debug('Checking for duplicate requests');
         const apiFiles = await fs.readdir(API_FOLDER);
         const existingFiles = apiFiles.filter(file => file.endsWith('.json'));
+        logger.debug(`Found ${existingFiles.length} existing API files`);
 
         let isDuplicate = false;
 
@@ -767,7 +797,9 @@ export class ApiDefinitionService {
             if (existingRequest.method === request.method && 
                 existingRequest.baseUrl === request.baseUrl && 
                 existingRequest.name === request.name) {
-
+              
+              logger.info(`Found duplicate request: ${existingRequest.name} (${existingRequest.method} ${existingRequest.baseUrl})`);
+              
               // Update the existing request but keep its ID
               const mergedRequest = {
                 ...validatedRequest,
@@ -778,13 +810,15 @@ export class ApiDefinitionService {
                 updatedAt: new Date().toISOString()
               };
 
-              await fs.writeFile(path.join(API_FOLDER, file), JSON.stringify(mergedRequest, null, 2));
+              const filePath = path.join(API_FOLDER, file);
+              logger.info(`Updating existing request file: ${filePath}`);
+              await fs.writeFile(filePath, JSON.stringify(mergedRequest, null, 2));
               updated++;
               isDuplicate = true;
               break;
             }
           } catch (fileError) {
-            console.warn(`Error reading file ${file} for duplicate check:`, fileError);
+            logger.warn(`Error reading file ${file} for duplicate check`, fileError);
           }
         }
 
@@ -793,15 +827,17 @@ export class ApiDefinitionService {
           const filename = `${validatedRequest.routeId}.json`;
           const filePath = path.join(API_FOLDER, filename);
 
+          logger.info(`Creating new request file: ${filePath}`);
           await fs.writeFile(filePath, JSON.stringify(validatedRequest, null, 2));
           success++;
         }
       } catch (error) {
-        console.error(`Error creating request ${request.name}:`, error);
+        logger.error(`Error creating request ${request.name}`, error);
         failure++;
       }
     }
 
+    logger.info(`Request creation completed: ${success} created, ${updated} updated, ${failure} failed`);
     return { success, failure, updated };
   }
 
@@ -819,29 +855,40 @@ export class ApiDefinitionService {
   ): Promise<{
     type: 'REST' | 'SOAP' | 'UNKNOWN',
     requests: Request[],
-    stats: { success: number, failure: number }
+    stats: { success: number, failure: number, updated: number }
   }> {
+    logger.info(`Processing GitHub repository: ${githubUrl} for project: ${projectName}`);
     try {
       // Clone repository
+      logger.debug('Starting repository clone');
       const repoDir = await this.cloneRepository(githubUrl, username, password);
 
       // Identify API type
+      logger.debug('Identifying API type');
       let { type, mainFilePath } = await this.identifyApiType(repoDir);
 
       // If paths were provided, use them
       if (wsdlPath && type !== 'SOAP') {
+        logger.debug(`Checking provided WSDL path: ${wsdlPath}`);
         const providedWsdlPath = path.join(repoDir, wsdlPath);
         if (fsSync.existsSync(providedWsdlPath)) {
+          logger.info(`Using provided WSDL path: ${providedWsdlPath}`);
           type = 'SOAP';
           mainFilePath = providedWsdlPath;
+        } else {
+          logger.warn(`Provided WSDL path does not exist: ${providedWsdlPath}`);
         }
       }
 
       if (openApiPath && type !== 'REST') {
+        logger.debug(`Checking provided OpenAPI path: ${openApiPath}`);
         const providedOpenApiPath = path.join(repoDir, openApiPath);
         if (fsSync.existsSync(providedOpenApiPath)) {
+          logger.info(`Using provided OpenAPI path: ${providedOpenApiPath}`);
           type = 'REST';
           mainFilePath = providedOpenApiPath;
+        } else {
+          logger.warn(`Provided OpenAPI path does not exist: ${providedOpenApiPath}`);
         }
       }
 
@@ -849,36 +896,48 @@ export class ApiDefinitionService {
       let requests: Request[] = [];
 
       if (type === 'REST' && mainFilePath) {
+        logger.info(`Processing REST API from ${mainFilePath}`);
         // Process OpenAPI
         const resolvedSpec = await this.resolveOpenApiReferences(mainFilePath, repoDir);
         requests = this.extractOpenApiRequests(resolvedSpec, environments);
+        logger.info(`Extracted ${requests.length} REST API requests`);
       } else if (type === 'SOAP' && mainFilePath) {
+        logger.info(`Processing SOAP API from ${mainFilePath}`);
         // Process WSDL
         const resolvedWsdl = await this.resolveWsdlReferences(mainFilePath, repoDir);
         requests = this.extractWsdlRequests(resolvedWsdl, environments);
+        logger.info(`Extracted ${requests.length} SOAP API requests`);
+      } else {
+        logger.warn(`Could not process API. Type: ${type}, mainFilePath: ${mainFilePath || 'not found'}`);
       }
 
       // Create requests in system
+      logger.info(`Creating ${requests.length} requests in the system`);
       const stats = await this.createRequests(requests);
+      logger.info(`Requests creation stats: ${stats.success} successful, ${stats.failure} failed, ${stats.updated} updated`);
 
       // Clean up
       try {
+        logger.debug(`Cleaning up temporary directory: ${repoDir}`);
         fsSync.rmSync(repoDir, { recursive: true, force: true });
       } catch (error) {
-        console.warn('Error cleaning up temporary directory:', error);
+        logger.warn('Error cleaning up temporary directory', error);
       }
 
       return { type, requests, stats };
     } catch (error) {
-      console.error('Error processing GitHub repository:', error);
+      logger.error('Error processing GitHub repository', error);
       throw error;
     }
   }
 
   private static async ensureApiFolder() {
+    logger.debug(`Ensuring API folder exists at ${API_FOLDER}`);
     try {
       await fs.access(API_FOLDER);
+      logger.debug('API folder exists');
     } catch {
+      logger.info(`Creating API folder at ${API_FOLDER}`);
       await fs.mkdir(API_FOLDER, { recursive: true });
     }
   }
