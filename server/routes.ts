@@ -16,8 +16,8 @@ const httpsAgent = new https.Agent({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Add JSON parsing middleware
-  app.use(express.json());
+  // Add JSON parsing middleware with increased limit for file uploads
+  app.use(express.json({ limit: '50mb' }));
 
   // API routes should be handled first
   app.use('/api', (req, res, next) => {
@@ -28,7 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Register API routes
   app.use('/api', requestRoutes);
-  app.use('/api', importRoutes);  // Add the import routes
+  app.use('/api/import', importRoutes);  // Add the import routes
 
   // History routes
   app.get('/api/history/:routeId', (req, res) => {
@@ -81,12 +81,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const request = req.body;
       const timestamp = new Date().getTime();
       const fileName = `${request.routeId}-${timestamp}.json`;
-      
+
       fs.writeFileSync(
         path.join(apiFolder, fileName),
         JSON.stringify(request, null, 2)
       );
-      
+
       // Remove oldest files if we exceed max (after adding new one)
       if (historyFiles.length >= 9) { // 9 + the one we just added = 10 total
         console.log(`Removing old history files: total count ${historyFiles.length + 1}`);
