@@ -1,4 +1,3 @@
-
 import express from 'express';
 import { z } from 'zod';
 import fs from 'fs';
@@ -7,11 +6,11 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { Collection } from '@shared/schema';
 import { ApiDefinitionService } from '../../services/ApiDefinitionService';
-import express from 'express';
+// import express from 'express'; //Duplicate import removed
 
 const router = express.Router();
 
-// Get the directory path from import.meta.url
+// Ensure __filename and __dirname are properly defined for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

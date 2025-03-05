@@ -1,4 +1,3 @@
-
 import express from 'express';
 import { z } from 'zod';
 import fs from 'fs';
@@ -13,7 +12,7 @@ import { ApiDefinitionService } from '../../services/ApiDefinitionService';
 
 const router = express.Router();
 
-// Get the directory path from import.meta.url
+// Ensure __filename and __dirname are properly defined for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 

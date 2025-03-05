@@ -7,6 +7,10 @@ import yaml from 'js-yaml';
 import { Collection } from '@shared/schema';
 import { z } from 'zod';
 
+// Ensure __filename and __dirname are properly defined for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const router = express.Router();
 
 // Import directories
