@@ -1,11 +1,12 @@
-import { Upload, FileJson } from "lucide-react";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ImportDialog } from "@/components/ui/import-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Collection } from "./sidebar";
+import { Collection } from "@shared/schema";
+import { Card } from "@/components/ui/card";
+import { FileText } from "lucide-react";
+import { useState } from "react";
 
 interface ApiCatalogProps {
   onRequestSelect: (request: any) => void;
@@ -25,61 +26,69 @@ export function ApiCatalog({ onRequestSelect, onCollectionSelect, setLocation }:
     setLocation(`/request/${request.routeId}`);
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    const newCollections: Collection[] = [];
-    const existingCollections = new Set(collections.map(c => c.name.toLowerCase()));
-
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      try {
-        const content = await file.text();
-        if (file.name.endsWith('.json')) {
-          const json = JSON.parse(content);
-          const collection = json;
-
-          if (existingCollections.has(collection.name.toLowerCase())) {
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: `Collection "${collection.name}" already exists.`,
-            });
-            continue;
-          }
-
-          newCollections.push(collection);
-          existingCollections.add(collection.name.toLowerCase());
-
-          toast({
-            title: "Success",
-            description: `Imported collection: ${collection.name}`,
+  const handleImport = async (type: string, data: any) => {
+    try {
+      let response;
+      switch (type) {
+        case 'GITHUB':
+          response = await fetch('/api/import/github', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
           });
-        } else {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: `Unsupported file format: ${file.name}`,
+          break;
+        case 'WSDL':
+          response = await fetch('/api/import/wsdl', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: data.wsdlUrl })
           });
-        }
-      } catch (error) {
-        console.error(`Error processing file ${file.name}:`, error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: `Failed to import ${file.name}. Please check the file format.`,
-        });
+          break;
+        case 'OPENAPI_URL':
+          response = await fetch('/api/import/openapi', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: data.openApiUrl })
+          });
+          break;
+        case 'COLLECTION':
+        case 'OPENAPI_FILE':
+          response = await fetch(`/api/import/${type.toLowerCase()}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: data.content,
+              fileName: data.fileName
+            })
+          });
+          break;
+        default:
+          throw new Error('Invalid import type');
       }
-    }
 
-    if (newCollections.length > 0) {
-      const updatedCollections = [...collections, ...newCollections];
+      if (!response.ok) {
+        throw new Error(`Import failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Update collections in state and localStorage
+      const updatedCollections = [...collections, result];
       setCollections(updatedCollections);
       localStorage.setItem("collections", JSON.stringify(updatedCollections));
-    }
 
-    event.target.value = '';
+      toast({
+        title: "Success",
+        description: "Import completed successfully",
+      });
+    } catch (error) {
+      console.error('Import error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Import failed",
+      });
+    }
   };
 
   return (
@@ -87,41 +96,24 @@ export function ApiCatalog({ onRequestSelect, onCollectionSelect, setLocation }:
       <Tabs defaultValue="collections" className="w-full">
         <TabsList className="w-full">
           <TabsTrigger value="collections" className="flex-1">Collections</TabsTrigger>
-          <TabsTrigger value="openapi" className="flex-1">OpenAPI</TabsTrigger>
-          <TabsTrigger value="saved" className="flex-1">Saved</TabsTrigger>
+          <TabsTrigger value="imported" className="flex-1">Imported</TabsTrigger>
         </TabsList>
 
         <TabsContent value="collections" className="space-y-4">
-          <div className="cursor-pointer">
-            <input
-              type="file"
-              accept=".json"
-              className="hidden"
-              multiple
-              onChange={handleFileUpload}
-              id="collection-import"
-            />
-            <label htmlFor="collection-import">
-              <Button variant="outline" className="w-full" asChild>
-                <span>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Import Collection
-                </span>
-              </Button>
-            </label>
-          </div>
+          <ImportDialog onImport={handleImport} />
 
           <ScrollArea className="h-[calc(100vh-12rem)]">
             {collections.map((collection) => (
-              <div key={collection.id} className="mb-2">
+              <Card key={collection.id} className="mb-2 p-2">
                 <Button
                   variant="ghost"
                   className="w-full justify-start text-left font-normal"
                   onClick={() => onCollectionSelect(collection)}
                 >
+                  <FileText className="mr-2 h-4 w-4" />
                   <span className="font-mono text-sm truncate">{collection.name}</span>
                 </Button>
-              </div>
+              </Card>
             ))}
             {collections.length === 0 && (
               <div className="text-sm text-muted-foreground text-center">
@@ -131,21 +123,10 @@ export function ApiCatalog({ onRequestSelect, onCollectionSelect, setLocation }:
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="openapi" className="space-y-4">
-          <Button variant="outline" className="w-full">
-            <FileJson className="mr-2 h-4 w-4" />
-            Import OpenAPI Spec
-          </Button>
-          <div className="text-sm text-muted-foreground text-center">
-            Import an OpenAPI specification to get started
-          </div>
-        </TabsContent>
-
-        <TabsContent value="saved" className="space-y-4">
+        <TabsContent value="imported" className="space-y-4">
           <ScrollArea className="h-[calc(100vh-12rem)]">
-            {/* Add saved requests list here */}
             <div className="text-sm text-muted-foreground text-center">
-              Your saved requests will appear here
+              Recently imported collections will appear here
             </div>
           </ScrollArea>
         </TabsContent>
