@@ -27,8 +27,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Register API routes
-  app.use('/api/requests', requestRoutes);
-  app.use('/api/import', importRoutes);  // Mount import routes at /api/import
+  app.use('/api', requestRoutes);
+  app.use('/api/import', importRoutes);  // Add the import routes
 
   // History routes
   app.get('/api/history/:routeId', (req, res) => {
