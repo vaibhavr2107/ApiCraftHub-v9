@@ -9,6 +9,7 @@ import { SpringParser } from '../parser/SpringParser';
 import axios from 'axios';
 import yaml from 'js-yaml';
 import crypto from 'crypto';
+import https from 'https';
 import { Collection, Request, RequestSchema } from '@shared/schema';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -469,11 +470,11 @@ router.post('/openapi', async (req, res) => {
     const response = await axios.get(url, {
       timeout: 10000,
       validateStatus: (status) => status < 500, // Only reject if status >= 500
-      httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false })
+      httpsAgent: new https.Agent({ rejectUnauthorized: false })
     });
     const content = response.data;
     
-    console.log(`Successfully fetched OpenAPI content from ${openApiUrl}`);
+    console.log(`Successfully fetched OpenAPI content from ${url}`);
 
     // Parse OpenAPI spec
     const spec = typeof content === 'string' ? yaml.load(content) : content;
@@ -508,7 +509,7 @@ router.post('/openapi', async (req, res) => {
       JSON.stringify({
         id: importId,
         timestamp,
-        url: openApiUrl,
+        url: url,
         environments,
         collectionName: apiTitle,
         requestCount: requests.length
