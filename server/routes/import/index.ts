@@ -1,21 +1,16 @@
 
-import express from "express";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
-import githubRoutes from "./github";
-import wsdlRoutes from "./wsdl";
-import openApiRoutes from "./openapi";
-import fileRoutes from "./file";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import express from 'express';
+import githubRoutes from './github';
+import openApiRoutes from './openapi';
+import wsdlRoutes from './wsdl';
+import fileRoutes from './file';
 
 const router = express.Router();
 
-// Register sub-routes
+// Mount the modular routes
 router.use('/github', githubRoutes);
+router.use('/', openApiRoutes);
 router.use('/wsdl', wsdlRoutes);
-router.use('/openapi', openApiRoutes);
-router.use('/collection', fileRoutes);
+router.use('/file', fileRoutes);
 
 export default router;

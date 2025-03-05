@@ -1,3 +1,4 @@
+
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from 'express';
@@ -19,7 +20,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Register API routes
-  app.use('/api/requests', requestRoutes);
+  app.use('/api', requestRoutes); // Changed to '/api' to maintain compatibility with client
   app.use('/api/import', importRoutes);
   app.use('/api/history', historyRoutes);
   app.use('/api/proxy', proxyRoutes);
