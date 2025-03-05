@@ -1,8 +1,7 @@
-
 import express from 'express';
-import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import yaml from 'js-yaml';
 import { Collection } from '@shared/schema';
@@ -10,8 +9,8 @@ import { Collection } from '@shared/schema';
 const router = express.Router();
 
 // Import directories
-const IMPORTS_DIR = path.join(process.cwd(), 'client', 'imports');
-const COLLECTIONS_DIR = path.join(process.cwd(), 'client', 'collections');
+const IMPORTS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'client', 'imports');
+const COLLECTIONS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'client', 'collections');
 
 // Validation schema for file import
 const fileImportSchema = z.object({

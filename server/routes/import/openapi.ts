@@ -3,6 +3,7 @@ import express from 'express';
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import axios from 'axios';
 import yaml from 'js-yaml';
@@ -11,6 +12,10 @@ import { Collection } from '@shared/schema';
 import { ApiDefinitionService } from '../../services/ApiDefinitionService';
 
 const router = express.Router();
+
+// Get the directory path from import.meta.url
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import directories
 const IMPORTS_DIR = path.join(process.cwd(), 'client', 'imports');
