@@ -18,6 +18,7 @@ const router = express.Router();
 
 // Import directories
 const TEMP_DIR = path.join(__dirname, '../temp');
+const API_FOLDER = path.join(__dirname, '../../client/api');
 const IMPORTS_DIR = path.join(process.cwd(), 'client', 'imports');
 const COLLECTIONS_DIR = path.join(process.cwd(), 'client', 'collections');
 

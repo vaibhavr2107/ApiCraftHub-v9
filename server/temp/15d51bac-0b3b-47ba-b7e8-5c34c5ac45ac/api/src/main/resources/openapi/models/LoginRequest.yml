@@ -1,0 +1,13 @@
+type: object
+description: Login request model
+properties:
+  username:
+    type: string
+    example: johndoe
+  password:
+    type: string
+    format: password
+    example: "********"
+required:
+  - username
+  - password 

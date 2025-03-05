@@ -1,0 +1,25 @@
+Error:
+  type: object
+  properties:
+    code:
+      type: integer
+      format: int32
+    message:
+      type: string
+  required:
+    - code
+    - message
+
+Pagination:
+  type: object
+  properties:
+    page:
+      type: integer
+      minimum: 0
+    size:
+      type: integer
+      minimum: 1
+    totalElements:
+      type: integer
+    totalPages:
+      type: integer 

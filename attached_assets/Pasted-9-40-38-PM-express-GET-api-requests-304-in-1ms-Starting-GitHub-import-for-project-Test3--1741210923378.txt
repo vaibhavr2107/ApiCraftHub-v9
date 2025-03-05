@@ -1,0 +1,34 @@
+9:40:38 PM [express] GET /api/requests 304 in 1ms :: []
+Starting GitHub import for project: Test3
+Cloning into '/home/runner/workspace/server/temp/2ecaf121-e423-4995-b278-e64a4c7960e9'...
+Error creating request User login: ReferenceError: RequestSchema is not defined
+    at Function.ApiDefinitionService.createRequests (/home/runner/workspace/server/routes/import.ts:265:32)
+    at Function.processGithubRepo (/home/runner/workspace/server/services/ApiDefinitionService.ts:737:32)
+    at async <anonymous> (/home/runner/workspace/server/routes/import.ts:318:20)
+Error creating request Get all users: ReferenceError: RequestSchema is not defined
+    at Function.ApiDefinitionService.createRequests (/home/runner/workspace/server/routes/import.ts:265:32)
+    at Function.processGithubRepo (/home/runner/workspace/server/services/ApiDefinitionService.ts:737:32)
+    at async <anonymous> (/home/runner/workspace/server/routes/import.ts:318:20)
+Error creating request Create a new user: ReferenceError: RequestSchema is not defined
+    at Function.ApiDefinitionService.createRequests (/home/runner/workspace/server/routes/import.ts:265:32)
+    at Function.processGithubRepo (/home/runner/workspace/server/services/ApiDefinitionService.ts:737:32)
+    at async <anonymous> (/home/runner/workspace/server/routes/import.ts:318:20)
+Error creating request Get user by ID: ReferenceError: RequestSchema is not defined
+    at Function.ApiDefinitionService.createRequests (/home/runner/workspace/server/routes/import.ts:265:32)
+    at Function.processGithubRepo (/home/runner/workspace/server/services/ApiDefinitionService.ts:737:32)
+    at async <anonymous> (/home/runner/workspace/server/routes/import.ts:318:20)
+Error creating request Update user: ReferenceError: RequestSchema is not defined
+    at Function.ApiDefinitionService.createRequests (/home/runner/workspace/server/routes/import.ts:265:32)
+    at Function.processGithubRepo (/home/runner/workspace/server/services/ApiDefinitionService.ts:737:32)
+    at async <anonymous> (/home/runner/workspace/server/routes/import.ts:318:20)
+Error creating request Delete user: ReferenceError: RequestSchema is not defined
+    at Function.ApiDefinitionService.createRequests (/home/runner/workspace/server/routes/import.ts:265:32)
+    at Function.processGithubRepo (/home/runner/workspace/server/services/ApiDefinitionService.ts:737:32)
+    at async <anonymous> (/home/runner/workspace/server/routes/import.ts:318:20)
+Error creating request Search users: ReferenceError: RequestSchema is not defined
+    at Function.ApiDefinitionService.createRequests (/home/runner/workspace/server/routes/import.ts:265:32)
+    at Function.processGithubRepo (/home/runner/workspace/server/services/ApiDefinitionService.ts:737:32)
+    at async <anonymous> (/home/runner/workspace/server/routes/import.ts:318:20)
+9:41:05 PM [express] POST /api/import/github 200 in 824ms :: {"importId":"706e4f20-b0b8-4e97-acf5-5d…
+9:41:16 PM [express] GET /api/requests 304 in 1ms :: []
+^C
