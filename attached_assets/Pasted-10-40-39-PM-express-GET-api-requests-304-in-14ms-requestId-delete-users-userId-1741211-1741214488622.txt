@@ -1,0 +1,57 @@
+10:40:39 PM [express] GET /api/requests 304 in 14ms :: [{"requestId":"delete--users--userId--17412111…
+OpenAPI import request body: {
+  url: 'https://firebasestorage.googleapis.com/v0/b/temp-file-share.appspot.com/o/I5mi-O5Q3%2Fopenapi.yaml?alt=media&token=10eaf486-3982-4129-9791-8d1f6806f264'
+}
+Processing OpenAPI import from URL: https://firebasestorage.googleapis.com/v0/b/temp-file-share.appspot.com/o/I5mi-O5Q3%2Fopenapi.yaml?alt=media&token=10eaf486-3982-4129-9791-8d1f6806f264
+OpenAPI import error: ReferenceError: require is not defined
+    at <anonymous> (/home/runner/workspace/server/routes/import.ts:472:19)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at next (/home/runner/workspace/node_modules/express/lib/router/route.js:149:13)
+    at Route.dispatch (/home/runner/workspace/node_modules/express/lib/router/route.js:119:3)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:284:15
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Function.handle (/home/runner/workspace/node_modules/express/lib/router/index.js:175:3)
+    at router (/home/runner/workspace/node_modules/express/lib/router/index.js:47:12)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:646:15
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:265:14)
+    at Function.handle (/home/runner/workspace/node_modules/express/lib/router/index.js:175:3)
+    at router (/home/runner/workspace/node_modules/express/lib/router/index.js:47:12)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:26:5)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at jsonParser (/home/runner/workspace/node_modules/body-parser/lib/types/json.js:104:7)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:91:12)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at <anonymous> (/home/runner/workspace/server/index.ts:45:3)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at urlencodedParser (/home/runner/workspace/node_modules/body-parser/lib/types/urlencoded.js:85:7)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+10:40:59 PM [express] POST /api/import/openapi 500 in 7ms :: {"error":"require is not defined"}
