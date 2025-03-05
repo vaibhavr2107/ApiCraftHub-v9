@@ -453,7 +453,11 @@ router.post('/wsdl', async (req, res) => {
 // OpenAPI URL import route
 router.post('/openapi', async (req, res) => {
   try {
-    const { openApiUrl } = openApiUrlImportSchema.parse(req.body);
+    // Validate request body with the correct schema
+    const { openApiUrl } = z.object({
+      openApiUrl: z.string().url("Invalid OpenAPI URL"),
+    }).parse(req.body);
+    
     const importId = crypto.randomUUID();
     const timestamp = new Date().toISOString();
 
@@ -464,21 +468,44 @@ router.post('/openapi', async (req, res) => {
     // Parse OpenAPI spec
     const spec = typeof content === 'string' ? yaml.load(content) : content;
 
+    // Get API title from spec
+    const apiTitle = spec.info?.title || 'OpenAPI';
+
+    // Define environments from request body
+    const environments = {
+      dev: req.body.devUrl || '',
+      qa01: req.body.qa01Url || '',
+      qa02: req.body.qa02Url || '',
+      qa03: req.body.qa03Url || '',
+      perf: req.body.perfUrl || '',
+    };
+
     // Extract requests
-    const requests = ApiDefinitionService.extractOpenApiRequests(spec, {
-      dev: req.body.devUrl,
-      qa01: req.body.qa01Url,
-      qa02: req.body.qa02Url,
-      qa03: req.body.qa03Url,
-      perf: req.body.perfUrl,
-    });
+    const requests = ApiDefinitionService.extractOpenApiRequests(spec, environments);
 
     // Save requests
     const stats = await ApiDefinitionService.createRequests(requests);
 
-    // Create a collection
-    const apiTitle = spec.info?.title || 'OpenAPI';
+    // Save import metadata to client/import directory
+    const importDir = path.join(process.cwd(), 'client', 'import');
+    if (!fs.existsSync(importDir)) {
+      fs.mkdirSync(importDir, { recursive: true });
+    }
     
+    // Save import details for reference
+    fs.writeFileSync(
+      path.join(importDir, `openapi-import-${importId}.json`),
+      JSON.stringify({
+        id: importId,
+        timestamp,
+        url: openApiUrl,
+        environments,
+        collectionName: apiTitle,
+        requestCount: requests.length
+      }, null, 2)
+    );
+
+    // Create a collection
     const collection: Collection = {
       id: importId,
       name: apiTitle,
