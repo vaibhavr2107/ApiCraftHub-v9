@@ -1,33 +1,39 @@
 
-import type { Express } from "express";
-import { createServer, type Server } from "http";
 import express from 'express';
-import requestRoutes from "./routes/requests";
-import importRoutes from "./routes/import/index";
-import historyRoutes from "./routes/history";
-import proxyRoutes from "./routes/proxy";
-import collectionsRoutes from "./routes/collections";
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Add JSON parsing middleware with increased limit for file uploads
-  app.use(express.json({ limit: '50mb' }));
+// Import route modules
+import importRoutes from './routes/import/index.js';
+import requestsRoutes from './routes/requests/index.js';
+import collectionsRoutes from './routes/collections/index.js';
+import historyRoutes from './routes/history/index.js';
+import proxyRoutes from './routes/proxy/index.js';
 
-  // API routes should be handled first
-  app.use('/api', (req, res, next) => {
-    // Set JSON content type for all API routes
-    res.setHeader('Content-Type', 'application/json');
-    next();
-  });
+// Create __dirname equivalent for ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-  // Register API routes
-  app.use('/api', requestRoutes);
+export function setupRoutes(app) {
+  // Enable CORS
+  app.use(cors());
+  
+  // Parse JSON request bodies
+  app.use(express.json({ limit: '10mb' }));
+  
+  // API routes
   app.use('/api/import', importRoutes);
+  app.use('/api/requests', requestsRoutes);
+  app.use('/api/collections', collectionsRoutes);
   app.use('/api/history', historyRoutes);
   app.use('/api/proxy', proxyRoutes);
 
-  // Collections routes - no /api prefix as these are static files
-  app.use('/collections', collectionsRoutes);
-
-  const httpServer = createServer(app);
-  return httpServer;
+  // Serve static files from the React app
+  app.use(express.static(path.join(__dirname, '../client')));
+  
+  // Fallback to index.html for client-side routing
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/index.html'));
+  });
 }
