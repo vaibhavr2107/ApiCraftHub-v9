@@ -16,6 +16,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Import directories
+// Create __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const TEMP_DIR = path.join(__dirname, "../../temp");
 const IMPORTS_DIR = path.join(process.cwd(), 'client', 'imports');
 const COLLECTIONS_DIR = path.join(process.cwd(), 'client', 'collections');
