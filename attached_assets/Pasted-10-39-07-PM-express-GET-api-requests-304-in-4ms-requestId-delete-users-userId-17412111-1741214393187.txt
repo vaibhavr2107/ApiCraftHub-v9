@@ -1,0 +1,87 @@
+10:39:07 PM [express] GET /api/requests 304 in 4ms :: [{"requestId":"delete--users--userId--174121115…
+OpenAPI import request body: {
+  url: 'https://firebasestorage.googleapis.com/v0/b/temp-file-share.appspot.com/o/I5mi-O5Q3%2Fopenapi.yaml?alt=media&token=10eaf486-3982-4129-9791-8d1f6806f264'
+}
+OpenAPI import error: ZodError: [
+  {
+    "code": "invalid_type",
+    "expected": "string",
+    "received": "undefined",
+    "path": [
+      "openApiUrl"
+    ],
+    "message": "Required"
+  }
+]
+    at get error [as error] (file:///home/runner/workspace/node_modules/zod/lib/index.mjs:587:31)
+    at ZodObject.parse (file:///home/runner/workspace/node_modules/zod/lib/index.mjs:692:22)
+    at <anonymous> (/home/runner/workspace/server/routes/import.ts:460:8)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at next (/home/runner/workspace/node_modules/express/lib/router/route.js:149:13)
+    at Route.dispatch (/home/runner/workspace/node_modules/express/lib/router/route.js:119:3)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:284:15
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Function.handle (/home/runner/workspace/node_modules/express/lib/router/index.js:175:3)
+    at router (/home/runner/workspace/node_modules/express/lib/router/index.js:47:12)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:646:15
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:265:14)
+    at Function.handle (/home/runner/workspace/node_modules/express/lib/router/index.js:175:3)
+    at router (/home/runner/workspace/node_modules/express/lib/router/index.js:47:12)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at <anonymous> (/home/runner/workspace/server/routes.ts:26:5)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at jsonParser (/home/runner/workspace/node_modules/body-parser/lib/types/json.js:104:7)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:91:12)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at <anonymous> (/home/runner/workspace/server/index.ts:45:3)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at trim_prefix (/home/runner/workspace/node_modules/express/lib/router/index.js:328:13)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:286:9
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at urlencodedParser (/home/runner/workspace/node_modules/body-parser/lib/types/urlencoded.js:85:7) {
+  issues: [
+    {
+      code: 'invalid_type',
+      expected: 'string',
+      received: 'undefined',
+      path: [Array],
+      message: 'Required'
+    }
+  ],
+  addIssue: [Function (anonymous)],
+  addIssues: [Function (anonymous)],
+  errors: [
+    {
+      code: 'invalid_type',
+      expected: 'string',
+      received: 'undefined',
+      path: [Array],
+      message: 'Required'
+    }
+  ]
+}
+10:39:22 PM [express] POST /api/import/openapi 500 in 10ms :: {"error":"[\n  {\n    \"code\": \"inval…
