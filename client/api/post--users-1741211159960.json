@@ -1,0 +1,32 @@
+{
+  "requestId": "post--users-1741211159960",
+  "routeId": "post--users-1741211159960",
+  "name": "Create a new user",
+  "method": "POST",
+  "baseUrl": "https://api.restful-api.dev/objects",
+  "devUrl": "https://api.restful-api.dev/objects",
+  "qa01Url": "https://api.restful-api.dev/objects",
+  "qa02Url": "https://api.restful-api.dev/objects",
+  "qa03Url": "https://api.restful-api.dev/objects",
+  "perfUrl": "https://api.restful-api.dev/objects",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "none"
+  },
+  "headers": {},
+  "historyId": "history-post--users-1741211159960",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Users"
+  ],
+  "collectionId": "Sample-API",
+  "collectionName": "Sample API",
+  "createdAt": "2025-03-05T21:45:59.960Z",
+  "updatedAt": "2025-03-05T21:47:20.896Z",
+  "version": 1,
+  "selectedEnvironment": "qa02"
+}
