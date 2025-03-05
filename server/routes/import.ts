@@ -454,19 +454,19 @@ router.post('/wsdl', async (req, res) => {
 router.post('/openapi', async (req, res) => {
   console.log('OpenAPI import request body:', req.body);
   try {
-    // Validate request body with the correct schema - use openApiUrl
-    const { openApiUrl } = z.object({
-      openApiUrl: z.string().url("Invalid OpenAPI URL"),
+    // Validate request body with the correct schema using 'url' parameter
+    const { url } = z.object({
+      url: z.string().url("Invalid OpenAPI URL"),
     }).parse(req.body);
     
     // If we got here, we have a valid URL
-    console.log(`Processing OpenAPI import from URL: ${openApiUrl}`);
+    console.log(`Processing OpenAPI import from URL: ${url}`);
     
     const importId = crypto.randomUUID();
     const timestamp = new Date().toISOString();
 
     // Fetch OpenAPI content with a timeout and disable certificate validation for testing
-    const response = await axios.get(openApiUrl, {
+    const response = await axios.get(url, {
       timeout: 10000,
       validateStatus: (status) => status < 500, // Only reject if status >= 500
       httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false })
@@ -519,7 +519,7 @@ router.post('/openapi', async (req, res) => {
     const collection: Collection = {
       id: importId,
       name: apiTitle,
-      description: `Imported from OpenAPI: ${openApiUrl}`,
+      description: `Imported from OpenAPI: ${url}`,
       requests,
       importData: {
         source: 'openapi',
@@ -533,7 +533,7 @@ router.post('/openapi', async (req, res) => {
       id: importId,
       timestamp,
       type: 'openapi',
-      url: openApiUrl,
+      url: url,
       stats
     };
     
