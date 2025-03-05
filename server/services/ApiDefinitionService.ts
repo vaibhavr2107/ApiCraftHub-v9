@@ -1,4 +1,3 @@
-
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
@@ -48,11 +47,11 @@ export class ApiDefinitionService {
     password: string
   ): Promise<string> {
     await this.ensureDirectories();
-    
+
     // Create a unique directory for this import
     const importId = crypto.randomUUID();
     const repoDir = path.join(TEMP_DIR, importId);
-    
+
     // Clean up existing directory if it exists
     if (fsSync.existsSync(repoDir)) {
       fsSync.rmSync(repoDir, { recursive: true, force: true });
@@ -62,10 +61,10 @@ export class ApiDefinitionService {
       // Format git URL for authentication
       const gitUrl = githubUrl.replace('https://', '');
       const gitCommand = `git clone https://${username}:${password}@${gitUrl} ${repoDir}`;
-      
+
       // Execute git clone command
       execSync(gitCommand);
-      
+
       return repoDir;
     } catch (error) {
       console.error('Error cloning repository:', error);
@@ -90,9 +89,9 @@ export class ApiDefinitionService {
         }));
         return paths.flat();
       };
-      
+
       const allFiles = await getAllFiles(repoDir);
-      
+
       // Look for OpenAPI files
       const openApiFiles = allFiles.filter(file => {
         const fileName = path.basename(file).toLowerCase();
@@ -109,31 +108,31 @@ export class ApiDefinitionService {
           fsSync.readFileSync(file, 'utf8').includes('openapi:')
         );
       });
-      
+
       // Look for WSDL files
       const wsdlFiles = allFiles.filter(file => {
         const ext = path.extname(file).toLowerCase();
         return ext === '.wsdl' || ext === '.xsd';
       });
-      
+
       if (openApiFiles.length > 0) {
         // Find main OpenAPI file (prefer root-level files)
         const rootOpenApiFiles = openApiFiles.filter(file => {
           const relativePath = path.relative(repoDir, file);
           return !relativePath.includes(path.sep) || relativePath.split(path.sep).length <= 2;
         });
-        
+
         const mainFilePath = rootOpenApiFiles.length > 0 ? rootOpenApiFiles[0] : openApiFiles[0];
         return { type: 'REST', mainFilePath };
       }
-      
+
       if (wsdlFiles.length > 0) {
         // Find main WSDL file (look for .wsdl files, not .xsd)
         const wsdlOnlyFiles = wsdlFiles.filter(file => path.extname(file).toLowerCase() === '.wsdl');
         const mainFilePath = wsdlOnlyFiles.length > 0 ? wsdlOnlyFiles[0] : wsdlFiles[0];
         return { type: 'SOAP', mainFilePath };
       }
-      
+
       return { type: 'UNKNOWN', mainFilePath: null };
     } catch (error) {
       console.error('Error identifying API type:', error);
@@ -148,26 +147,26 @@ export class ApiDefinitionService {
     try {
       const content = await fs.readFile(filePath, 'utf8');
       let apiSpec: any;
-      
+
       // Parse the file based on extension
       if (filePath.endsWith('.json')) {
         apiSpec = JSON.parse(content);
       } else {
         apiSpec = yaml.load(content);
       }
-      
+
       // Handle $ref references that point to external files
       const processRefs = async (obj: any, currentPath: string): Promise<any> => {
         if (!obj || typeof obj !== 'object') return obj;
-        
+
         // Process arrays
         if (Array.isArray(obj)) {
           return Promise.all(obj.map(item => processRefs(item, currentPath)));
         }
-        
+
         // Create a new object to modify
         const newObj: any = {};
-        
+
         // Process each property
         for (const [key, value] of Object.entries(obj)) {
           if (key === '$ref' && typeof value === 'string' && value.startsWith('#/')) {
@@ -182,17 +181,17 @@ export class ApiDefinitionService {
                 // Format: 'file.json#/components/schemas/Model'
                 const [filePart, refPart] = value.split('#');
                 refFilePath = path.resolve(path.dirname(currentPath), filePart);
-                
+
                 // Read and parse the referenced file
                 const refContent = await fs.readFile(refFilePath, 'utf8');
                 let refObj: any;
-                
+
                 if (refFilePath.endsWith('.json')) {
                   refObj = JSON.parse(refContent);
                 } else {
                   refObj = yaml.load(refContent);
                 }
-                
+
                 // Navigate to the referenced part
                 let refValue = refObj;
                 const refPath = refPart.split('/').filter(Boolean);
@@ -200,7 +199,7 @@ export class ApiDefinitionService {
                   refValue = refValue[segment];
                   if (!refValue) break;
                 }
-                
+
                 // Replace the reference with the actual content
                 if (refValue) {
                   // Process nested references
@@ -214,13 +213,13 @@ export class ApiDefinitionService {
                 refFilePath = path.resolve(path.dirname(currentPath), value);
                 const refContent = await fs.readFile(refFilePath, 'utf8');
                 let refObj: any;
-                
+
                 if (refFilePath.endsWith('.json')) {
                   refObj = JSON.parse(refContent);
                 } else {
                   refObj = yaml.load(refContent);
                 }
-                
+
                 // Process the whole referenced object
                 return await processRefs(refObj, refFilePath);
               }
@@ -236,10 +235,10 @@ export class ApiDefinitionService {
             newObj[key] = value;
           }
         }
-        
+
         return newObj;
       };
-      
+
       // Process the entire spec
       return await processRefs(apiSpec, filePath);
     } catch (error) {
@@ -254,54 +253,54 @@ export class ApiDefinitionService {
   private static async resolveWsdlReferences(filePath: string, repoDir: string): Promise<string> {
     try {
       const content = await fs.readFile(filePath, 'utf8');
-      
+
       // Extract all xsd:import and xsd:include tags
       const importRegex = /<(?:xsd:|wsdl:)?import\s+[^>]*(?:schemaLocation|location)=["']([^"']+)["'][^>]*>/g;
       const includeRegex = /<(?:xsd:|wsdl:)?include\s+[^>]*(?:schemaLocation|location)=["']([^"']+)["'][^>]*>/g;
-      
+
       // Find all imports and includes
       let match;
       const imports = [];
       while ((match = importRegex.exec(content)) !== null) {
         imports.push(match[1]);
       }
-      
+
       const includes = [];
       while ((match = includeRegex.exec(content)) !== null) {
         includes.push(match[1]);
       }
-      
+
       // Resolve all referenced files
       let mergedContent = content;
       const processedFiles = new Set<string>();
       processedFiles.add(filePath);
-      
+
       const processReference = async (reference: string): Promise<string> => {
         try {
           // Resolve the reference path
           const refPath = path.resolve(path.dirname(filePath), reference);
-          
+
           // Skip if already processed
           if (processedFiles.has(refPath)) return '';
           processedFiles.add(refPath);
-          
+
           // Read the referenced file
           const refContent = await fs.readFile(refPath, 'utf8');
-          
+
           // Process nested references
           let processedContent = refContent;
-          
+
           // Extract nested imports and includes
           const nestedImports = [];
           while ((match = importRegex.exec(refContent)) !== null) {
             nestedImports.push(match[1]);
           }
-          
+
           const nestedIncludes = [];
           while ((match = includeRegex.exec(refContent)) !== null) {
             nestedIncludes.push(match[1]);
           }
-          
+
           // Process nested references
           for (const nestedRef of [...nestedImports, ...nestedIncludes]) {
             const nestedContent = await processReference(nestedRef);
@@ -311,14 +310,14 @@ export class ApiDefinitionService {
               nestedContent
             );
           }
-          
+
           return processedContent;
         } catch (error) {
           console.warn(`Failed to resolve reference: ${reference}`, error);
           return ''; // Return empty string if resolution fails
         }
       };
-      
+
       // Process all references
       for (const ref of [...imports, ...includes]) {
         const refContent = await processReference(ref);
@@ -328,7 +327,7 @@ export class ApiDefinitionService {
           refContent
         );
       }
-      
+
       return mergedContent;
     } catch (error) {
       console.error('Error resolving WSDL references:', error);
@@ -342,35 +341,35 @@ export class ApiDefinitionService {
   private static extractOpenApiRequests(apiSpec: any, environments: ApiEnvironments): Request[] {
     try {
       const requests: Request[] = [];
-      
+
       if (!apiSpec.paths) {
         return requests;
       }
-      
+
       const specTitle = apiSpec.info?.title || 'Imported API';
       const specVersion = apiSpec.info?.version || '1.0.0';
-      
+
       // Process each path and method
       Object.entries(apiSpec.paths).forEach(([path, pathItem]: [string, any]) => {
         // Skip if pathItem is not an object
         if (!pathItem || typeof pathItem !== 'object') {
           return;
         }
-        
+
         // Find all HTTP methods in this path
         const methods = Object.keys(pathItem).filter(key => 
           ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'].includes(key.toLowerCase())
         );
-        
+
         // Process each method
         methods.forEach(method => {
           const operation = pathItem[method];
           if (!operation) return;
-          
+
           // Generate a unique ID for this request
           const timestamp = new Date().getTime();
           const requestId = `${method.toLowerCase()}-${path.replace(/[^\w-]/g, '-')}-${timestamp}`;
-          
+
           // Extract path parameters
           const pathParams: Record<string, string> = {};
           const pathParamMatches = path.match(/\{([^}]+)\}/g) || [];
@@ -378,7 +377,7 @@ export class ApiDefinitionService {
             const paramName = match.substring(1, match.length - 1);
             pathParams[paramName] = '';
           });
-          
+
           // Extract query parameters
           const queryParams: Record<string, string> = {};
           if (operation.parameters) {
@@ -388,7 +387,7 @@ export class ApiDefinitionService {
               }
             });
           }
-          
+
           // Extract headers
           const headers: Record<string, string> = {};
           if (operation.parameters) {
@@ -398,7 +397,7 @@ export class ApiDefinitionService {
               }
             });
           }
-          
+
           // Add Content-Type header if not present but requestBody exists
           if (operation.requestBody && !headers['Content-Type']) {
             const contentTypes = operation.requestBody.content ? Object.keys(operation.requestBody.content) : [];
@@ -408,7 +407,7 @@ export class ApiDefinitionService {
               headers['Content-Type'] = contentTypes[0];
             }
           }
-          
+
           // Extract request body
           let requestBody: any = {};
           if (operation.requestBody?.content) {
@@ -417,7 +416,7 @@ export class ApiDefinitionService {
               // Prefer JSON content type if available
               const contentType = contentTypes.find(ct => ct.includes('json')) || contentTypes[0];
               const content = operation.requestBody.content[contentType];
-              
+
               if (content.example) {
                 requestBody = content.example;
               } else if (content.examples && Object.keys(content.examples).length > 0) {
@@ -430,14 +429,14 @@ export class ApiDefinitionService {
               }
             }
           }
-          
+
           // Extract response body
           let responseBody: any = {};
           if (operation.responses) {
             // Look for 200, 201, or the first response
             const successCodes = ['200', '201', '202', '204'];
             let successResponse = null;
-            
+
             // Find first available success response
             for (const code of successCodes) {
               if (operation.responses[code]) {
@@ -445,20 +444,20 @@ export class ApiDefinitionService {
                 break;
               }
             }
-            
+
             // If no success response found, use the first one
             if (!successResponse && Object.keys(operation.responses).length > 0) {
               const firstKey = Object.keys(operation.responses)[0];
               successResponse = operation.responses[firstKey];
             }
-            
+
             if (successResponse?.content) {
               const contentTypes = Object.keys(successResponse.content);
               if (contentTypes.length > 0) {
                 // Prefer JSON content type if available
                 const contentType = contentTypes.find(ct => ct.includes('json')) || contentTypes[0];
                 const content = successResponse.content[contentType];
-                
+
                 if (content.example) {
                   responseBody = content.example;
                 } else if (content.examples && Object.keys(content.examples).length > 0) {
@@ -472,7 +471,7 @@ export class ApiDefinitionService {
               }
             }
           }
-          
+
           // Create a request object
           const request: Request = {
             requestId,
@@ -502,11 +501,11 @@ export class ApiDefinitionService {
             collectionId: specTitle.replace(/[^\w-]/g, '-'),
             collectionName: specTitle
           };
-          
+
           requests.push(request);
         });
       });
-      
+
       return requests;
     } catch (error) {
       console.error('Error extracting OpenAPI requests:', error);
@@ -520,34 +519,34 @@ export class ApiDefinitionService {
   private static extractWsdlRequests(wsdlContent: string, environments: ApiEnvironments): Request[] {
     try {
       const requests: Request[] = [];
-      
+
       // Extract service name
       const serviceNameMatch = wsdlContent.match(/<wsdl:service\s+name="([^"]+)"/);
       const serviceName = serviceNameMatch ? serviceNameMatch[1] : 'ImportedService';
-      
+
       // Extract operations
       const operationRegex = /<wsdl:operation\s+name="([^"]+)"/g;
       let operationMatch;
       const operations = [];
-      
+
       while ((operationMatch = operationRegex.exec(wsdlContent)) !== null) {
         operations.push(operationMatch[1]);
       }
-      
+
       // For each operation, create a request
       operations.forEach(operation => {
         const timestamp = new Date().getTime();
         const requestId = `soap-${operation.toLowerCase()}-${timestamp}`;
-        
+
         // Extract input message for this operation
         const inputMessageRegex = new RegExp(`<wsdl:operation\\s+name="${operation}"[^>]*>\\s*<wsdl:input\\s+(?:name="([^"]*)"\\s+)?message="(?:[^:]+:)?([^"]+)"`, 'm');
         const inputMessageMatch = wsdlContent.match(inputMessageRegex);
         const inputMessageName = inputMessageMatch ? inputMessageMatch[2] : `${operation}Input`;
-        
+
         // Extract message structure
         const messageRegex = new RegExp(`<wsdl:message\\s+name="${inputMessageName}"[^>]*>(.*?)</wsdl:message>`, 's');
         const messageMatch = wsdlContent.match(messageRegex);
-        
+
         // Create a simple SOAP envelope
         let requestBody = {
           "soap:Envelope": {
@@ -559,18 +558,18 @@ export class ApiDefinitionService {
             }
           }
         };
-        
+
         // If we found message parts, add them to the request
         if (messageMatch) {
           const partRegex = /<wsdl:part\s+name="([^"]+)"\s+element="(?:[^:]+:)?([^"]+)"/g;
           let partMatch;
-          
+
           while ((partMatch = partRegex.exec(messageMatch[1])) !== null) {
             const partName = partMatch[2];
             requestBody["soap:Envelope"]["soap:Body"][`tem:${operation}`][partName] = "";
           }
         }
-        
+
         // Create a request object
         const request: Request = {
           requestId,
@@ -609,10 +608,10 @@ export class ApiDefinitionService {
           collectionId: serviceName.replace(/[^\w-]/g, '-'),
           collectionName: serviceName
         };
-        
+
         requests.push(request);
       });
-      
+
       return requests;
     } catch (error) {
       console.error('Error extracting WSDL requests:', error);
@@ -625,7 +624,7 @@ export class ApiDefinitionService {
    */
   private static generateSampleFromSchema(schema: any, fullSpec: any): any {
     if (!schema) return {};
-    
+
     // Handle $ref
     if (schema.$ref) {
       const refPath = schema.$ref.replace('#/', '').split('/');
@@ -636,7 +635,7 @@ export class ApiDefinitionService {
       }
       return this.generateSampleFromSchema(refObj, fullSpec);
     }
-    
+
     // Handle allOf, oneOf, anyOf
     if (schema.allOf) {
       const result: any = {};
@@ -646,7 +645,7 @@ export class ApiDefinitionService {
       });
       return result;
     }
-    
+
     if (schema.oneOf || schema.anyOf) {
       const subSchemas = schema.oneOf || schema.anyOf;
       if (subSchemas.length > 0) {
@@ -654,12 +653,12 @@ export class ApiDefinitionService {
       }
       return {};
     }
-    
+
     // Use example if provided
     if (schema.example !== undefined) {
       return schema.example;
     }
-    
+
     // Handle type
     switch (schema.type) {
       case 'object':
@@ -683,13 +682,13 @@ export class ApiDefinitionService {
           });
         }
         return result;
-        
+
       case 'array':
         if (schema.items) {
           return [this.generateSampleFromSchema(schema.items, fullSpec)];
         }
         return [];
-        
+
       case 'string':
         if (schema.enum && schema.enum.length > 0) {
           return schema.enum[0];
@@ -710,14 +709,14 @@ export class ApiDefinitionService {
           return 'https://example.com';
         }
         return 'string';
-        
+
       case 'number':
       case 'integer':
         return schema.format === 'int64' ? 1000000000 : 0;
-        
+
       case 'boolean':
         return false;
-        
+
       default:
         // For YAML files that might not specify type properly
         if (schema.properties) {
@@ -738,10 +737,10 @@ export class ApiDefinitionService {
     let success = 0;
     let failure = 0;
     let updated = 0;
-    
+
     // Ensure API folder exists
     await this.ensureApiFolder();
-    
+
     // Save each request to a file
     for (const request of requests) {
       try {
@@ -749,26 +748,26 @@ export class ApiDefinitionService {
         if (!request.auth || request.auth.type === 'none') {
           request.auth = { type: "bearer-tiaa" };
         }
-        
+
         // Validate request with schema
         const validatedRequest = RequestSchema.parse(request);
-        
+
         // Check for duplicates by matching path and method
         const apiFiles = await fs.readdir(API_FOLDER);
         const existingFiles = apiFiles.filter(file => file.endsWith('.json'));
-        
+
         let isDuplicate = false;
-        
+
         for (const file of existingFiles) {
           try {
             const content = await fs.readFile(path.join(API_FOLDER, file), 'utf-8');
             const existingRequest = JSON.parse(content);
-            
+
             // Compare based on path and method to find duplicates
             if (existingRequest.method === request.method && 
                 existingRequest.baseUrl === request.baseUrl && 
                 existingRequest.name === request.name) {
-              
+
               // Update the existing request but keep its ID
               const mergedRequest = {
                 ...validatedRequest,
@@ -778,7 +777,7 @@ export class ApiDefinitionService {
                 historyRequests: existingRequest.historyRequests,
                 updatedAt: new Date().toISOString()
               };
-              
+
               await fs.writeFile(path.join(API_FOLDER, file), JSON.stringify(mergedRequest, null, 2));
               updated++;
               isDuplicate = true;
@@ -788,12 +787,12 @@ export class ApiDefinitionService {
             console.warn(`Error reading file ${file} for duplicate check:`, fileError);
           }
         }
-        
+
         if (!isDuplicate) {
           // Create the file for new request
           const filename = `${validatedRequest.routeId}.json`;
           const filePath = path.join(API_FOLDER, filename);
-          
+
           await fs.writeFile(filePath, JSON.stringify(validatedRequest, null, 2));
           success++;
         }
@@ -802,7 +801,7 @@ export class ApiDefinitionService {
         failure++;
       }
     }
-    
+
     return { success, failure, updated };
   }
 
@@ -825,10 +824,10 @@ export class ApiDefinitionService {
     try {
       // Clone repository
       const repoDir = await this.cloneRepository(githubUrl, username, password);
-      
+
       // Identify API type
       let { type, mainFilePath } = await this.identifyApiType(repoDir);
-      
+
       // If paths were provided, use them
       if (wsdlPath && type !== 'SOAP') {
         const providedWsdlPath = path.join(repoDir, wsdlPath);
@@ -837,7 +836,7 @@ export class ApiDefinitionService {
           mainFilePath = providedWsdlPath;
         }
       }
-      
+
       if (openApiPath && type !== 'REST') {
         const providedOpenApiPath = path.join(repoDir, openApiPath);
         if (fsSync.existsSync(providedOpenApiPath)) {
@@ -845,10 +844,10 @@ export class ApiDefinitionService {
           mainFilePath = providedOpenApiPath;
         }
       }
-      
+
       // Process based on API type
       let requests: Request[] = [];
-      
+
       if (type === 'REST' && mainFilePath) {
         // Process OpenAPI
         const resolvedSpec = await this.resolveOpenApiReferences(mainFilePath, repoDir);
@@ -858,21 +857,29 @@ export class ApiDefinitionService {
         const resolvedWsdl = await this.resolveWsdlReferences(mainFilePath, repoDir);
         requests = this.extractWsdlRequests(resolvedWsdl, environments);
       }
-      
+
       // Create requests in system
       const stats = await this.createRequests(requests);
-      
+
       // Clean up
       try {
         fsSync.rmSync(repoDir, { recursive: true, force: true });
       } catch (error) {
         console.warn('Error cleaning up temporary directory:', error);
       }
-      
+
       return { type, requests, stats };
     } catch (error) {
       console.error('Error processing GitHub repository:', error);
       throw error;
+    }
+  }
+
+  private static async ensureApiFolder() {
+    try {
+      await fs.access(API_FOLDER);
+    } catch {
+      await fs.mkdir(API_FOLDER, { recursive: true });
     }
   }
 }

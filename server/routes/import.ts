@@ -453,7 +453,7 @@ router.post('/wsdl', async (req, res) => {
 // OpenAPI URL import route
 router.post('/openapi', async (req, res) => {
   try {
-    const { openApiUrl } = openApiUrlImportSchema.parse(req.body);
+    const { openApiUrl } = openApiImportSchema.parse(req.body);
     const importId = crypto.randomUUID();
     const timestamp = new Date().toISOString();
 
@@ -475,6 +475,26 @@ router.post('/openapi', async (req, res) => {
 
     // Save requests
     const stats = await ApiDefinitionService.createRequests(requests);
+
+
+    // Save import metadata to client/import directory
+    const importDir = path.join(process.cwd(), 'client', 'import');
+    if (!fs.existsSync(importDir)) {
+      fs.mkdirSync(importDir, { recursive: true });
+    }
+    
+    // Save import details for reference
+    fs.writeFileSync(
+      path.join(importDir, `openapi-import-${importId}.json`),
+      JSON.stringify({
+        id: importId,
+        timestamp,
+        url: openApiUrl,
+        environments,
+        collectionName: apiTitle,
+        requestCount: requests.length
+      }, null, 2)
+    );
 
     // Create a collection
     const apiTitle = spec.info?.title || 'OpenAPI';
