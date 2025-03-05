@@ -32,29 +32,33 @@ import { z } from "zod";
 import { Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Common URL schema for environment URLs
+const envUrlSchema = z.object({
+  devUrl: z.string().url("Invalid URL").optional(),
+  qa01Url: z.string().url("Invalid URL").optional(),
+  qa02Url: z.string().url("Invalid URL").optional(),
+  qa03Url: z.string().url("Invalid URL").optional(),
+  perfUrl: z.string().url("Invalid URL").optional(),
+});
+
 // Import form schemas
 const githubImportSchema = z.object({
   projectName: z.string().min(1, "Project name is required"),
   projectType: z.enum(["REST", "SOAP", "BOTH"]),
   wsdlPath: z.string().optional(),
   openApiPath: z.string().optional(),
-  devUrl: z.string().url("Invalid URL").optional(),
-  qa01Url: z.string().url("Invalid URL").optional(),
-  qa02Url: z.string().url("Invalid URL").optional(),
-  qa03Url: z.string().url("Invalid URL").optional(),
-  perfUrl: z.string().url("Invalid URL").optional(),
   githubUrl: z.string().url("Invalid GitHub URL"),
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
-});
+}).merge(envUrlSchema);
 
 const wsdlImportSchema = z.object({
   wsdlUrl: z.string().url("Invalid WSDL URL"),
-});
+}).merge(envUrlSchema);
 
 const openApiUrlImportSchema = z.object({
   openApiUrl: z.string().url("Invalid OpenAPI URL"),
-});
+}).merge(envUrlSchema);
 
 type ImportType = "GITHUB" | "WSDL" | "OPENAPI_URL" | "COLLECTION" | "OPENAPI_FILE";
 
@@ -71,15 +75,34 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
     resolver: zodResolver(githubImportSchema),
     defaultValues: {
       projectType: "REST",
+      devUrl: "",
+      qa01Url: "",
+      qa02Url: "",
+      qa03Url: "",
+      perfUrl: "",
     },
   });
 
   const wsdlForm = useForm({
     resolver: zodResolver(wsdlImportSchema),
+    defaultValues: {
+      devUrl: "",
+      qa01Url: "",
+      qa02Url: "",
+      qa03Url: "",
+      perfUrl: "",
+    },
   });
 
   const openApiUrlForm = useForm({
     resolver: zodResolver(openApiUrlImportSchema),
+    defaultValues: {
+      devUrl: "",
+      qa01Url: "",
+      qa02Url: "",
+      qa03Url: "",
+      perfUrl: "",
+    },
   });
 
   const handleImport = async (data: any) => {
@@ -119,6 +142,77 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
       });
     }
   };
+
+  const renderEnvironmentUrls = (form: any) => (
+    <div className="space-y-4">
+      <h4 className="text-sm font-medium">Environment URLs</h4>
+      <FormField
+        control={form.control}
+        name="devUrl"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Dev URL</FormLabel>
+            <FormControl>
+              <Input placeholder="https://dev.example.com" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="qa01Url"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>QA01 URL</FormLabel>
+            <FormControl>
+              <Input placeholder="https://qa01.example.com" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="qa02Url"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>QA02 URL</FormLabel>
+            <FormControl>
+              <Input placeholder="https://qa02.example.com" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="qa03Url"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>QA03 URL</FormLabel>
+            <FormControl>
+              <Input placeholder="https://qa03.example.com" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="perfUrl"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>PERF URL</FormLabel>
+            <FormControl>
+              <Input placeholder="https://perf.example.com" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -194,7 +288,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                   )}
                 />
 
-                {(githubForm.watch("projectType") === "SOAP" || 
+                {(githubForm.watch("projectType") === "SOAP" ||
                   githubForm.watch("projectType") === "BOTH") && (
                   <FormField
                     control={githubForm.control}
@@ -211,7 +305,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                   />
                 )}
 
-                {(githubForm.watch("projectType") === "REST" || 
+                {(githubForm.watch("projectType") === "REST" ||
                   githubForm.watch("projectType") === "BOTH") && (
                   <FormField
                     control={githubForm.control}
@@ -227,6 +321,8 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                     )}
                   />
                 )}
+
+                {renderEnvironmentUrls(githubForm)}
 
                 <FormField
                   control={githubForm.control}
@@ -293,6 +389,9 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                     </FormItem>
                   )}
                 />
+
+                {renderEnvironmentUrls(wsdlForm)}
+
                 <DialogFooter>
                   <Button type="submit">Import from WSDL</Button>
                 </DialogFooter>
@@ -316,6 +415,9 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                     </FormItem>
                   )}
                 />
+
+                {renderEnvironmentUrls(openApiUrlForm)}
+
                 <DialogFooter>
                   <Button type="submit">Import from URL</Button>
                 </DialogFooter>
