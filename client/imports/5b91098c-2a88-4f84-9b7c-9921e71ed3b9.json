@@ -1,0 +1,15 @@
+{
+  "id": "5b91098c-2a88-4f84-9b7c-9921e71ed3b9",
+  "timestamp": "2025-03-05T21:15:11.241Z",
+  "type": "github",
+  "projectName": "Test3",
+  "projectType": "REST",
+  "githubUrl": "https://github.com/vaibhavr2107/spring-rest-openapi.git",
+  "environments": {
+    "dev": "https://api.restful-api.dev/objects",
+    "qa01": "https://api.restful-api.dev/objects",
+    "qa02": "https://api.restful-api.dev/objects",
+    "qa03": "https://api.restful-api.dev/objects",
+    "perf": "https://api.restful-api.dev/objects"
+  }
+}
