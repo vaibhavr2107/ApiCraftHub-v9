@@ -1,0 +1,14 @@
+{
+  "id": "4f84c6a3-5bf3-4354-9ba8-df6ba8726265",
+  "timestamp": "2025-03-05T22:43:54.183Z",
+  "url": "https://tmpfiles.org/dl/21800890/openapi.yaml",
+  "environments": {
+    "dev": "",
+    "qa01": "",
+    "qa02": "",
+    "qa03": "",
+    "perf": ""
+  },
+  "collectionName": "Example API",
+  "requestCount": 0
+}

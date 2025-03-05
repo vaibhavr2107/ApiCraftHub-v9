@@ -338,7 +338,7 @@ export class ApiDefinitionService {
   /**
    * Extracts requests from resolved OpenAPI definition
    */
-  private static extractOpenApiRequests(apiSpec: any, environments: ApiEnvironments): Request[] {
+  public static extractOpenApiRequests(apiSpec: any, environments: ApiEnvironments): Request[] {
     try {
       const requests: Request[] = [];
 
@@ -516,7 +516,7 @@ export class ApiDefinitionService {
   /**
    * Extracts requests from resolved WSDL definition
    */
-  private static extractWsdlRequests(wsdlContent: string, environments: ApiEnvironments): Request[] {
+  public static extractWsdlRequests(wsdlContent: string, environments: ApiEnvironments): Request[] {
     try {
       const requests: Request[] = [];
 
@@ -733,7 +733,7 @@ export class ApiDefinitionService {
   /**
    * Creates requests in the API system
    */
-  private static async createRequests(requests: Request[]): Promise<{ success: number, failure: number, updated: number }> {
+  public static async createRequests(requests: Request[]): Promise<{ success: number, failure: number, updated: number }> {
     let success = 0;
     let failure = 0;
     let updated = 0;

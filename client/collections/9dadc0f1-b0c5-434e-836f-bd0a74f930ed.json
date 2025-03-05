@@ -1,0 +1,15 @@
+{
+  "id": "9dadc0f1-b0c5-434e-836f-bd0a74f930ed",
+  "name": "Example API",
+  "description": "Imported from OpenAPI: https://tmpfiles.org/dl/21800890/openapi.yaml",
+  "requests": [],
+  "importData": {
+    "source": "openapi",
+    "timestamp": "2025-03-05T22:56:30.492Z",
+    "url": "https://tmpfiles.org/dl/21800890/openapi.yaml",
+    "stats": {
+      "success": 0,
+      "failure": 0
+    }
+  }
+}
