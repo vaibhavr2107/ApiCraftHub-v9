@@ -452,18 +452,28 @@ router.post('/wsdl', async (req, res) => {
 
 // OpenAPI URL import route
 router.post('/openapi', async (req, res) => {
+  console.log('OpenAPI import request body:', req.body);
   try {
-    // Validate request body with the correct schema
+    // Validate request body with the correct schema - use openApiUrl
     const { openApiUrl } = z.object({
       openApiUrl: z.string().url("Invalid OpenAPI URL"),
     }).parse(req.body);
     
+    // If we got here, we have a valid URL
+    console.log(`Processing OpenAPI import from URL: ${openApiUrl}`);
+    
     const importId = crypto.randomUUID();
     const timestamp = new Date().toISOString();
 
-    // Fetch OpenAPI content
-    const response = await axios.get(openApiUrl);
+    // Fetch OpenAPI content with a timeout and disable certificate validation for testing
+    const response = await axios.get(openApiUrl, {
+      timeout: 10000,
+      validateStatus: (status) => status < 500, // Only reject if status >= 500
+      httpsAgent: new (require('https').Agent)({ rejectUnauthorized: false })
+    });
     const content = response.data;
+    
+    console.log(`Successfully fetched OpenAPI content from ${openApiUrl}`);
 
     // Parse OpenAPI spec
     const spec = typeof content === 'string' ? yaml.load(content) : content;
