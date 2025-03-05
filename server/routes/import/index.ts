@@ -9,7 +9,7 @@ const router = express.Router();
 
 // Mount the modular routes
 router.use('/github', githubRoutes);
-router.use('/', openApiRoutes);
+router.use('/openapi', openApiRoutes);
 router.use('/wsdl', wsdlRoutes);
 router.use('/file', fileRoutes);
 

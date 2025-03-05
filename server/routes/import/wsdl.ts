@@ -11,18 +11,13 @@ import { ApiDefinitionService } from '../../services/ApiDefinitionService';
 const router = express.Router();
 
 // Import directories
-const TEMP_DIR = path.join(process.cwd(), 'server', 'temp');
+const TEMP_DIR = path.join(__dirname, "../../temp");
 const IMPORTS_DIR = path.join(process.cwd(), 'client', 'imports');
 const COLLECTIONS_DIR = path.join(process.cwd(), 'client', 'collections');
 
 // Validation schema for WSDL import
 const wsdlImportSchema = z.object({
   url: z.string().url(),
-  devUrl: z.string().url().optional(),
-  qa01Url: z.string().url().optional(),
-  qa02Url: z.string().url().optional(),
-  qa03Url: z.string().url().optional(),
-  perfUrl: z.string().url().optional(),
 });
 
 // Ensure directories exist
@@ -37,12 +32,12 @@ const ensureDirectories = () => {
 // WSDL import route
 router.post('/', async (req, res) => {
   try {
-    const { url: wsdlUrl } = wsdlImportSchema.parse(req.body);
+    const { url } = wsdlImportSchema.parse(req.body);
     const importId = crypto.randomUUID();
     const timestamp = new Date().toISOString();
 
     // Fetch WSDL content
-    const response = await axios.get(wsdlUrl);
+    const response = await axios.get(url);
     const wsdlContent = response.data;
 
     // Create a temporary file to store the WSDL
@@ -66,19 +61,19 @@ router.post('/', async (req, res) => {
     const stats = await ApiDefinitionService.createRequests(requests);
 
     // Create a collection
-    const urlObj = new URL(wsdlUrl);
+    const urlObj = new URL(url);
     const serviceName =
       urlObj.pathname.split("/").pop()?.replace(".wsdl", "") || "WSDLService";
 
     const collection: Collection = {
       id: importId,
       name: `${serviceName} (WSDL)`,
-      description: `Imported from WSDL: ${wsdlUrl}`,
+      description: `Imported from WSDL: ${url}`,
       requests,
       importData: {
         source: "wsdl",
         timestamp,
-        url: wsdlUrl,
+        url: url,
         stats,
       },
     };
@@ -87,7 +82,7 @@ router.post('/', async (req, res) => {
       id: importId,
       timestamp,
       type: "wsdl",
-      url: wsdlUrl,
+      url: url,
       stats,
     };
 

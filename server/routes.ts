@@ -3,7 +3,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import express from 'express';
 import requestRoutes from "./routes/requests";
-import importRoutes from "./routes/import";
+import importRoutes from "./routes/import/index";
 import historyRoutes from "./routes/history";
 import proxyRoutes from "./routes/proxy";
 import collectionsRoutes from "./routes/collections";
@@ -20,7 +20,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Register API routes
-  app.use('/api', requestRoutes); // Changed to '/api' to maintain compatibility with client
+  app.use('/api', requestRoutes);
   app.use('/api/import', importRoutes);
   app.use('/api/history', historyRoutes);
   app.use('/api/proxy', proxyRoutes);
