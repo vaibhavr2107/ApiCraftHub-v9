@@ -118,18 +118,82 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
 
   const handleImport = async (data: any) => {
     try {
-      await onImport(importType, data);
+      console.log('Starting import with data:', data); // Debug log
+      let response;
+      const baseUrl = '/api/import';
+
+      switch (importType) {
+        case 'GITHUB':
+          response = await fetch(`${baseUrl}/github`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              projectName: data.projectName,
+              projectType: data.projectType,
+              wsdlPath: data.wsdlPath,
+              openApiPath: data.openApiPath,
+              githubUrl: data.githubUrl,
+              username: data.username,
+              password: data.password,
+              devUrl: data.devUrl,
+              qa01Url: data.qa01Url,
+              qa02Url: data.qa02Url,
+              qa03Url: data.qa03Url,
+              perfUrl: data.perfUrl,
+            })
+          });
+          break;
+        case 'WSDL':
+          response = await fetch(`${baseUrl}/wsdl`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: data.wsdlUrl })
+          });
+          break;
+        case 'OPENAPI_URL':
+          response = await fetch(`${baseUrl}/openapi`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: data.openApiUrl })
+          });
+          break;
+        case 'COLLECTION':
+        case 'OPENAPI_FILE':
+          response = await fetch(`${baseUrl}/${importType.toLowerCase()}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: data.content,
+              fileName: data.fileName
+            })
+          });
+          break;
+        default:
+          throw new Error('Invalid import type');
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Import failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Import successful:', result); // Debug log
+
       setIsOpen(false);
       toast({
         title: "Success",
-        description: "Import completed successfully",
+        description: "Import completed successfully. The collection will appear in your list shortly.",
       });
+      return result;
     } catch (error) {
+      console.error('Import error:', error);
       toast({
         variant: "destructive",
         title: "Error",
         description: error instanceof Error ? error.message : "Import failed",
       });
+      throw error;
     }
   };
 
