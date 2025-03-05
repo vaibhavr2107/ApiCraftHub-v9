@@ -11,7 +11,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -238,7 +237,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
           Import
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-xl max-h-[70vh] flex flex-col overflow-hidden p-0">
+      <DialogContent className="max-w-xl max-h-[70vh] flex flex-col p-0">
         <DialogHeader className="px-4 py-2 border-b">
           <DialogTitle className="text-lg">Import API</DialogTitle>
           <DialogDescription className="text-sm">
@@ -264,13 +263,12 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
           </Select>
         </div>
 
-        <div className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
+        <div className="flex-1">
+          <ScrollArea className="h-[calc(100vh-70vh-10rem)]">
             <div className="p-4 space-y-4">
               {importType === "GITHUB" && (
                 <Form {...githubForm}>
                   <form id="githubForm" onSubmit={githubForm.handleSubmit(handleImport)} className="space-y-3">
-                    {/* GitHub form fields */}
                     <FormField
                       control={githubForm.control}
                       name="projectName"
@@ -306,7 +304,6 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                       )}
                     />
 
-                    {/* Conditional Fields based on Project Type */}
                     {githubForm.watch("projectType") === "SOAP" && (
                       <FormField
                         control={githubForm.control}
@@ -428,7 +425,6 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                 </Form>
               )}
 
-              {/* File upload options without Form context */}
               {importType === "COLLECTION" && (
                 <div className="space-y-2">
                   <div className="text-xs font-medium mb-1">Upload Collection</div>
@@ -438,9 +434,9 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                     onChange={(e) => handleFileUpload(e, "COLLECTION")}
                     className="text-sm h-8"
                   />
-                  <FormDescription className="text-xs">
+                  <div className="text-xs text-muted-foreground">
                     Upload a collection JSON file to import API requests
-                  </FormDescription>
+                  </div>
                 </div>
               )}
 
@@ -453,9 +449,9 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                     onChange={(e) => handleFileUpload(e, "OPENAPI_FILE")}
                     className="text-sm h-8"
                   />
-                  <FormDescription className="text-xs">
+                  <div className="text-xs text-muted-foreground">
                     Upload an OpenAPI specification file (YAML or JSON)
-                  </FormDescription>
+                  </div>
                 </div>
               )}
             </div>
@@ -465,12 +461,12 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
         <div className="border-t p-4">
           <DialogFooter>
             {activeForm ? (
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 form={
-                  importType === "GITHUB" ? "githubForm" : 
-                  importType === "WSDL" ? "wsdlForm" : 
-                  "openApiForm"
+                  importType === "GITHUB" ? "githubForm" :
+                    importType === "WSDL" ? "wsdlForm" :
+                      "openApiForm"
                 }
                 className="h-8 text-sm w-full sm:w-auto"
               >
