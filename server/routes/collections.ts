@@ -2,6 +2,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const router = express.Router();
 const COLLECTIONS_DIR = path.join(process.cwd(), 'client', 'collections');

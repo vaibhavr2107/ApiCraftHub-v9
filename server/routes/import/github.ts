@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import { Collection } from '@shared/schema';
 import { ApiDefinitionService } from '../../services/ApiDefinitionService';
+import express from 'express';
 
 const router = express.Router();
 

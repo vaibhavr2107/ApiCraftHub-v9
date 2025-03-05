@@ -4,7 +4,11 @@ import path from 'path';
 import { execSync } from 'child_process';
 import { Request } from '@shared/schema';
 
-export class ApiDefinitionService {
+export import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+
+class ApiDefinitionService {
   static async processGithubRepo(
     githubUrl: string,
     username: string,

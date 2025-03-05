@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 import yaml from 'js-yaml';
 import { Collection } from '@shared/schema';
+import { z } from 'zod';
 
 const router = express.Router();
 
