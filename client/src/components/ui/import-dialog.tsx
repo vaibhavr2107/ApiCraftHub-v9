@@ -246,7 +246,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="px-4 py-2">
+        <div className="px-4 py-2 border-b">
           <Select
             value={importType}
             onValueChange={(value) => setImportType(value as ImportType)}
@@ -264,54 +264,19 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
           </Select>
         </div>
 
-        <ScrollArea className="flex-1 px-4">
-          <div className="py-2 space-y-3">
-            {importType === "GITHUB" && (
-              <Form {...githubForm}>
-                <form id="githubForm" onSubmit={githubForm.handleSubmit(handleImport)} className="space-y-3">
-                  <FormField
-                    control={githubForm.control}
-                    name="projectName"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Project Name</FormLabel>
-                        <FormControl>
-                          <Input className="h-8 text-sm" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={githubForm.control}
-                    name="projectType"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">Project Type</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger className="h-8 text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="REST">REST</SelectItem>
-                            <SelectItem value="SOAP">SOAP</SelectItem>
-                            <SelectItem value="BOTH">Both</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  {(githubForm.watch("projectType") === "SOAP" ||
-                    githubForm.watch("projectType") === "BOTH") && (
+        <div className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+              {importType === "GITHUB" && (
+                <Form {...githubForm}>
+                  <form id="githubForm" onSubmit={githubForm.handleSubmit(handleImport)} className="space-y-3">
+                    {/* GitHub form fields */}
                     <FormField
                       control={githubForm.control}
-                      name="wsdlPath"
+                      name="projectName"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">WSDL Folder Path</FormLabel>
+                          <FormLabel className="text-xs">Project Name</FormLabel>
                           <FormControl>
                             <Input className="h-8 text-sm" {...field} />
                           </FormControl>
@@ -319,16 +284,69 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                         </FormItem>
                       )}
                     />
-                  )}
 
-                  {(githubForm.watch("projectType") === "REST" ||
-                    githubForm.watch("projectType") === "BOTH") && (
                     <FormField
                       control={githubForm.control}
-                      name="openApiPath"
+                      name="projectType"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">OpenAPI Folder Path</FormLabel>
+                          <FormLabel className="text-xs">Project Type</FormLabel>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <SelectTrigger className="h-8 text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="REST">REST</SelectItem>
+                              <SelectItem value="SOAP">SOAP</SelectItem>
+                              <SelectItem value="BOTH">Both</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Conditional Fields based on Project Type */}
+                    {githubForm.watch("projectType") === "SOAP" && (
+                      <FormField
+                        control={githubForm.control}
+                        name="wsdlPath"
+                        render={({ field }) => (
+                          <FormItem className="space-y-1">
+                            <FormLabel className="text-xs">WSDL Folder Path</FormLabel>
+                            <FormControl>
+                              <Input className="h-8 text-sm" {...field} />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {githubForm.watch("projectType") === "REST" && (
+                      <FormField
+                        control={githubForm.control}
+                        name="openApiPath"
+                        render={({ field }) => (
+                          <FormItem className="space-y-1">
+                            <FormLabel className="text-xs">OpenAPI Folder Path</FormLabel>
+                            <FormControl>
+                              <Input className="h-8 text-sm" {...field} />
+                            </FormControl>
+                            <FormMessage className="text-xs" />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {renderEnvironmentUrls(githubForm)}
+
+                    <FormField
+                      control={githubForm.control}
+                      name="githubUrl"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">GitHub URL</FormLabel>
                           <FormControl>
                             <Input className="h-8 text-sm" {...field} />
                           </FormControl>
@@ -336,128 +354,113 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                         </FormItem>
                       )}
                     />
-                  )}
 
-                  {renderEnvironmentUrls(githubForm)}
+                    <FormField
+                      control={githubForm.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">GitHub Username</FormLabel>
+                          <FormControl>
+                            <Input className="h-8 text-sm" {...field} />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
 
-                  <FormField
-                    control={githubForm.control}
-                    name="githubUrl"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">GitHub URL</FormLabel>
-                        <FormControl>
-                          <Input className="h-8 text-sm" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
+                    <FormField
+                      control={githubForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">GitHub Password/Token</FormLabel>
+                          <FormControl>
+                            <Input type="password" className="h-8 text-sm" {...field} />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                  </form>
+                </Form>
+              )}
+
+              {importType === "WSDL" && (
+                <Form {...wsdlForm}>
+                  <form id="wsdlForm" onSubmit={wsdlForm.handleSubmit(handleImport)} className="space-y-3">
+                    <FormField
+                      control={wsdlForm.control}
+                      name="wsdlUrl"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">WSDL URL</FormLabel>
+                          <FormControl>
+                            <Input className="h-8 text-sm" placeholder="https://example.com/service.wsdl" {...field} />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                    {renderEnvironmentUrls(wsdlForm)}
+                  </form>
+                </Form>
+              )}
+
+              {importType === "OPENAPI_URL" && (
+                <Form {...openApiUrlForm}>
+                  <form id="openApiForm" onSubmit={openApiUrlForm.handleSubmit(handleImport)} className="space-y-3">
+                    <FormField
+                      control={openApiUrlForm.control}
+                      name="openApiUrl"
+                      render={({ field }) => (
+                        <FormItem className="space-y-1">
+                          <FormLabel className="text-xs">OpenAPI URL</FormLabel>
+                          <FormControl>
+                            <Input className="h-8 text-sm" placeholder="https://example.com/openapi.yaml" {...field} />
+                          </FormControl>
+                          <FormMessage className="text-xs" />
+                        </FormItem>
+                      )}
+                    />
+                    {renderEnvironmentUrls(openApiUrlForm)}
+                  </form>
+                </Form>
+              )}
+
+              {/* File upload options without Form context */}
+              {importType === "COLLECTION" && (
+                <div className="space-y-2">
+                  <div className="text-xs font-medium mb-1">Upload Collection</div>
+                  <Input
+                    type="file"
+                    accept=".json"
+                    onChange={(e) => handleFileUpload(e, "COLLECTION")}
+                    className="text-sm h-8"
                   />
+                  <FormDescription className="text-xs">
+                    Upload a collection JSON file to import API requests
+                  </FormDescription>
+                </div>
+              )}
 
-                  <FormField
-                    control={githubForm.control}
-                    name="username"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">GitHub Username</FormLabel>
-                        <FormControl>
-                          <Input className="h-8 text-sm" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
+              {importType === "OPENAPI_FILE" && (
+                <div className="space-y-2">
+                  <div className="text-xs font-medium mb-1">Upload OpenAPI Specification</div>
+                  <Input
+                    type="file"
+                    accept=".yaml,.yml,.json"
+                    onChange={(e) => handleFileUpload(e, "OPENAPI_FILE")}
+                    className="text-sm h-8"
                   />
-
-                  <FormField
-                    control={githubForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">GitHub Password/Token</FormLabel>
-                        <FormControl>
-                          <Input type="password" className="h-8 text-sm" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-                </form>
-              </Form>
-            )}
-
-            {importType === "WSDL" && (
-              <Form {...wsdlForm}>
-                <form id="wsdlForm" onSubmit={wsdlForm.handleSubmit(handleImport)} className="space-y-3">
-                  <FormField
-                    control={wsdlForm.control}
-                    name="wsdlUrl"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">WSDL URL</FormLabel>
-                        <FormControl>
-                          <Input className="h-8 text-sm" placeholder="https://example.com/service.wsdl" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  {renderEnvironmentUrls(wsdlForm)}
-                </form>
-              </Form>
-            )}
-
-            {importType === "OPENAPI_URL" && (
-              <Form {...openApiUrlForm}>
-                <form id="openApiForm" onSubmit={openApiUrlForm.handleSubmit(handleImport)} className="space-y-3">
-                  <FormField
-                    control={openApiUrlForm.control}
-                    name="openApiUrl"
-                    render={({ field }) => (
-                      <FormItem className="space-y-1">
-                        <FormLabel className="text-xs">OpenAPI URL</FormLabel>
-                        <FormControl>
-                          <Input className="h-8 text-sm" placeholder="https://example.com/openapi.yaml" {...field} />
-                        </FormControl>
-                        <FormMessage className="text-xs" />
-                      </FormItem>
-                    )}
-                  />
-
-                  {renderEnvironmentUrls(openApiUrlForm)}
-                </form>
-              </Form>
-            )}
-
-            {importType === "COLLECTION" && (
-              <div className="space-y-2">
-                <Input
-                  type="file"
-                  accept=".json"
-                  onChange={(e) => handleFileUpload(e, "COLLECTION")}
-                  className="text-sm"
-                />
-                <FormDescription className="text-xs">
-                  Upload a collection JSON file to import API requests
-                </FormDescription>
-              </div>
-            )}
-
-            {importType === "OPENAPI_FILE" && (
-              <div className="space-y-2">
-                <Input
-                  type="file"
-                  accept=".yaml,.yml,.json"
-                  onChange={(e) => handleFileUpload(e, "OPENAPI_FILE")}
-                  className="text-sm"
-                />
-                <FormDescription className="text-xs">
-                  Upload an OpenAPI specification file (YAML or JSON)
-                </FormDescription>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+                  <FormDescription className="text-xs">
+                    Upload an OpenAPI specification file (YAML or JSON)
+                  </FormDescription>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
 
         <div className="border-t p-4">
           <DialogFooter>
