@@ -1,0 +1,34 @@
+{
+  "requestId": "delete--users--userId--1741218037920",
+  "routeId": "delete--users--userId--1741218037920",
+  "name": "Delete user",
+  "method": "DELETE",
+  "baseUrl": "/users/{userId}",
+  "devUrl": "https://api.restful-api.dev/objects",
+  "qa01Url": "https://api.restful-api.dev/objects",
+  "qa02Url": "https://api.restful-api.dev/objects",
+  "qa03Url": "https://api.restful-api.dev/objects",
+  "perfUrl": "https://api.restful-api.dev/objects",
+  "queryParams": {},
+  "pathVariables": {
+    "userId": ""
+  },
+  "auth": {
+    "type": "none"
+  },
+  "headers": {},
+  "historyId": "history-delete--users--userId--1741218037920",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Users"
+  ],
+  "collectionId": "Sample-API",
+  "collectionName": "Sample API",
+  "createdAt": "2025-03-05T23:40:37.920Z",
+  "updatedAt": "2025-03-05T23:40:37.920Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

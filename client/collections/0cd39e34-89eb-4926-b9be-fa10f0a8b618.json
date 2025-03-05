@@ -1,0 +1,255 @@
+{
+  "id": "0cd39e34-89eb-4926-b9be-fa10f0a8b618",
+  "name": "Test4",
+  "description": "Imported from GitHub: https://github.com/vaibhavr2107/spring-rest-openapi.git",
+  "requests": [
+    {
+      "requestId": "post--auth-login-1741218037920",
+      "routeId": "post--auth-login-1741218037920",
+      "name": "User login",
+      "method": "POST",
+      "baseUrl": "/auth/login",
+      "pathVariables": {},
+      "queryParams": {},
+      "headers": {},
+      "auth": {
+        "type": "none"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-post--auth-login-1741218037920",
+      "historyRequests": [],
+      "devUrl": "https://api.restful-api.dev/objects",
+      "qa01Url": "https://api.restful-api.dev/objects",
+      "qa02Url": "https://api.restful-api.dev/objects",
+      "qa03Url": "https://api.restful-api.dev/objects",
+      "perfUrl": "https://api.restful-api.dev/objects",
+      "createdAt": "2025-03-05T23:40:37.920Z",
+      "updatedAt": "2025-03-05T23:40:37.920Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Authentication"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "get--users-1741218037920",
+      "routeId": "get--users-1741218037920",
+      "name": "Get all users",
+      "method": "GET",
+      "baseUrl": "/users",
+      "pathVariables": {},
+      "queryParams": {
+        "page": "",
+        "size": ""
+      },
+      "headers": {},
+      "auth": {
+        "type": "none"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-get--users-1741218037920",
+      "historyRequests": [],
+      "devUrl": "https://api.restful-api.dev/objects",
+      "qa01Url": "https://api.restful-api.dev/objects",
+      "qa02Url": "https://api.restful-api.dev/objects",
+      "qa03Url": "https://api.restful-api.dev/objects",
+      "perfUrl": "https://api.restful-api.dev/objects",
+      "createdAt": "2025-03-05T23:40:37.920Z",
+      "updatedAt": "2025-03-05T23:40:37.920Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "post--users-1741218037920",
+      "routeId": "post--users-1741218037920",
+      "name": "Create a new user",
+      "method": "POST",
+      "baseUrl": "/users",
+      "pathVariables": {},
+      "queryParams": {},
+      "headers": {},
+      "auth": {
+        "type": "none"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-post--users-1741218037920",
+      "historyRequests": [],
+      "devUrl": "https://api.restful-api.dev/objects",
+      "qa01Url": "https://api.restful-api.dev/objects",
+      "qa02Url": "https://api.restful-api.dev/objects",
+      "qa03Url": "https://api.restful-api.dev/objects",
+      "perfUrl": "https://api.restful-api.dev/objects",
+      "createdAt": "2025-03-05T23:40:37.920Z",
+      "updatedAt": "2025-03-05T23:40:37.920Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "get--users--userId--1741218037920",
+      "routeId": "get--users--userId--1741218037920",
+      "name": "Get user by ID",
+      "method": "GET",
+      "baseUrl": "/users/{userId}",
+      "pathVariables": {
+        "userId": ""
+      },
+      "queryParams": {},
+      "headers": {},
+      "auth": {
+        "type": "none"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-get--users--userId--1741218037920",
+      "historyRequests": [],
+      "devUrl": "https://api.restful-api.dev/objects",
+      "qa01Url": "https://api.restful-api.dev/objects",
+      "qa02Url": "https://api.restful-api.dev/objects",
+      "qa03Url": "https://api.restful-api.dev/objects",
+      "perfUrl": "https://api.restful-api.dev/objects",
+      "createdAt": "2025-03-05T23:40:37.920Z",
+      "updatedAt": "2025-03-05T23:40:37.920Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "put--users--userId--1741218037920",
+      "routeId": "put--users--userId--1741218037920",
+      "name": "Update user",
+      "method": "PUT",
+      "baseUrl": "/users/{userId}",
+      "pathVariables": {
+        "userId": ""
+      },
+      "queryParams": {},
+      "headers": {},
+      "auth": {
+        "type": "none"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-put--users--userId--1741218037920",
+      "historyRequests": [],
+      "devUrl": "https://api.restful-api.dev/objects",
+      "qa01Url": "https://api.restful-api.dev/objects",
+      "qa02Url": "https://api.restful-api.dev/objects",
+      "qa03Url": "https://api.restful-api.dev/objects",
+      "perfUrl": "https://api.restful-api.dev/objects",
+      "createdAt": "2025-03-05T23:40:37.920Z",
+      "updatedAt": "2025-03-05T23:40:37.920Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "delete--users--userId--1741218037920",
+      "routeId": "delete--users--userId--1741218037920",
+      "name": "Delete user",
+      "method": "DELETE",
+      "baseUrl": "/users/{userId}",
+      "pathVariables": {
+        "userId": ""
+      },
+      "queryParams": {},
+      "headers": {},
+      "auth": {
+        "type": "none"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-delete--users--userId--1741218037920",
+      "historyRequests": [],
+      "devUrl": "https://api.restful-api.dev/objects",
+      "qa01Url": "https://api.restful-api.dev/objects",
+      "qa02Url": "https://api.restful-api.dev/objects",
+      "qa03Url": "https://api.restful-api.dev/objects",
+      "perfUrl": "https://api.restful-api.dev/objects",
+      "createdAt": "2025-03-05T23:40:37.920Z",
+      "updatedAt": "2025-03-05T23:40:37.920Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "get--users-search-1741218037920",
+      "routeId": "get--users-search-1741218037920",
+      "name": "Search users",
+      "method": "GET",
+      "baseUrl": "/users/search",
+      "pathVariables": {},
+      "queryParams": {
+        "firstName": "",
+        "lastName": "",
+        "email": "",
+        "page": "",
+        "size": ""
+      },
+      "headers": {},
+      "auth": {
+        "type": "none"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-get--users-search-1741218037920",
+      "historyRequests": [],
+      "devUrl": "https://api.restful-api.dev/objects",
+      "qa01Url": "https://api.restful-api.dev/objects",
+      "qa02Url": "https://api.restful-api.dev/objects",
+      "qa03Url": "https://api.restful-api.dev/objects",
+      "perfUrl": "https://api.restful-api.dev/objects",
+      "createdAt": "2025-03-05T23:40:37.920Z",
+      "updatedAt": "2025-03-05T23:40:37.920Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    }
+  ],
+  "importData": {
+    "source": "github",
+    "timestamp": "2025-03-05T23:40:37.107Z",
+    "projectType": "REST",
+    "stats": {
+      "success": 7,
+      "failure": 0
+    }
+  }
+}
