@@ -9,7 +9,7 @@ import { SpringParser } from '../parser/SpringParser';
 import axios from 'axios';
 import yaml from 'js-yaml';
 import crypto from 'crypto';
-import { Collection, Request } from '@shared/schema';
+import { Collection, Request, RequestSchema } from '@shared/schema';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
