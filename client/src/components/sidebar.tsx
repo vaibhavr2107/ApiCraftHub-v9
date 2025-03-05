@@ -2,17 +2,16 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Upload, Wand2, Search, FileText, ChevronDown, ChevronRight, FolderClosed, FolderOpen, History, RefreshCw } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, FolderClosed, FolderOpen, History, RefreshCw, FileText } from "lucide-react";
 import { Collection, Request } from "@shared/schema";
 import { generateRouteId } from "@/lib/utils";
-import yaml from 'js-yaml';
 import { useQuery } from "@tanstack/react-query";
 import { loadRequests, saveRequest } from "@/lib/api";
 import { useLocation } from "wouter";
 import { saveHistoryRequest } from '@/lib/history';
-import { ImportWizard, ImportData } from "./import-wizard";
-import { importService, refreshServiceImport } from "@/lib/import-service";
+import { ImportDialog } from "@/components/ui/import-dialog";
 import { useToast } from "@/hooks/use-toast";
+
 
 interface SidebarProps {
   onRequestSelect: (request: Request) => void;
@@ -42,8 +41,8 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   const [historySearch, setHistorySearch] = useState("");
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [showHistory, setShowHistory] = useState(false);
-  const [isImportWizardOpen, setIsImportWizardOpen] = useState(false);
   const [, setLocation] = useLocation();
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>(() => {
     const saved = localStorage.getItem("request_history");
     return saved ? JSON.parse(saved) : [];
@@ -392,25 +391,66 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     return requests;
   };
 
-  const handleImportWizard = () => {
-    setIsImportWizardOpen(true);
-  };
-
-  const handleImport = async (importData: ImportData) => {
+  const handleImport = async (type: string, data: any) => {
     try {
-      await importService(importData);
+      let response;
+      switch (type) {
+        case 'GITHUB':
+          response = await fetch('/api/import/github', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          break;
+        case 'WSDL':
+          response = await fetch('/api/import/wsdl', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: data.wsdlUrl })
+          });
+          break;
+        case 'OPENAPI_URL':
+          response = await fetch('/api/import/openapi', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: data.openApiUrl })
+          });
+          break;
+        case 'COLLECTION':
+        case 'OPENAPI_FILE':
+          response = await fetch(`/api/import/${type.toLowerCase()}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: data.content,
+              fileName: data.fileName
+            })
+          });
+          break;
+        default:
+          throw new Error('Invalid import type');
+      }
+
+      if (!response.ok) {
+        throw new Error(`Import failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      // Trigger a refetch of the requests
+      await loadRequests();
+
       toast({
         title: "Success",
-        description: `Successfully imported service: ${importData.serviceName}`,
+        description: "Import completed successfully",
       });
     } catch (error) {
       console.error('Import error:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to import service",
+        description: error instanceof Error ? error.message : "Import failed",
       });
-      throw error;
     }
   };
 
@@ -467,36 +507,14 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
     <div className="w-64 flex-shrink-0 border-r bg-background/95 h-screen">
       <div className="p-4 border-b space-y-4">
         <div className="space-y-2">
-          <div className="flex gap-2">
-            <input
-              type="file"
-              accept=".json,.yaml,.yml"
-              className="hidden"
-              onChange={handleFileUpload}
-              id="request-import"
-            />
-            <label htmlFor="request-import" className="flex-1">
-              <Button variant="outline" className="w-full" asChild>
-                <span>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Import
-                </span>
-              </Button>
-            </label>
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={handleImportWizard}
-            >
-              <Wand2 className="mr-2 h-4 w-4" />
-              Wizard
-            </Button>
-          </div>
+          <ImportDialog 
+            onImport={handleImport}
+          />
 
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search requests (searches all content)..."
+              placeholder="Search requests..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8"
@@ -615,12 +633,6 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
           ))}
         </div>
       </ScrollArea>
-
-      <ImportWizard
-        isOpen={isImportWizardOpen}
-        onClose={() => setIsImportWizardOpen(false)}
-        onImport={handleImport}
-      />
     </div>
   );
 }
