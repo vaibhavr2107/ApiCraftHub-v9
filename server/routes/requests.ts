@@ -1,3 +1,4 @@
+
 import { Request, RequestSchema } from '@shared/schema';
 import express from 'express';
 import fs from 'fs/promises';
@@ -130,7 +131,6 @@ router.put('/requests/update/:routeId', async (req, res) => {
         .slice(0, 5);
     }
 
-
     // Merge updates with existing request
     const updatedRequest = {
       ...existingRequest,
@@ -157,15 +157,15 @@ router.put('/requests/update/:routeId', async (req, res) => {
   }
 });
 
-router.post('/api/history', (req, res) => {
+// Create a new history entry
+router.post('/history', (req, res) => {
   try {
-    const apiFolder = path.join(process.cwd(), 'client', 'api');
-    if (!fsSync.existsSync(apiFolder)) {
-      fsSync.mkdirSync(apiFolder, { recursive: true });
+    if (!fsSync.existsSync(API_FOLDER)) {
+      fsSync.mkdirSync(API_FOLDER, { recursive: true });
     }
 
     // Get list of existing history files
-    const historyFiles: HistoryFile[] = fsSync.readdirSync(apiFolder)
+    const historyFiles: HistoryFile[] = fsSync.readdirSync(API_FOLDER)
       .filter(file => file.includes('history-') && file.endsWith('.json'))
       .map(filename => {
         const matches = filename.match(/\d+/g);
@@ -180,7 +180,7 @@ router.post('/api/history', (req, res) => {
     const fileName = `${request.routeId}-${timestamp}.json`;
 
     fsSync.writeFileSync(
-      path.join(apiFolder, fileName),
+      path.join(API_FOLDER, fileName),
       JSON.stringify(request, null, 2)
     );
 
@@ -189,7 +189,7 @@ router.post('/api/history', (req, res) => {
       console.log(`Removing old history files: total count ${historyFiles.length + 1}`);
       historyFiles.slice(9).forEach(file => {
         console.log(`Removing old history file: ${file.filename}`);
-        fsSync.unlinkSync(path.join(apiFolder, file.filename));
+        fsSync.unlinkSync(path.join(API_FOLDER, file.filename));
       });
     }
 
