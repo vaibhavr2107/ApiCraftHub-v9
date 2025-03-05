@@ -42,25 +42,36 @@ const envUrlSchema = z.object({
 });
 
 // Import form schemas
-const githubImportSchema = z.object({
-  projectName: z.string().min(1, "Project name is required"),
-  projectType: z.enum(["REST", "SOAP", "BOTH"]),
-  wsdlPath: z.string().optional(),
-  openApiPath: z.string().optional(),
-  githubUrl: z.string().url("Invalid GitHub URL"),
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
-}).merge(envUrlSchema);
+const githubImportSchema = z
+  .object({
+    projectName: z.string().min(1, "Project name is required"),
+    projectType: z.enum(["REST", "SOAP", "BOTH"]),
+    wsdlPath: z.string().optional(),
+    openApiPath: z.string().optional(),
+    githubUrl: z.string().url("Invalid GitHub URL"),
+    username: z.string().min(1, "Username is required"),
+    password: z.string().min(1, "Password is required"),
+  })
+  .merge(envUrlSchema);
 
-const wsdlImportSchema = z.object({
-  wsdlUrl: z.string().url("Invalid WSDL URL"),
-}).merge(envUrlSchema);
+const wsdlImportSchema = z
+  .object({
+    wsdlUrl: z.string().url("Invalid WSDL URL"),
+  })
+  .merge(envUrlSchema);
 
-const openApiUrlImportSchema = z.object({
-  openApiUrl: z.string().url("Invalid OpenAPI URL"),
-}).merge(envUrlSchema);
+const openApiUrlImportSchema = z
+  .object({
+    openApiUrl: z.string().url("Invalid OpenAPI URL"),
+  })
+  .merge(envUrlSchema);
 
-type ImportType = "GITHUB" | "WSDL" | "OPENAPI_URL" | "COLLECTION" | "OPENAPI_FILE";
+type ImportType =
+  | "GITHUB"
+  | "WSDL"
+  | "OPENAPI_URL"
+  | "COLLECTION"
+  | "OPENAPI_FILE";
 
 interface ImportDialogProps {
   onImport: (type: ImportType, data: any) => Promise<void>;
@@ -122,7 +133,10 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: ImportType) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    type: ImportType,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -138,7 +152,8 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to import file",
+        description:
+          error instanceof Error ? error.message : "Failed to import file",
       });
     }
   };
@@ -153,7 +168,11 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
           <FormItem className="space-y-1">
             <FormLabel className="text-xs">Dev URL</FormLabel>
             <FormControl>
-              <Input className="h-8 text-sm" placeholder="https://dev.example.com" {...field} />
+              <Input
+                className="h-8 text-sm"
+                placeholder="https://dev.example.com"
+                {...field}
+              />
             </FormControl>
             <FormMessage className="text-xs" />
           </FormItem>
@@ -166,7 +185,11 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
           <FormItem className="space-y-1">
             <FormLabel className="text-xs">QA01 URL</FormLabel>
             <FormControl>
-              <Input className="h-8 text-sm" placeholder="https://qa01.example.com" {...field} />
+              <Input
+                className="h-8 text-sm"
+                placeholder="https://qa01.example.com"
+                {...field}
+              />
             </FormControl>
             <FormMessage className="text-xs" />
           </FormItem>
@@ -179,7 +202,11 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
           <FormItem className="space-y-1">
             <FormLabel className="text-xs">QA02 URL</FormLabel>
             <FormControl>
-              <Input className="h-8 text-sm" placeholder="https://qa02.example.com" {...field} />
+              <Input
+                className="h-8 text-sm"
+                placeholder="https://qa02.example.com"
+                {...field}
+              />
             </FormControl>
             <FormMessage className="text-xs" />
           </FormItem>
@@ -192,7 +219,11 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
           <FormItem className="space-y-1">
             <FormLabel className="text-xs">QA03 URL</FormLabel>
             <FormControl>
-              <Input className="h-8 text-sm" placeholder="https://qa03.example.com" {...field} />
+              <Input
+                className="h-8 text-sm"
+                placeholder="https://qa03.example.com"
+                {...field}
+              />
             </FormControl>
             <FormMessage className="text-xs" />
           </FormItem>
@@ -205,7 +236,11 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
           <FormItem className="space-y-1">
             <FormLabel className="text-xs">PERF URL</FormLabel>
             <FormControl>
-              <Input className="h-8 text-sm" placeholder="https://perf.example.com" {...field} />
+              <Input
+                className="h-8 text-sm"
+                placeholder="https://perf.example.com"
+                {...field}
+              />
             </FormControl>
             <FormMessage className="text-xs" />
           </FormItem>
@@ -237,7 +272,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
           Import
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-xl max-h-[70vh] flex flex-col p-0">
+      <DialogContent className="max-w-xl max-h-[80vh] flex flex-col p-0">
         <DialogHeader className="px-4 py-2 border-b">
           <DialogTitle className="text-lg">Import API</DialogTitle>
           <DialogDescription className="text-sm">
@@ -264,17 +299,23 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
         </div>
 
         <div className="flex-1">
-          <ScrollArea className="h-[calc(100vh-70vh-10rem)]">
+          <ScrollArea className="h-[calc(100vh-40vh-10rem)]">
             <div className="p-4 space-y-4">
               {importType === "GITHUB" && (
                 <Form {...githubForm}>
-                  <form id="githubForm" onSubmit={githubForm.handleSubmit(handleImport)} className="space-y-3">
+                  <form
+                    id="githubForm"
+                    onSubmit={githubForm.handleSubmit(handleImport)}
+                    className="space-y-3"
+                  >
                     <FormField
                       control={githubForm.control}
                       name="projectName"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Project Name</FormLabel>
+                          <FormLabel className="text-xs">
+                            Project Name
+                          </FormLabel>
                           <FormControl>
                             <Input className="h-8 text-sm" {...field} />
                           </FormControl>
@@ -288,8 +329,13 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                       name="projectType"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Project Type</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <FormLabel className="text-xs">
+                            Project Type
+                          </FormLabel>
+                          <Select
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          >
                             <SelectTrigger className="h-8 text-sm">
                               <SelectValue />
                             </SelectTrigger>
@@ -310,7 +356,9 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                         name="wsdlPath"
                         render={({ field }) => (
                           <FormItem className="space-y-1">
-                            <FormLabel className="text-xs">WSDL Folder Path</FormLabel>
+                            <FormLabel className="text-xs">
+                              WSDL Folder Path
+                            </FormLabel>
                             <FormControl>
                               <Input className="h-8 text-sm" {...field} />
                             </FormControl>
@@ -326,7 +374,9 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                         name="openApiPath"
                         render={({ field }) => (
                           <FormItem className="space-y-1">
-                            <FormLabel className="text-xs">OpenAPI Folder Path</FormLabel>
+                            <FormLabel className="text-xs">
+                              OpenAPI Folder Path
+                            </FormLabel>
                             <FormControl>
                               <Input className="h-8 text-sm" {...field} />
                             </FormControl>
@@ -357,7 +407,9 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                       name="username"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">GitHub Username</FormLabel>
+                          <FormLabel className="text-xs">
+                            GitHub Username
+                          </FormLabel>
                           <FormControl>
                             <Input className="h-8 text-sm" {...field} />
                           </FormControl>
@@ -371,9 +423,15 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                       name="password"
                       render={({ field }) => (
                         <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">GitHub Password/Token</FormLabel>
+                          <FormLabel className="text-xs">
+                            GitHub Password/Token
+                          </FormLabel>
                           <FormControl>
-                            <Input type="password" className="h-8 text-sm" {...field} />
+                            <Input
+                              type="password"
+                              className="h-8 text-sm"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage className="text-xs" />
                         </FormItem>
@@ -385,7 +443,11 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
 
               {importType === "WSDL" && (
                 <Form {...wsdlForm}>
-                  <form id="wsdlForm" onSubmit={wsdlForm.handleSubmit(handleImport)} className="space-y-3">
+                  <form
+                    id="wsdlForm"
+                    onSubmit={wsdlForm.handleSubmit(handleImport)}
+                    className="space-y-3"
+                  >
                     <FormField
                       control={wsdlForm.control}
                       name="wsdlUrl"
@@ -393,7 +455,11 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                         <FormItem className="space-y-1">
                           <FormLabel className="text-xs">WSDL URL</FormLabel>
                           <FormControl>
-                            <Input className="h-8 text-sm" placeholder="https://example.com/service.wsdl" {...field} />
+                            <Input
+                              className="h-8 text-sm"
+                              placeholder="https://example.com/service.wsdl"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage className="text-xs" />
                         </FormItem>
@@ -406,7 +472,11 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
 
               {importType === "OPENAPI_URL" && (
                 <Form {...openApiUrlForm}>
-                  <form id="openApiForm" onSubmit={openApiUrlForm.handleSubmit(handleImport)} className="space-y-3">
+                  <form
+                    id="openApiForm"
+                    onSubmit={openApiUrlForm.handleSubmit(handleImport)}
+                    className="space-y-3"
+                  >
                     <FormField
                       control={openApiUrlForm.control}
                       name="openApiUrl"
@@ -414,7 +484,11 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                         <FormItem className="space-y-1">
                           <FormLabel className="text-xs">OpenAPI URL</FormLabel>
                           <FormControl>
-                            <Input className="h-8 text-sm" placeholder="https://example.com/openapi.yaml" {...field} />
+                            <Input
+                              className="h-8 text-sm"
+                              placeholder="https://example.com/openapi.yaml"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage className="text-xs" />
                         </FormItem>
@@ -427,7 +501,9 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
 
               {importType === "COLLECTION" && (
                 <div className="space-y-2">
-                  <div className="text-xs font-medium mb-1">Upload Collection</div>
+                  <div className="text-xs font-medium mb-1">
+                    Upload Collection
+                  </div>
                   <Input
                     type="file"
                     accept=".json"
@@ -442,7 +518,9 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
 
               {importType === "OPENAPI_FILE" && (
                 <div className="space-y-2">
-                  <div className="text-xs font-medium mb-1">Upload OpenAPI Specification</div>
+                  <div className="text-xs font-medium mb-1">
+                    Upload OpenAPI Specification
+                  </div>
                   <Input
                     type="file"
                     accept=".yaml,.yml,.json"
@@ -464,9 +542,11 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
               <Button
                 type="submit"
                 form={
-                  importType === "GITHUB" ? "githubForm" :
-                    importType === "WSDL" ? "wsdlForm" :
-                      "openApiForm"
+                  importType === "GITHUB"
+                    ? "githubForm"
+                    : importType === "WSDL"
+                      ? "wsdlForm"
+                      : "openApiForm"
                 }
                 className="h-8 text-sm w-full sm:w-auto"
               >
