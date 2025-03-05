@@ -314,6 +314,11 @@ router.post('/github', async (req, res) => {
       JSON.stringify(importMetadata, null, 2)
     );
 
+    // Ensure collections directory exists
+    if (!fs.existsSync(COLLECTIONS_DIR)) {
+      fs.mkdirSync(COLLECTIONS_DIR, { recursive: true });
+    }
+
     // Process GitHub repository
     const result = await ApiDefinitionService.processGithubRepo(
       importData.githubUrl,

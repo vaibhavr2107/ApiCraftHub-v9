@@ -384,7 +384,7 @@ export class ApiDefinitionService {
           if (operation.parameters) {
             operation.parameters.forEach((param: any) => {
               if (param.in === 'query') {
-                queryParams[param.name] = '';
+                queryParams[param.name] = param.example || '';
               }
             });
           }
@@ -394,9 +394,19 @@ export class ApiDefinitionService {
           if (operation.parameters) {
             operation.parameters.forEach((param: any) => {
               if (param.in === 'header') {
-                headers[param.name] = '';
+                headers[param.name] = param.example || '';
               }
             });
+          }
+          
+          // Add Content-Type header if not present but requestBody exists
+          if (operation.requestBody && !headers['Content-Type']) {
+            const contentTypes = operation.requestBody.content ? Object.keys(operation.requestBody.content) : [];
+            if (contentTypes.includes('application/json')) {
+              headers['Content-Type'] = 'application/json';
+            } else if (contentTypes.length > 0) {
+              headers['Content-Type'] = contentTypes[0];
+            }
           }
           
           // Extract request body
@@ -404,15 +414,19 @@ export class ApiDefinitionService {
           if (operation.requestBody?.content) {
             const contentTypes = Object.keys(operation.requestBody.content);
             if (contentTypes.length > 0) {
-              const contentType = contentTypes[0];  // Use the first content type
-              const schema = operation.requestBody.content[contentType].schema;
-              const example = operation.requestBody.content[contentType].example;
+              // Prefer JSON content type if available
+              const contentType = contentTypes.find(ct => ct.includes('json')) || contentTypes[0];
+              const content = operation.requestBody.content[contentType];
               
-              if (example) {
-                requestBody = example;
-              } else if (schema) {
-                // Generate sample from schema (simplified)
-                requestBody = this.generateSampleFromSchema(schema, apiSpec);
+              if (content.example) {
+                requestBody = content.example;
+              } else if (content.examples && Object.keys(content.examples).length > 0) {
+                // Use the first example if multiple are provided
+                const firstExampleKey = Object.keys(content.examples)[0];
+                requestBody = content.examples[firstExampleKey].value;
+              } else if (content.schema) {
+                // Generate sample from schema
+                requestBody = this.generateSampleFromSchema(content.schema, apiSpec);
               }
             }
           }
@@ -421,21 +435,39 @@ export class ApiDefinitionService {
           let responseBody: any = {};
           if (operation.responses) {
             // Look for 200, 201, or the first response
-            const successResponse = operation.responses['200'] || operation.responses['201'] || 
-                                   Object.values(operation.responses)[0];
+            const successCodes = ['200', '201', '202', '204'];
+            let successResponse = null;
+            
+            // Find first available success response
+            for (const code of successCodes) {
+              if (operation.responses[code]) {
+                successResponse = operation.responses[code];
+                break;
+              }
+            }
+            
+            // If no success response found, use the first one
+            if (!successResponse && Object.keys(operation.responses).length > 0) {
+              const firstKey = Object.keys(operation.responses)[0];
+              successResponse = operation.responses[firstKey];
+            }
             
             if (successResponse?.content) {
               const contentTypes = Object.keys(successResponse.content);
               if (contentTypes.length > 0) {
-                const contentType = contentTypes[0];
-                const schema = successResponse.content[contentType].schema;
-                const example = successResponse.content[contentType].example;
+                // Prefer JSON content type if available
+                const contentType = contentTypes.find(ct => ct.includes('json')) || contentTypes[0];
+                const content = successResponse.content[contentType];
                 
-                if (example) {
-                  responseBody = example;
-                } else if (schema) {
+                if (content.example) {
+                  responseBody = content.example;
+                } else if (content.examples && Object.keys(content.examples).length > 0) {
+                  // Use the first example if multiple are provided
+                  const firstExampleKey = Object.keys(content.examples)[0];
+                  responseBody = content.examples[firstExampleKey].value;
+                } else if (content.schema) {
                   // Generate sample from schema
-                  responseBody = this.generateSampleFromSchema(schema, apiSpec);
+                  responseBody = this.generateSampleFromSchema(content.schema, apiSpec);
                 }
               }
             }
@@ -451,7 +483,7 @@ export class ApiDefinitionService {
             pathVariables: pathParams,
             queryParams,
             headers,
-            auth: { type: "none" },
+            auth: { type: "bearer-tiaa" }, // Default to bearer-tiaa
             requestBody,
             responseFields: {},
             exampleResponseBody: responseBody,
@@ -552,7 +584,7 @@ export class ApiDefinitionService {
             "Content-Type": "application/soap+xml; charset=utf-8",
             "SOAPAction": `http://tempuri.org/${operation}`
           },
-          auth: { type: "none" },
+          auth: { type: "bearer-tiaa" },
           requestBody,
           responseFields: {},
           exampleResponseBody: { 
@@ -605,13 +637,49 @@ export class ApiDefinitionService {
       return this.generateSampleFromSchema(refObj, fullSpec);
     }
     
+    // Handle allOf, oneOf, anyOf
+    if (schema.allOf) {
+      const result: any = {};
+      schema.allOf.forEach((subSchema: any) => {
+        const sample = this.generateSampleFromSchema(subSchema, fullSpec);
+        Object.assign(result, sample);
+      });
+      return result;
+    }
+    
+    if (schema.oneOf || schema.anyOf) {
+      const subSchemas = schema.oneOf || schema.anyOf;
+      if (subSchemas.length > 0) {
+        return this.generateSampleFromSchema(subSchemas[0], fullSpec);
+      }
+      return {};
+    }
+    
+    // Use example if provided
+    if (schema.example !== undefined) {
+      return schema.example;
+    }
+    
     // Handle type
     switch (schema.type) {
       case 'object':
         const result: any = {};
         if (schema.properties) {
           Object.entries(schema.properties).forEach(([propName, propSchema]: [string, any]) => {
-            result[propName] = this.generateSampleFromSchema(propSchema, fullSpec);
+            // Use property example if available
+            if ((propSchema as any).example !== undefined) {
+              result[propName] = (propSchema as any).example;
+            } else {
+              result[propName] = this.generateSampleFromSchema(propSchema, fullSpec);
+            }
+          });
+        }
+        // Add required fields that might be missing
+        if (schema.required && Array.isArray(schema.required)) {
+          schema.required.forEach((reqField: string) => {
+            if (result[reqField] === undefined) {
+              result[reqField] = 'required-value';
+            }
           });
         }
         return result;
@@ -635,16 +703,30 @@ export class ApiDefinitionService {
         if (schema.format === 'uuid') {
           return '00000000-0000-0000-0000-000000000000';
         }
+        if (schema.format === 'email') {
+          return 'user@example.com';
+        }
+        if (schema.format === 'uri' || schema.format === 'url') {
+          return 'https://example.com';
+        }
         return 'string';
         
       case 'number':
       case 'integer':
-        return 0;
+        return schema.format === 'int64' ? 1000000000 : 0;
         
       case 'boolean':
         return false;
         
       default:
+        // For YAML files that might not specify type properly
+        if (schema.properties) {
+          const result: any = {};
+          Object.entries(schema.properties).forEach(([propName, propSchema]: [string, any]) => {
+            result[propName] = this.generateSampleFromSchema(propSchema, fullSpec);
+          });
+          return result;
+        }
         return {};
     }
   }
@@ -652,9 +734,10 @@ export class ApiDefinitionService {
   /**
    * Creates requests in the API system
    */
-  private static async createRequests(requests: Request[]): Promise<{ success: number, failure: number }> {
+  private static async createRequests(requests: Request[]): Promise<{ success: number, failure: number, updated: number }> {
     let success = 0;
     let failure = 0;
+    let updated = 0;
     
     // Ensure API folder exists
     await this.ensureApiFolder();
@@ -662,22 +745,65 @@ export class ApiDefinitionService {
     // Save each request to a file
     for (const request of requests) {
       try {
+        // Set default auth to bearer-tiaa if not specified
+        if (!request.auth || request.auth.type === 'none') {
+          request.auth = { type: "bearer-tiaa" };
+        }
+        
         // Validate request with schema
         const validatedRequest = RequestSchema.parse(request);
         
-        // Create the file
-        const filename = `${validatedRequest.routeId}.json`;
-        const filePath = path.join(API_FOLDER, filename);
+        // Check for duplicates by matching path and method
+        const apiFiles = await fs.readdir(API_FOLDER);
+        const existingFiles = apiFiles.filter(file => file.endsWith('.json'));
         
-        await fs.writeFile(filePath, JSON.stringify(validatedRequest, null, 2));
-        success++;
+        let isDuplicate = false;
+        
+        for (const file of existingFiles) {
+          try {
+            const content = await fs.readFile(path.join(API_FOLDER, file), 'utf-8');
+            const existingRequest = JSON.parse(content);
+            
+            // Compare based on path and method to find duplicates
+            if (existingRequest.method === request.method && 
+                existingRequest.baseUrl === request.baseUrl && 
+                existingRequest.name === request.name) {
+              
+              // Update the existing request but keep its ID
+              const mergedRequest = {
+                ...validatedRequest,
+                requestId: existingRequest.requestId,
+                routeId: existingRequest.routeId,
+                historyId: existingRequest.historyId,
+                historyRequests: existingRequest.historyRequests,
+                updatedAt: new Date().toISOString()
+              };
+              
+              await fs.writeFile(path.join(API_FOLDER, file), JSON.stringify(mergedRequest, null, 2));
+              updated++;
+              isDuplicate = true;
+              break;
+            }
+          } catch (fileError) {
+            console.warn(`Error reading file ${file} for duplicate check:`, fileError);
+          }
+        }
+        
+        if (!isDuplicate) {
+          // Create the file for new request
+          const filename = `${validatedRequest.routeId}.json`;
+          const filePath = path.join(API_FOLDER, filename);
+          
+          await fs.writeFile(filePath, JSON.stringify(validatedRequest, null, 2));
+          success++;
+        }
       } catch (error) {
         console.error(`Error creating request ${request.name}:`, error);
         failure++;
       }
     }
     
-    return { success, failure };
+    return { success, failure, updated };
   }
 
   /**
