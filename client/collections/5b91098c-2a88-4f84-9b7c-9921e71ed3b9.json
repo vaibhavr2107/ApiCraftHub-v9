@@ -1,0 +1,11 @@
+{
+  "id": "5b91098c-2a88-4f84-9b7c-9921e71ed3b9",
+  "name": "Test3",
+  "description": "Imported from GitHub: https://github.com/vaibhavr2107/spring-rest-openapi.git",
+  "requests": [],
+  "importData": {
+    "source": "github",
+    "timestamp": "2025-03-05T21:15:11.241Z",
+    "projectType": "REST"
+  }
+}
