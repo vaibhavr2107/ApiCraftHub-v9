@@ -284,6 +284,14 @@ ApiDefinitionService.extractOpenApiRequests = function (
 
         // Use the original path (with path variables intact) as the base URL
         // Create a request object with the appropriate settings
+        // For baseUrl, use the appropriate environment URL if available
+        let initialBaseUrl = path;
+        
+        // Since selectedEnvironment is qa01 by default, use that URL if available
+        if (processedEnvs.qa01 && processedEnvs.qa01.trim() !== '') {
+          initialBaseUrl = processedEnvs.qa01;
+        }
+
         const request: Request = {
           requestId,
           routeId: requestId,
@@ -292,7 +300,7 @@ ApiDefinitionService.extractOpenApiRequests = function (
             operation.operationId ||
             `${method.toUpperCase()} ${path}`,
           method: method.toUpperCase(),
-          baseUrl: path, // Keep original path as baseUrl for path parameter replacement
+          baseUrl: initialBaseUrl, // Use the qa01 URL as default if available
           pathVariables: pathParams,
           queryParams,
           headers,

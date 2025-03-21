@@ -345,18 +345,15 @@ export function RequestPanel({
     let baseUrl = localRequest.baseUrl;
     
     try {
-      // Extract any query parameters from the current URL
-      let queryString = '';
-      let pathWithVars = '';
+      // Remove existing query parameters from the URL
+      let pathWithVars = baseUrl;
       
-      // Parse the current URL to extract the query string if it exists
-      const urlParts = baseUrl.split('?');
-      if (urlParts.length > 1) {
-        queryString = '?' + urlParts[1];
+      // Check if URL contains query parameters
+      const queryParamIndex = baseUrl.indexOf('?');
+      if (queryParamIndex !== -1) {
+        // Extract just the path part without query parameters
+        pathWithVars = baseUrl.substring(0, queryParamIndex);
       }
-      
-      // The path part might contain path variables like /users/{userId}
-      pathWithVars = urlParts[0];
       
       // Get the new environment URL
       if (env !== 'dev') {
@@ -377,19 +374,42 @@ export function RequestPanel({
               
               // Create the new URL with the environment base and existing path
               const newUrl = new URL(path, newEnvUrl);
-              baseUrl = newUrl.toString() + queryString;
+              baseUrl = newUrl.toString();
             } catch (e) {
               console.warn('Error parsing URL in environment change:', e);
-              baseUrl = envUrl + queryString;
+              baseUrl = envUrl;
             }
           } else {
             // If it's a relative path, just prepend the environment URL
             // Make sure envUrl doesn't end with a slash and pathWithVars doesn't start with a slash
             const envBase = envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
             const relativePath = pathWithVars.startsWith('/') ? pathWithVars : '/' + pathWithVars;
-            baseUrl = envBase + relativePath + queryString;
+            baseUrl = envBase + relativePath;
           }
         }
+      }
+      
+      // After updating base URL, rebuild URL with query parameters from state
+      if (queryParams.length > 0) {
+        const urlObj = new URL(baseUrl.startsWith('http') ? baseUrl : 'https://placeholder.com' + (baseUrl.startsWith('/') ? baseUrl : '/' + baseUrl));
+        
+        // Clear existing query parameters from URL object
+        urlObj.search = '';
+        
+        // Add query parameters that are enabled
+        queryParams.forEach(param => {
+          if (param.enabled && param.key) {
+            urlObj.searchParams.append(param.key, param.value || '');
+          }
+        });
+        
+        // Get the final URL, removing the placeholder domain if it was added
+        let finalUrl = urlObj.toString();
+        if (!baseUrl.startsWith('http')) {
+          finalUrl = finalUrl.replace('https://placeholder.com', '');
+        }
+        
+        baseUrl = finalUrl;
       }
     } catch (e) {
       console.warn('Error updating URL in environment change:', e);

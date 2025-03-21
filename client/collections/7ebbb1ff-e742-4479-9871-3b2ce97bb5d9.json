@@ -1,0 +1,255 @@
+{
+  "id": "7ebbb1ff-e742-4479-9871-3b2ce97bb5d9",
+  "name": "account-domain",
+  "description": "Imported from GitHub: https://github.com/vaibhavr2107/spring-rest-openapi.git",
+  "requests": [
+    {
+      "requestId": "post--auth-login-1742591795971",
+      "routeId": "post--auth-login-1742591795971",
+      "name": "User login",
+      "method": "POST",
+      "baseUrl": "/auth/login",
+      "pathVariables": {},
+      "queryParams": {},
+      "headers": {},
+      "auth": {
+        "type": "bearer-tiaa"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-post--auth-login-1742591795971",
+      "historyRequests": [],
+      "devUrl": "https://dev-account-domain.company.com/auth/login",
+      "qa01Url": "https://qa01-account-domain.company.com/auth/login",
+      "qa02Url": "https://qa02-account-domain.company.com/auth/login",
+      "qa03Url": "https://qa03-account-domain.company.com/auth/login",
+      "perfUrl": "https://perf-account-domain.company.com/auth/login",
+      "createdAt": "2025-03-21T21:16:35.971Z",
+      "updatedAt": "2025-03-21T21:16:35.971Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Authentication"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "get--users-1742591795971",
+      "routeId": "get--users-1742591795971",
+      "name": "Get all users",
+      "method": "GET",
+      "baseUrl": "/users",
+      "pathVariables": {},
+      "queryParams": {
+        "page": "",
+        "size": ""
+      },
+      "headers": {},
+      "auth": {
+        "type": "bearer-tiaa"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-get--users-1742591795971",
+      "historyRequests": [],
+      "devUrl": "https://dev-account-domain.company.com/users",
+      "qa01Url": "https://qa01-account-domain.company.com/users",
+      "qa02Url": "https://qa02-account-domain.company.com/users",
+      "qa03Url": "https://qa03-account-domain.company.com/users",
+      "perfUrl": "https://perf-account-domain.company.com/users",
+      "createdAt": "2025-03-21T21:16:35.971Z",
+      "updatedAt": "2025-03-21T21:16:35.971Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "post--users-1742591795971",
+      "routeId": "post--users-1742591795971",
+      "name": "Create a new user",
+      "method": "POST",
+      "baseUrl": "/users",
+      "pathVariables": {},
+      "queryParams": {},
+      "headers": {},
+      "auth": {
+        "type": "bearer-tiaa"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-post--users-1742591795971",
+      "historyRequests": [],
+      "devUrl": "https://dev-account-domain.company.com/users",
+      "qa01Url": "https://qa01-account-domain.company.com/users",
+      "qa02Url": "https://qa02-account-domain.company.com/users",
+      "qa03Url": "https://qa03-account-domain.company.com/users",
+      "perfUrl": "https://perf-account-domain.company.com/users",
+      "createdAt": "2025-03-21T21:16:35.971Z",
+      "updatedAt": "2025-03-21T21:16:35.971Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "get--users--userId--1742591795971",
+      "routeId": "get--users--userId--1742591795971",
+      "name": "Get user by ID",
+      "method": "GET",
+      "baseUrl": "/users/{userId}",
+      "pathVariables": {
+        "userId": ""
+      },
+      "queryParams": {},
+      "headers": {},
+      "auth": {
+        "type": "bearer-tiaa"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-get--users--userId--1742591795971",
+      "historyRequests": [],
+      "devUrl": "https://dev-account-domain.company.com/users/{userId}",
+      "qa01Url": "https://qa01-account-domain.company.com/users/{userId}",
+      "qa02Url": "https://qa02-account-domain.company.com/users/{userId}",
+      "qa03Url": "https://qa03-account-domain.company.com/users/{userId}",
+      "perfUrl": "https://perf-account-domain.company.com/users/{userId}",
+      "createdAt": "2025-03-21T21:16:35.971Z",
+      "updatedAt": "2025-03-21T21:16:35.971Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "put--users--userId--1742591795971",
+      "routeId": "put--users--userId--1742591795971",
+      "name": "Update user",
+      "method": "PUT",
+      "baseUrl": "/users/{userId}",
+      "pathVariables": {
+        "userId": ""
+      },
+      "queryParams": {},
+      "headers": {},
+      "auth": {
+        "type": "bearer-tiaa"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-put--users--userId--1742591795971",
+      "historyRequests": [],
+      "devUrl": "https://dev-account-domain.company.com/users/{userId}",
+      "qa01Url": "https://qa01-account-domain.company.com/users/{userId}",
+      "qa02Url": "https://qa02-account-domain.company.com/users/{userId}",
+      "qa03Url": "https://qa03-account-domain.company.com/users/{userId}",
+      "perfUrl": "https://perf-account-domain.company.com/users/{userId}",
+      "createdAt": "2025-03-21T21:16:35.971Z",
+      "updatedAt": "2025-03-21T21:16:35.971Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "delete--users--userId--1742591795971",
+      "routeId": "delete--users--userId--1742591795971",
+      "name": "Delete user",
+      "method": "DELETE",
+      "baseUrl": "/users/{userId}",
+      "pathVariables": {
+        "userId": ""
+      },
+      "queryParams": {},
+      "headers": {},
+      "auth": {
+        "type": "bearer-tiaa"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-delete--users--userId--1742591795971",
+      "historyRequests": [],
+      "devUrl": "https://dev-account-domain.company.com/users/{userId}",
+      "qa01Url": "https://qa01-account-domain.company.com/users/{userId}",
+      "qa02Url": "https://qa02-account-domain.company.com/users/{userId}",
+      "qa03Url": "https://qa03-account-domain.company.com/users/{userId}",
+      "perfUrl": "https://perf-account-domain.company.com/users/{userId}",
+      "createdAt": "2025-03-21T21:16:35.971Z",
+      "updatedAt": "2025-03-21T21:16:35.971Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    },
+    {
+      "requestId": "get--users-search-1742591795971",
+      "routeId": "get--users-search-1742591795971",
+      "name": "Search users",
+      "method": "GET",
+      "baseUrl": "/users/search",
+      "pathVariables": {},
+      "queryParams": {
+        "firstName": "",
+        "lastName": "",
+        "email": "",
+        "page": "",
+        "size": ""
+      },
+      "headers": {},
+      "auth": {
+        "type": "bearer-tiaa"
+      },
+      "requestBody": {},
+      "responseFields": {},
+      "exampleResponseBody": {},
+      "historyId": "history-get--users-search-1742591795971",
+      "historyRequests": [],
+      "devUrl": "https://dev-account-domain.company.com/users/search",
+      "qa01Url": "https://qa01-account-domain.company.com/users/search",
+      "qa02Url": "https://qa02-account-domain.company.com/users/search",
+      "qa03Url": "https://qa03-account-domain.company.com/users/search",
+      "perfUrl": "https://perf-account-domain.company.com/users/search",
+      "createdAt": "2025-03-21T21:16:35.971Z",
+      "updatedAt": "2025-03-21T21:16:35.971Z",
+      "version": 1,
+      "selectedEnvironment": "qa01",
+      "tags": [
+        "Users"
+      ],
+      "collectionId": "Sample-API",
+      "collectionName": "Sample API"
+    }
+  ],
+  "importData": {
+    "source": "github",
+    "timestamp": "2025-03-21T21:16:35.243Z",
+    "projectType": "REST",
+    "stats": {
+      "success": 7,
+      "failure": 0
+    }
+  }
+}
