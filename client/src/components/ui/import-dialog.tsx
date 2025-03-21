@@ -317,7 +317,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                             Project Name
                           </FormLabel>
                           <FormControl>
-                            <Input className="h-8 text-sm" {...field} />
+                            <Input className="h-8 text-sm" placeholder="account-domain" {...field} />
                           </FormControl>
                           <FormMessage className="text-xs" />
                         </FormItem>
@@ -378,7 +378,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                               OpenAPI Folder Path
                             </FormLabel>
                             <FormControl>
-                              <Input className="h-8 text-sm" {...field} />
+                              <Input className="h-8 text-sm" placeholder="api/src/main/resources/openapi" {...field} />
                             </FormControl>
                             <FormMessage className="text-xs" />
                           </FormItem>
@@ -395,7 +395,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                         <FormItem className="space-y-1">
                           <FormLabel className="text-xs">GitHub URL</FormLabel>
                           <FormControl>
-                            <Input className="h-8 text-sm" {...field} />
+                            <Input className="h-8 text-sm" placeholder="https://github.com/vaibhavr2107/spring-rest-openapi.git" {...field} />
                           </FormControl>
                           <FormMessage className="text-xs" />
                         </FormItem>
@@ -411,7 +411,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                             GitHub Username
                           </FormLabel>
                           <FormControl>
-                            <Input className="h-8 text-sm" {...field} />
+                            <Input className="h-8 text-sm" placeholder="vaibhavr2107" {...field} />
                           </FormControl>
                           <FormMessage className="text-xs" />
                         </FormItem>
@@ -430,6 +430,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                             <Input
                               type="password"
                               className="h-8 text-sm"
+                              placeholder="ghp_xxxxxxxxxxxxxxx"
                               {...field}
                             />
                           </FormControl>
