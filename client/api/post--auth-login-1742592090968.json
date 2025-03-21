@@ -1,0 +1,32 @@
+{
+  "requestId": "post--auth-login-1742592090968",
+  "routeId": "post--auth-login-1742592090968",
+  "name": "User login",
+  "method": "POST",
+  "baseUrl": "https://qa01-account-domain.company.com/auth/login",
+  "devUrl": "https://dev-account-domain.company.com/auth/login",
+  "qa01Url": "https://qa01-account-domain.company.com/auth/login",
+  "qa02Url": "https://qa02-account-domain.company.com/auth/login",
+  "qa03Url": "https://qa03-account-domain.company.com/auth/login",
+  "perfUrl": "https://perf-account-domain.company.com/auth/login",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-post--auth-login-1742592090968",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Authentication"
+  ],
+  "collectionId": "Sample-API",
+  "collectionName": "Sample API",
+  "createdAt": "2025-03-21T21:21:30.968Z",
+  "updatedAt": "2025-03-21T21:21:30.968Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}
