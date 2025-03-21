@@ -1,0 +1,41 @@
+{
+  "requestId": "post--auth-login-1742593468046",
+  "routeId": "post--auth-login-1742593468046",
+  "name": "User login",
+  "method": "POST",
+  "baseUrl": "https://qa01-account-domain.company.com/auth/login",
+  "devUrl": "https://dev-account-domain.company.com/auth/login",
+  "qa01Url": "https://qa01-account-domain.company.com/auth/login",
+  "qa02Url": "https://qa02-account-domain.company.com/auth/login",
+  "qa03Url": "https://qa03-account-domain.company.com/auth/login",
+  "perfUrl": "https://perf-account-domain.company.com/auth/login",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "X-Request-ID": "",
+    "X-Correlation-ID": ""
+  },
+  "historyId": "history-post--auth-login-1742593468046",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {
+    "username": "johndoe",
+    "password": "secretPassword123"
+  },
+  "exampleResponseBody": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ",
+    "expiresIn": 3600
+  },
+  "tags": [
+    "Authentication"
+  ],
+  "collectionId": "Sample-API",
+  "collectionName": "Sample API",
+  "createdAt": "2025-03-21T21:44:28.046Z",
+  "updatedAt": "2025-03-21T21:44:28.046Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}
