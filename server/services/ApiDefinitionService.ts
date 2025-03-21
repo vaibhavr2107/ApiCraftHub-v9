@@ -424,7 +424,21 @@ export class ApiDefinitionService {
           if (operation.parameters) {
             operation.parameters.forEach((param: any) => {
               if (param.in === 'header') {
-                headers[param.name] = param.example || '';
+                // Use example if available, otherwise use default, schema.example, or schema.default
+                headers[param.name] = param.example || 
+                                    param.default || 
+                                    (param.schema?.example) || 
+                                    (param.schema?.default) || 
+                                    this.generateHeaderValue(param);
+              }
+            });
+          }
+          
+          // Extract global headers
+          if (apiSpec.components?.securitySchemes) {
+            Object.entries(apiSpec.components.securitySchemes).forEach(([key, scheme]: [string, any]) => {
+              if (scheme.type === 'apiKey' && scheme.in === 'header') {
+                headers[scheme.name] = `{${key}_value}`;
               }
             });
           }
@@ -947,6 +961,50 @@ export class ApiDefinitionService {
     } catch {
       logger.info(`Creating API folder at ${API_FOLDER}`);
       await fs.mkdir(API_FOLDER, { recursive: true });
+    }
+  }
+
+  /**
+   * Generate a sample header value based on parameter type and format
+   */
+  private static generateHeaderValue(param: any): string {
+    if (!param || !param.schema) return '';
+    
+    // Check schema type
+    const schema = param.schema;
+    
+    // Handle common header patterns based on name
+    const name = param.name.toLowerCase();
+    if (name.includes('authorization') || name.includes('token')) {
+      return 'Bearer {token}';
+    }
+    
+    if (name.includes('api-key') || name.includes('apikey')) {
+      return '{api_key}';
+    }
+    
+    if (name.includes('content-type')) {
+      return 'application/json';
+    }
+    
+    if (name.includes('accept')) {
+      return 'application/json';
+    }
+    
+    // Default value based on schema type
+    switch(schema.type) {
+      case 'string':
+        if (schema.enum && schema.enum.length > 0) {
+          return schema.enum[0];
+        }
+        return 'string_value';
+      case 'integer':
+      case 'number':
+        return '0';
+      case 'boolean':
+        return 'false';
+      default:
+        return '';
     }
   }
 }
