@@ -1,0 +1,61 @@
+{
+  "requestId": "get--users-1742595467222",
+  "routeId": "get--users-1742595467222",
+  "name": "Get all users",
+  "method": "GET",
+  "baseUrl": "https://qa01-account-domain.company.com/users",
+  "devUrl": "https://dev-account-domain.company.com/users",
+  "qa01Url": "https://qa01-account-domain.company.com/users",
+  "qa02Url": "https://qa02-account-domain.company.com/users",
+  "qa03Url": "https://qa03-account-domain.company.com/users",
+  "perfUrl": "https://perf-account-domain.company.com/users",
+  "queryParams": {
+    "page": "",
+    "size": ""
+  },
+  "pathVariables": {},
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {
+    "Authorization": "",
+    "X-Request-ID": ""
+  },
+  "historyId": "history-get--users-1742595467222",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {
+    "data": [
+      {
+        "id": 1,
+        "username": "johndoe",
+        "email": "john.doe@example.com",
+        "firstName": "John",
+        "lastName": "Doe"
+      },
+      {
+        "id": 2,
+        "username": "janedoe",
+        "email": "jane.doe@example.com",
+        "firstName": "Jane",
+        "lastName": "Doe"
+      }
+    ],
+    "pagination": {
+      "page": 0,
+      "size": 10,
+      "totalElements": 2,
+      "totalPages": 1
+    }
+  },
+  "tags": [
+    "Users"
+  ],
+  "collectionId": "Sample-API",
+  "collectionName": "Sample API",
+  "createdAt": "2025-03-21T22:17:47.222Z",
+  "updatedAt": "2025-03-21T22:17:47.222Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

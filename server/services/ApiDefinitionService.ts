@@ -429,7 +429,7 @@ export class ApiDefinitionService {
                                     param.default || 
                                     (param.schema?.example) || 
                                     (param.schema?.default) || 
-                                    this.generateHeaderValue(param);
+                                    ApiDefinitionService.generateHeaderValue(param);
               }
             });
           }
@@ -611,7 +611,11 @@ export class ApiDefinitionService {
 
           while ((partMatch = partRegex.exec(messageMatch[1])) !== null) {
             const partName = partMatch[2];
-            requestBody["soap:Envelope"]["soap:Body"][`tem:${operation}`][partName] = "";
+            if (requestBody["soap:Envelope"] && 
+               requestBody["soap:Envelope"]["soap:Body"] && 
+               requestBody["soap:Envelope"]["soap:Body"][`tem:${operation}`]) {
+              requestBody["soap:Envelope"]["soap:Body"][`tem:${operation}`][partName] = "";
+            }
           }
         }
 
