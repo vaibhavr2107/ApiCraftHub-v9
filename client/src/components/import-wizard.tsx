@@ -200,7 +200,11 @@ export function ImportWizard({ isOpen, onClose, onImport }: ImportWizardProps) {
           <DialogHeader>
             <DialogTitle>Import from Git Repository</DialogTitle>
             <DialogDescription>
-              Enter service details to import API endpoints from a Git repository
+              Enter service details to import API endpoints from a Git repository.
+              <p className="mt-2 text-xs text-muted-foreground">
+                For Spring Boot APIs, we'll automatically detect OpenAPI definitions in paths like 
+                <span className="font-mono text-xs ml-1 bg-muted px-1 rounded">api/src/main/resources/openapi</span>
+              </p>
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -211,7 +215,7 @@ export function ImportWizard({ isOpen, onClose, onImport }: ImportWizardProps) {
                 name="serviceName"
                 value={formData.serviceName}
                 onChange={handleInputChange}
-                placeholder="Enter service name"
+                placeholder="account-domain"
                 required
               />
             </div>
@@ -223,31 +227,31 @@ export function ImportWizard({ isOpen, onClose, onImport }: ImportWizardProps) {
                   name="devUrl"
                   value={formData.devUrl}
                   onChange={handleInputChange}
-                  placeholder="DEV URL"
+                  placeholder="dev-account-domain.company.com"
                 />
                 <Input
                   name="qa01Url"
                   value={formData.qa01Url}
                   onChange={handleInputChange}
-                  placeholder="QA01 URL"
+                  placeholder="qa01-account-domain.company.com"
                 />
                 <Input
                   name="qa02Url"
                   value={formData.qa02Url}
                   onChange={handleInputChange}
-                  placeholder="QA02 URL"
+                  placeholder="qa02-account-domain.company.com"
                 />
                 <Input
                   name="qa03Url"
                   value={formData.qa03Url}
                   onChange={handleInputChange}
-                  placeholder="QA03 URL"
+                  placeholder="qa03-account-domain.company.com"
                 />
                 <Input
                   name="perfUrl"
                   value={formData.perfUrl}
                   onChange={handleInputChange}
-                  placeholder="PERF URL"
+                  placeholder="perf-account-domain.company.com"
                 />
               </div>
             </div>
@@ -259,7 +263,7 @@ export function ImportWizard({ isOpen, onClose, onImport }: ImportWizardProps) {
                 name="gitUrl"
                 value={formData.gitUrl}
                 onChange={handleInputChange}
-                placeholder="https://github.com/username/repo"
+                placeholder="https://github.com/vaibhavr2107/spring-rest-openapi.git"
                 required
               />
             </div>
@@ -271,7 +275,7 @@ export function ImportWizard({ isOpen, onClose, onImport }: ImportWizardProps) {
                 name="username"
                 value={formData.username}
                 onChange={handleInputChange}
-                placeholder="Git username"
+                placeholder="vaibhavr2107"
                 required
               />
             </div>
@@ -284,7 +288,7 @@ export function ImportWizard({ isOpen, onClose, onImport }: ImportWizardProps) {
                 type="password"
                 value={formData.password}
                 onChange={handleInputChange}
-                placeholder="Git password or access token"
+                placeholder="2107Github%@"
                 required
               />
             </div>
