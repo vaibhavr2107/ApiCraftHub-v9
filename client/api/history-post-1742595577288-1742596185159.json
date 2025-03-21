@@ -1,0 +1,49 @@
+{
+  "requestId": "history-post-1742595577288",
+  "routeId": "history-post-1742595577288",
+  "name": "POST Request (3/22/2025, 3:59:45 AM)",
+  "method": "POST",
+  "baseUrl": "https://qa01-account-domain.company.com/users",
+  "headers": {},
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "none"
+  },
+  "requestBody": {},
+  "responseFields": {
+    "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+    "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+  },
+  "historyId": "history-post-1742595577288",
+  "historyRequests": [
+    {
+      "method": "POST",
+      "url": "https://qa01-account-domain.company.com/users",
+      "timestamp": "2025-03-21T22:19:37.288Z",
+      "responseTime": 0,
+      "requestBody": {},
+      "responseFields": {
+        "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+        "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+      }
+    }
+  ],
+  "createdAt": "2025-03-21T22:29:45.112Z",
+  "updatedAt": "2025-03-21T22:29:45.112Z",
+  "selectedEnvironment": "qa01",
+  "devUrl": "",
+  "qa01Url": "",
+  "qa02Url": "",
+  "qa03Url": "",
+  "perfUrl": "",
+  "exampleResponseBody": {
+    "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+    "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+  },
+  "tags": [],
+  "version": 1,
+  "collectionId": "history",
+  "collectionName": "History Requests",
+  "timestamp": "2025-03-21T22:29:45.112Z"
+}

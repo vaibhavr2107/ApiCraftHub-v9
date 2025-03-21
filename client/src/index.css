@@ -19,4 +19,8 @@
     white-space: break-spaces !important;
     text-align: left !important;
   }
+
+  .h-9 {
+    height: 32px !important;
+  }
 }
