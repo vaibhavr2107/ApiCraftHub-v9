@@ -365,12 +365,20 @@ export class ApiDefinitionService {
     try {
       const requests: Request[] = [];
 
+      logger.info(`Extracting requests from OpenAPI definition`);
+      logger.debug(`API Spec structure: ${JSON.stringify(Object.keys(apiSpec))}`);
+      
       if (!apiSpec.paths) {
+        logger.warn(`No paths found in OpenAPI spec`);
         return requests;
       }
-
+      
+      logger.debug(`Found ${Object.keys(apiSpec.paths).length} paths in OpenAPI spec`);
+      
       const specTitle = apiSpec.info?.title || 'Imported API';
       const specVersion = apiSpec.info?.version || '1.0.0';
+      
+      logger.info(`API Title: ${specTitle}, Version: ${specVersion}`);
 
       // Process each path and method
       Object.entries(apiSpec.paths).forEach(([path, pathItem]: [string, any]) => {

@@ -391,12 +391,12 @@ router.post("/github", async (req, res) => {
 // WSDL import route
 router.post("/wsdl", async (req, res) => {
   try {
-    const { wsdlUrl } = wsdlImportSchema.parse(req.body);
+    const { url } = wsdlImportSchema.parse(req.body);
     const importId = crypto.randomUUID();
     const timestamp = new Date().toISOString();
 
     // Fetch WSDL content
-    const response = await axios.get(wsdlUrl);
+    const response = await axios.get(url);
     const wsdlContent = response.data;
 
     // Create a temporary file to store the WSDL
@@ -420,19 +420,19 @@ router.post("/wsdl", async (req, res) => {
     const stats = await ApiDefinitionService.createRequests(requests);
 
     // Create a collection
-    const urlObj = new URL(wsdlUrl);
+    const urlObj = new URL(url);
     const serviceName =
       urlObj.pathname.split("/").pop()?.replace(".wsdl", "") || "WSDLService";
 
     const collection: Collection = {
       id: importId,
       name: `${serviceName} (WSDL)`,
-      description: `Imported from WSDL: ${wsdlUrl}`,
+      description: `Imported from WSDL: ${url}`,
       requests,
       importData: {
         source: "wsdl",
         timestamp,
-        url: wsdlUrl,
+        url: url,
         stats,
       },
     };
@@ -441,7 +441,7 @@ router.post("/wsdl", async (req, res) => {
       id: importId,
       timestamp,
       type: "wsdl",
-      url: wsdlUrl,
+      url: url,
       stats,
     };
 
@@ -501,8 +501,21 @@ router.post("/openapi", async (req, res) => {
 
     console.log(`Successfully fetched OpenAPI content from ${url}`);
 
-    // Parse OpenAPI spec
-    const spec = typeof content === "string" ? yaml.load(content) : content;
+    let spec;
+    try {
+      spec = typeof content === "string" ? yaml.load(content) : content;
+      console.log(`Successfully parsed content as ${typeof content === "string" ? "YAML" : "JSON"}`);
+      console.log(`OpenAPI version: ${spec.openapi || spec.swagger}`);
+      console.log(`API info:`, JSON.stringify(spec.info || {}).substring(0, 200));
+      console.log(`Paths count: ${Object.keys(spec.paths || {}).length}`);
+      console.log("OpenAPI Spec:", JSON.stringify(spec, null, 2)); //Added logging for the entire spec
+
+    } catch (parseError) {
+      console.error(`Error parsing OpenAPI content:`, parseError);
+      return res.status(400).json({
+        error: `Failed to parse OpenAPI specification: ${parseError.message}`
+      });
+    }
 
     // Get API title from spec
     const apiTitle = spec.info?.title || "OpenAPI";
