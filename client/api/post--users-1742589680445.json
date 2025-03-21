@@ -1,0 +1,32 @@
+{
+  "requestId": "post--users-1742589680445",
+  "routeId": "post--users-1742589680445",
+  "name": "Create a new user",
+  "method": "POST",
+  "baseUrl": "/users",
+  "devUrl": "https://dev-account-domain.company.com",
+  "qa01Url": "https://qa01-account-domain.company.com",
+  "qa02Url": "https://qa02-account-domain.company.com",
+  "qa03Url": "https://qa03-account-domain.company.com",
+  "perfUrl": "https://perf-account-domain.company.com",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "auth tiaa"
+  },
+  "headers": {},
+  "historyId": "history-post--users-1742589680445",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Users"
+  ],
+  "collectionId": "Sample-API",
+  "collectionName": "Sample API",
+  "createdAt": "2025-03-21T20:41:20.445Z",
+  "updatedAt": "2025-03-21T20:41:20.445Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}
