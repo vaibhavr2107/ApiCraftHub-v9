@@ -1,7 +1,7 @@
 {
   "requestId": "history-delete-1742593468046",
   "routeId": "history-delete-1742593468046",
-  "name": "DELETE Request (3/22/2025, 3:27:42 AM)",
+  "name": "DELETE Request (3/22/2025, 3:29:57 AM)",
   "method": "DELETE",
   "baseUrl": "https://qa01-account-domain.company.com/users/{userId}",
   "devUrl": "https://dev-account-domain.company.com/users/{userId}",
@@ -22,24 +22,13 @@
     {
       "method": "DELETE",
       "url": "https://qa01-account-domain.company.com/users/{userId}",
-      "timestamp": "2025-03-21T21:57:42.353Z",
-      "responseTime": 27,
+      "timestamp": "2025-03-21T21:59:57.733Z",
+      "responseTime": 56,
       "requestBody": {},
       "responseFields": {
         "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
         "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
       }
-    },
-    {
-      "method": "DELETE",
-      "url": "https://qa01-account-domain.company.com/users/{userId}",
-      "requestBody": {},
-      "responseFields": {
-        "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
-        "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
-      },
-      "timestamp": "2025-03-21T21:46:16.669Z",
-      "responseTime": 51
     }
   ],
   "responseFields": {
@@ -57,5 +46,5 @@
   "updatedAt": "2025-03-21T21:44:28.046Z",
   "version": 1,
   "selectedEnvironment": "qa01",
-  "timestamp": "2025-03-21T21:57:42.353Z"
+  "timestamp": "2025-03-21T21:59:57.733Z"
 }

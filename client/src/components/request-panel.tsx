@@ -26,6 +26,7 @@ import type { Request, RequestHistory } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Send, History, X, ChevronDown, ChevronRight, Settings } from "lucide-react";
 import { saveHistoryRequest } from "@/lib/history";
+import { getAuthHeader } from "@/lib/auth";
 
 const ENVIRONMENTS = ['dev', 'qa01', 'qa02', 'qa03', 'perf'] as const;
 
@@ -459,6 +460,32 @@ export function RequestPanel({
       updateUrlWithPathVariables();
     }
   }, [pathParams]);
+
+  // Get authentication headers based on auth type
+  useEffect(() => {
+    const fetchAuthHeaders = async () => {
+      try {
+        if (localRequest.auth?.type === "bearer-tiaa") {
+          const environment = localRequest.selectedEnvironment || "dev";
+          console.log(`Getting TIAA token for environment: ${environment}`);
+          const headers = await getAuthHeader("bearer-tiaa", localRequest.auth, environment);
+          console.log('Got auth headers:', headers);
+          setAuthHeaders(headers);
+        } else {
+          setAuthHeaders({});
+        }
+      } catch (error) {
+        console.error('Error getting auth headers:', error);
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: error instanceof Error ? error.message : "Failed to get authentication token",
+        });
+      }
+    };
+
+    fetchAuthHeaders();
+  }, [localRequest.auth, localRequest.selectedEnvironment]);
 
   const handleSend = async () => {
     console.log('Sending request with body:', rawBody);
