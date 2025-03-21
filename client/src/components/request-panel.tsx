@@ -221,6 +221,42 @@ export function RequestPanel({
   const [authHeaders, setAuthHeaders] = useState({});
 
 
+  // Function to extract path variables from URL
+  const extractPathVariables = (url: string): Parameter[] => {
+    try {
+      // Look for path parameters like {variable} in the URL
+      const pathVarRegex = /{([^{}]+)}/g;
+      const matches: string[] = [];
+      let match;
+      
+      // Extract path variables manually instead of using matchAll to avoid TypeScript error
+      while ((match = pathVarRegex.exec(url)) !== null) {
+        if (match[1]) {
+          matches.push(match[1]);
+        }
+      }
+      
+      // Create a map of existing path params for quick lookup
+      const existingPathParams = new Map(
+        pathParams.map(param => [param.key, param])
+      );
+      
+      // Map the matches to Parameter objects
+      return matches.map(key => {
+        // Use existing value if available, otherwise empty string
+        const existingParam = existingPathParams.get(key);
+        return {
+          key,
+          value: existingParam ? existingParam.value : "",
+          enabled: existingParam ? existingParam.enabled : true
+        };
+      });
+    } catch (e) {
+      console.warn('Error extracting path variables:', e);
+      return [];
+    }
+  };
+
   const syncUrlQueryParams = (url: string) => {
     try {
       const urlObj = new URL(url);
@@ -229,11 +265,46 @@ export function RequestPanel({
         params.push({ key, value, enabled: true });
       });
       setQueryParams(params);
+      
+      // Also extract and sync path variables
+      const pathVars = extractPathVariables(url);
+      if (pathVars.length > 0) {
+        setPathParams(pathVars);
+      }
     } catch (e) {
       console.warn('Invalid URL for query param sync:', e);
     }
   };
 
+  // Function to update URL with query parameters
+  const updateUrlWithQueryParams = () => {
+    try {
+      const url = request.baseUrl;
+      const urlObj = new URL(url);
+      
+      // Clear all existing query parameters
+      urlObj.search = '';
+      
+      // Add all enabled query parameters
+      queryParams.forEach(param => {
+        if (param.enabled && param.key) {
+          urlObj.searchParams.append(param.key, param.value);
+        }
+      });
+      
+      // Only update if the URL has actually changed
+      if (urlObj.toString() !== request.baseUrl) {
+        onRequestChange({
+          baseUrl: urlObj.toString()
+        });
+        setUnsavedChanges(true);
+      }
+    } catch (e) {
+      console.warn('Invalid URL for query param update:', e);
+    }
+  };
+  
+  // Initialize component state when request changes
   useEffect(() => {
     console.log('Initializing request panel state');
     syncUrlQueryParams(request.baseUrl);
@@ -276,6 +347,46 @@ export function RequestPanel({
     });
     setUnsavedChanges(true);
   };
+
+  // Function to update URL with path variables
+  const updateUrlWithPathVariables = () => {
+    try {
+      let baseUrl = request.baseUrl;
+      
+      // Replace path variables in URL with their values
+      pathParams.forEach(param => {
+        if (param.enabled && param.key && param.value) {
+          // Replace {paramName} with actual value
+          const regex = new RegExp(`{${param.key}}`, 'g');
+          baseUrl = baseUrl.replace(regex, param.value);
+        }
+      });
+      
+      // Only update if the URL has actually changed
+      if (baseUrl !== request.baseUrl) {
+        onRequestChange({
+          baseUrl
+        });
+        setUnsavedChanges(true);
+      }
+    } catch (e) {
+      console.warn('Error updating URL with path variables:', e);
+    }
+  };
+  
+  // Add effect to sync query params when they change
+  useEffect(() => {
+    if (queryParams.length > 0) {
+      updateUrlWithQueryParams();
+    }
+  }, [queryParams]);
+  
+  // Add effect to sync path variables when they change
+  useEffect(() => {
+    if (pathParams.length > 0) {
+      updateUrlWithPathVariables();
+    }
+  }, [pathParams]);
 
   const handleSend = async () => {
     console.log('Sending request with body:', rawBody);
@@ -373,33 +484,23 @@ export function RequestPanel({
           Object.keys(request.exampleResponseBody).length === 0)) && 
         res.status === 200;
 
-      if (shouldAutoSave) {
-        console.log('Auto-saving request due to empty example response and successful request');
-        const maskedResponse = maskResponseValues(actualResponseData);
+      // Instead of auto-saving every time, just update the state without saving
+      // This way, only clicking the Save button will trigger a save
+      onRequestChange({
+        historyRequests: updatedHistory,
+        responseFields: actualResponseData,
+        // Only set example response if it doesn't exist and the request is successful
+        ...(shouldAutoSave ? { exampleResponseBody: maskResponseValues(actualResponseData) } : {}),
+        updatedAt: new Date().toISOString()
+      });
+      
+      // Set unsaved changes to true so user knows they should save
+      setUnsavedChanges(true);
 
-        onRequestChange({
-          historyRequests: updatedHistory,
-          responseFields: actualResponseData,
-          exampleResponseBody: maskedResponse,
-          updatedAt: new Date().toISOString()
-        });
-
-        toast({
-          title: "Request completed and saved",
-          description: `${res.status} ${res.statusText} in ${responseTime}ms`,
-        });
-      } else {
-        onRequestChange({
-          historyRequests: updatedHistory,
-          responseFields: actualResponseData,
-          updatedAt: new Date().toISOString()
-        });
-
-        toast({
-          title: "Request completed",
-          description: `${res.status} ${res.statusText} in ${responseTime}ms`,
-        });
-      }
+      toast({
+        title: "Request completed",
+        description: `${res.status} ${res.statusText} in ${responseTime}ms`,
+      });
 
       const savedHistory = localStorage.getItem("request_history") || "[]";
       const parsedHistory = JSON.parse(savedHistory);
