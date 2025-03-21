@@ -1,9 +1,9 @@
 {
-  "requestId": "post--users-1741211159960",
-  "routeId": "post--users-1741211159960",
-  "name": "Create a new user",
+  "requestId": "history-get-1741211159960",
+  "routeId": "history-get-1741211159960",
+  "name": "GET Request (3/22/2025, 1:30:20 AM)",
   "method": "GET",
-  "baseUrl": "https://api.restful-api.dev/objects?dfdf=fd",
+  "baseUrl": "https://api.restful-api.dev/objects?yyu=656",
   "devUrl": "https://api.restful-api.dev/objects",
   "qa01Url": "https://api.restful-api.dev/objects",
   "qa02Url": "https://api.restful-api.dev/objects",
@@ -12,7 +12,7 @@
   "queryParams": {},
   "pathVariables": {},
   "auth": {
-    "type": "none"
+    "type": "bearer-tiaa"
   },
   "headers": {},
   "historyId": "history-post--users-1741211159960",
@@ -20,6 +20,8 @@
     {
       "method": "GET",
       "url": "https://api.restful-api.dev/objects?yyu=656",
+      "timestamp": "2025-03-21T20:00:20.924Z",
+      "responseTime": 209,
       "requestBody": {},
       "responseFields": [
         {
@@ -127,9 +129,7 @@
             "Capacity": "256 GB"
           }
         }
-      ],
-      "timestamp": "2025-03-21T20:00:20.924Z",
-      "responseTime": 209
+      ]
     }
   ],
   "responseFields": [
@@ -240,36 +240,15 @@
     }
   ],
   "requestBody": {},
-  "exampleResponseBody": [
-    {
-      "id": "*",
-      "name": "******************",
-      "data": {
-        "color": "************",
-        "capacity": "******"
-      }
-    },
-    {
-      "id": "*",
-      "name": "Apple iPho...",
-      "data": null
-    },
-    {
-      "id": "*",
-      "name": "***********************",
-      "data": {
-        "color": "************",
-        "capacity GB": 0
-      }
-    }
-  ],
+  "exampleResponseBody": {},
   "tags": [
     "Users"
   ],
   "collectionId": "Sample-API",
   "collectionName": "Sample API",
   "createdAt": "2025-03-05T21:45:59.960Z",
-  "updatedAt": "2025-03-21T20:02:12.293Z",
+  "updatedAt": "2025-03-21T20:00:19.812Z",
   "version": 1,
-  "selectedEnvironment": "qa03"
+  "selectedEnvironment": "qa02",
+  "timestamp": "2025-03-21T20:00:20.928Z"
 }

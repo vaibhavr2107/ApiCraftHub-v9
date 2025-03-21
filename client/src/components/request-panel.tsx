@@ -205,6 +205,8 @@ export function RequestPanel({
   onError,
 }: RequestPanelProps) {
   const { toast } = useToast();
+  // Keep a local copy of the request that we'll update as changes are made
+  const [localRequest, setLocalRequest] = useState<Request>(request);
   const [queryParams, setQueryParams] = useState<Parameter[]>([]);
   const [pathParams, setPathParams] = useState<Parameter[]>([]);
   const [headers, setHeaders] = useState<Parameter[]>([]);
@@ -219,6 +221,15 @@ export function RequestPanel({
   const [response, setResponse] = useState<any>(null);
   const [responseError, setResponseError] = useState<string | null>(null);
   const [authHeaders, setAuthHeaders] = useState({});
+  
+  // Update local request without triggering server save
+  const updateLocalRequest = (updates: Partial<Request>) => {
+    setLocalRequest(prev => ({
+      ...prev,
+      ...updates
+    }));
+    setUnsavedChanges(true);
+  };
 
 
   // Function to extract path variables from URL
@@ -279,7 +290,7 @@ export function RequestPanel({
   // Function to update URL with query parameters
   const updateUrlWithQueryParams = () => {
     try {
-      const url = request.baseUrl;
+      const url = localRequest.baseUrl;
       const urlObj = new URL(url);
       
       // Clear all existing query parameters
@@ -293,11 +304,10 @@ export function RequestPanel({
       });
       
       // Only update if the URL has actually changed
-      if (urlObj.toString() !== request.baseUrl) {
-        onRequestChange({
+      if (urlObj.toString() !== localRequest.baseUrl) {
+        updateLocalRequest({
           baseUrl: urlObj.toString()
         });
-        setUnsavedChanges(true);
       }
     } catch (e) {
       console.warn('Invalid URL for query param update:', e);
@@ -332,26 +342,25 @@ export function RequestPanel({
   }, [request.routeId]); 
 
   const handleEnvironmentChange = (env: typeof ENVIRONMENTS[number]) => {
-    let baseUrl = request.baseUrl;
+    let baseUrl = localRequest.baseUrl;
 
     if (env !== 'dev') {
-      const envUrl = request[`${env}Url` as keyof Request];
+      const envUrl = localRequest[`${env}Url` as keyof Request];
       if (envUrl) {
         baseUrl = envUrl;
       }
     }
 
-    onRequestChange({
+    updateLocalRequest({
       selectedEnvironment: env,
       baseUrl
     });
-    setUnsavedChanges(true);
   };
 
   // Function to update URL with path variables
   const updateUrlWithPathVariables = () => {
     try {
-      let baseUrl = request.baseUrl;
+      let baseUrl = localRequest.baseUrl;
       
       // Replace path variables in URL with their values
       pathParams.forEach(param => {
@@ -363,11 +372,10 @@ export function RequestPanel({
       });
       
       // Only update if the URL has actually changed
-      if (baseUrl !== request.baseUrl) {
-        onRequestChange({
+      if (baseUrl !== localRequest.baseUrl) {
+        updateLocalRequest({
           baseUrl
         });
-        setUnsavedChanges(true);
       }
     } catch (e) {
       console.warn('Error updating URL with path variables:', e);
@@ -540,11 +548,12 @@ export function RequestPanel({
 
   const handleUrlChange = (newUrl: string) => {
     console.log('URL changed, syncing query params');
-    syncUrlQueryParams(newUrl);
-    onRequestChange({
+    // Update the local request first
+    updateLocalRequest({
       baseUrl: newUrl
     });
-    setUnsavedChanges(true);
+    // Then extract and sync query params and path variables
+    syncUrlQueryParams(newUrl);
   };
 
   const handleSave = () => {
@@ -558,6 +567,13 @@ export function RequestPanel({
         }, {} as Record<string, string>);
 
       const queryParamsObj = queryParams
+        .filter(p => p.enabled && p.key)
+        .reduce((acc, p) => {
+          acc[p.key] = p.value;
+          return acc;
+        }, {} as Record<string, string>);
+        
+      const pathVariablesObj = pathParams
         .filter(p => p.enabled && p.key)
         .reduce((acc, p) => {
           acc[p.key] = p.value;
@@ -585,10 +601,13 @@ export function RequestPanel({
         responseFields: entry.responseFields || {}
       }));
 
+      // Save all local changes to the server at once
       onRequestChange({
-        baseUrl: request.baseUrl,
+        ...localRequest, // Include all local changes
+        baseUrl: localRequest.baseUrl,
         headers: headersObj,
         queryParams: queryParamsObj,
+        pathVariables: pathVariablesObj,
         requestBody: requestBodyObj,
         historyRequests: formattedHistoryRequests,
         updatedAt: new Date().toISOString()
@@ -648,10 +667,9 @@ export function RequestPanel({
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <Select
-          value={request.method}
+          value={localRequest.method}
           onValueChange={(value) => {
-            onRequestChange({ method: value });
-            setUnsavedChanges(true);
+            updateLocalRequest({ method: value });
           }}
         >
           <SelectTrigger className="w-[100px]">
@@ -667,7 +685,7 @@ export function RequestPanel({
         </Select>
 
         <Input
-          value={request.baseUrl}
+          value={localRequest.baseUrl}
           onChange={(e) => handleUrlChange(e.target.value)}
           placeholder="Enter URL"
           className="flex-1"
@@ -689,7 +707,7 @@ export function RequestPanel({
         </Button>
 
         <Select
-          value={request.selectedEnvironment || 'qa01'}
+          value={localRequest.selectedEnvironment || 'qa01'}
           onValueChange={handleEnvironmentChange}
         >
           <SelectTrigger className="w-[100px]">
@@ -853,16 +871,15 @@ export function RequestPanel({
 
         <TabsContent value="auth" className="space-y-4">
           <Select
-            value={request.auth.type}
+            value={localRequest.auth.type}
             onValueChange={(value) => {
-              onRequestChange({
+              updateLocalRequest({
                 auth: {
                   type: value,
                   basic: value === "basic" ? { username: "", password: "" } : undefined,
                   bearer: value === "bearer" ? { token: "" } : undefined
                 }
               });
-              setUnsavedChanges(true);
             }}
           >
             <SelectTrigger>
@@ -876,59 +893,56 @@ export function RequestPanel({
             </SelectContent>
           </Select>
 
-          {request.auth.type === "basic" && request.auth.basic && (
+          {localRequest.auth.type === "basic" && localRequest.auth.basic && (
             <div className="space-y-2">
               <Input
                 type="text"
                 placeholder="Username"
-                value={request.auth.basic.username}
+                value={localRequest.auth.basic.username}
                 onChange={(e) => {
-                  onRequestChange({
+                  updateLocalRequest({
                     auth: {
-                      ...request.auth,
-                      basic: { ...request.auth.basic!, username: e.target.value }
+                      ...localRequest.auth,
+                      basic: { ...localRequest.auth.basic!, username: e.target.value }
                     }
                   });
-                  setUnsavedChanges(true);
                 }}
               />
               <Input
                 type="password"
                 placeholder="Password"
-                value={request.auth.basic.password}
+                value={localRequest.auth.basic.password}
                 onChange={(e) => {
-                  onRequestChange({
+                  updateLocalRequest({
                     auth: {
-                      ...request.auth,
-                      basic: { ...request.auth.basic!, password: e.target.value }
+                      ...localRequest.auth,
+                      basic: { ...localRequest.auth.basic!, password: e.target.value }
                     }
                   });
-                  setUnsavedChanges(true);
                 }}
               />
             </div>
           )}
 
-          {request.auth.type === "bearer" && (
+          {localRequest.auth.type === "bearer" && (
             <div className="space-y-2">
               <Input
                 type="text"
                 placeholder="Bearer Token"
-                value={request.auth.bearer?.token || ""}
+                value={localRequest.auth.bearer?.token || ""}
                 onChange={(e) => {
-                  onRequestChange({
+                  updateLocalRequest({
                     auth: {
-                      ...request.auth,
+                      ...localRequest.auth,
                       bearer: { token: e.target.value }
                     }
                   });
-                  setUnsavedChanges(true);
                 }}
               />
             </div>
           )}
 
-          {request.auth.type === "bearer-tiaa" && (
+          {localRequest.auth.type === "bearer-tiaa" && (
             <div className="text-sm text-muted-foreground">
               TIAA token will be retrieved automatically based on environment.
             </div>
@@ -1213,10 +1227,9 @@ export function RequestPanel({
       <EnvironmentUrlDialog
         isOpen={isEnvDialogOpen}
         onClose={() => setIsEnvDialogOpen(false)}
-        request={request}
+        request={localRequest}
         onUpdate={(updates) => {
-          onRequestChange(updates);
-          setUnsavedChanges(true);
+          updateLocalRequest(updates);
         }}
       />
     </div>
