@@ -1,0 +1,58 @@
+{
+  "requestId": "history-post-1742595539352",
+  "routeId": "history-post-1742595539352",
+  "name": "POST Request (3/22/2025, 3:49:07 AM)",
+  "method": "POST",
+  "baseUrl": "https://qa01-account-domain.company.com/auth/login",
+  "headers": {
+    "X-Request-ID": "xcx",
+    "X-Correlation-ID": "xcxc"
+  },
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "none"
+  },
+  "requestBody": {
+    "username": "johndoe",
+    "password": "secretPassword123"
+  },
+  "responseFields": {
+    "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+    "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+  },
+  "historyId": "history-post-1742595539352",
+  "historyRequests": [
+    {
+      "method": "POST",
+      "url": "https://qa01-account-domain.company.com/auth/login",
+      "timestamp": "2025-03-21T22:18:59.352Z",
+      "responseTime": 0,
+      "requestBody": {
+        "username": "johndoe",
+        "password": "secretPassword123"
+      },
+      "responseFields": {
+        "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+        "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+      }
+    }
+  ],
+  "createdAt": "2025-03-21T22:19:07.546Z",
+  "updatedAt": "2025-03-21T22:19:07.546Z",
+  "selectedEnvironment": "qa01",
+  "devUrl": "",
+  "qa01Url": "",
+  "qa02Url": "",
+  "qa03Url": "",
+  "perfUrl": "",
+  "exampleResponseBody": {
+    "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+    "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+  },
+  "tags": [],
+  "version": 1,
+  "collectionId": "history",
+  "collectionName": "History Requests",
+  "timestamp": "2025-03-21T22:19:07.546Z"
+}

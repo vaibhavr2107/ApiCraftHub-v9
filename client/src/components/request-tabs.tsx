@@ -1,5 +1,5 @@
-import { Plus, X } from "lucide-react";
-import { useEffect, useState, useRef } from "react";
+import { Plus, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { generateRouteId } from "@/lib/utils";
 import {
@@ -14,6 +14,7 @@ import type { Request } from "@shared/schema";
 import { RequestPanel } from "./request-panel";
 import { ResponsePanel } from "./response-panel";
 import { openRequest, updateRequest } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 // Local storage key for active requests
 const ACTIVE_REQUESTS_KEY = 'active_requests';
@@ -76,8 +77,13 @@ export function RequestTabs() {
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const [scrollPosition, setScrollPosition] = useState(0);
   const initialized = useRef(false);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  
+  // Number of tabs to display at once
+  const maxVisibleTabs = 5;
 
   // Get routeId from location
   const routeId = location.split('/').pop();
@@ -165,25 +171,55 @@ export function RequestTabs() {
   }, [routeId, activeRequests, toast, setLocation]);
 
   const handleTabChange = (value: string) => {
+    // Find the index of the selected tab
+    const selectedIndex = activeRequests.findIndex(r => r.routeId === value);
+    if (selectedIndex !== -1) {
+      // Update scroll position to show the selected tab
+      // Ensure it's within visible range
+      if (selectedIndex < scrollPosition) {
+        setScrollPosition(selectedIndex);
+      } else if (selectedIndex >= scrollPosition + maxVisibleTabs) {
+        setScrollPosition(selectedIndex - maxVisibleTabs + 1);
+      }
+    }
     setLocation(`/request/${value}`);
   };
+  
+  const handleScrollLeft = () => {
+    setScrollPosition(prev => Math.max(0, prev - 1));
+  };
 
-  const handleCloseTab = (routeId: string) => {
+  const handleScrollRight = () => {
+    setScrollPosition(prev => Math.min(activeRequests.length - maxVisibleTabs, prev + 1));
+  };
+
+  const handleCloseTab = (tabRouteId: string) => {
     // If there's only one tab, don't allow it to be closed
     if (activeRequests.length <= 1) {
       return;
     }
     
+    // Find index of tab to close
+    const tabIndex = activeRequests.findIndex(r => r.routeId === tabRouteId);
+    
     setActiveRequests(prev => {
-      const filtered = prev.filter(r => r.routeId !== routeId);
+      const filtered = prev.filter(r => r.routeId !== tabRouteId);
       return filtered;
     });
 
-    // If closing active tab, switch to another tab
-    if (routeId === routeId) {
-      const remainingRequests = activeRequests.filter(r => r.routeId !== routeId);
+    // If we're closing the active tab, switch to another tab
+    if (tabRouteId === routeId) {
+      const remainingRequests = activeRequests.filter(r => r.routeId !== tabRouteId);
       if (remainingRequests.length > 0) {
         setLocation(`/request/${remainingRequests[remainingRequests.length - 1].routeId}`);
+      }
+    }
+    
+    // Adjust scroll position if needed
+    if (activeRequests.length > maxVisibleTabs) {
+      if (tabIndex <= scrollPosition && scrollPosition > 0) {
+        // If we close a tab before or at the current scroll position, move scroll position back by 1
+        setScrollPosition(prev => Math.max(0, prev - 1));
       }
     }
   };
@@ -230,35 +266,93 @@ export function RequestTabs() {
     setLocation(`/request/${newRequest.routeId}`);
   };
 
+  // Auto-scroll to make the active tab visible
+  useEffect(() => {
+    if (routeId) {
+      const activeIndex = activeRequests.findIndex(r => r.routeId === routeId);
+      if (activeIndex !== -1) {
+        // If active tab is outside visible range, scroll to it
+        if (activeIndex < scrollPosition || activeIndex >= scrollPosition + maxVisibleTabs) {
+          // Set scroll position to center the active tab if possible
+          const newScrollPosition = Math.max(0, Math.min(
+            activeIndex - Math.floor(maxVisibleTabs / 2),
+            activeRequests.length - maxVisibleTabs
+          ));
+          setScrollPosition(newScrollPosition);
+        }
+      }
+    }
+  }, [routeId, activeRequests, scrollPosition, maxVisibleTabs]);
+  
   if (!initialized.current) {
     return null;
   }
+
+  // Calculate if scroll buttons should be visible
+  const showScrollButtons = activeRequests.length > maxVisibleTabs;
+  const canScrollLeft = scrollPosition > 0;
+  const canScrollRight = scrollPosition < (activeRequests.length - maxVisibleTabs);
+  
+  // Get the visible tabs based on scroll position
+  const visibleRequests = showScrollButtons 
+    ? activeRequests.slice(scrollPosition, scrollPosition + maxVisibleTabs)
+    : activeRequests;
 
   return (
     <div className="container py-6">
       <Tabs value={routeId || ''} onValueChange={handleTabChange}>
         <div className="flex items-center gap-2 mb-4">
-          <TabsList className="flex-1">
-            {activeRequests.map((request, index) => (
-              <div key={`${request.routeId}-${index}`} className="flex items-center">
-                <TabsTrigger value={request.routeId}>
-                  {request.name || request.routeId}
-                </TabsTrigger>
-                {activeRequests.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCloseTab(request.routeId);
-                    }}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </TabsList>
+          {/* Scroll left button */}
+          {showScrollButtons && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleScrollLeft}
+              disabled={!canScrollLeft}
+              className={cn(!canScrollLeft && "opacity-50 cursor-not-allowed")}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {/* Tab list container with overflow hidden */}
+          <div className="flex-1 relative overflow-hidden" ref={tabsContainerRef}>
+            <TabsList className="flex w-full transition-transform duration-200">
+              {visibleRequests.map((request, index) => (
+                <div key={`${request.routeId}-${index}`} className="flex items-center">
+                  <TabsTrigger value={request.routeId}>
+                    {request.name || request.routeId}
+                  </TabsTrigger>
+                  {activeRequests.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCloseTab(request.routeId);
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </TabsList>
+          </div>
+          
+          {/* Scroll right button */}
+          {showScrollButtons && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleScrollRight}
+              disabled={!canScrollRight}
+              className={cn(!canScrollRight && "opacity-50 cursor-not-allowed")}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
+          
           <Button
             variant="outline"
             size="sm"
@@ -275,6 +369,7 @@ export function RequestTabs() {
               if (activeRequests.length > 0) {
                 setActiveRequests([activeRequests[0]]);
                 setLocation(`/request/${activeRequests[0].routeId}`);
+                setScrollPosition(0);
               }
             }}
           >

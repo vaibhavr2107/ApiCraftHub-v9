@@ -1,7 +1,7 @@
 {
-  "requestId": "post--users-1742592090968",
-  "routeId": "post--users-1742592090968",
-  "name": "Create a new user",
+  "requestId": "history-post-1742592090968",
+  "routeId": "history-post-1742592090968",
+  "name": "POST Request (3/22/2025, 3:49:37 AM)",
   "method": "POST",
   "baseUrl": "https://qa01-account-domain.company.com/users",
   "devUrl": "https://dev-account-domain.company.com/users",
@@ -20,13 +20,13 @@
     {
       "method": "POST",
       "url": "https://qa01-account-domain.company.com/users",
+      "timestamp": "2025-03-21T22:19:37.253Z",
+      "responseTime": 43,
       "requestBody": {},
       "responseFields": {
         "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
         "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
-      },
-      "timestamp": "2025-03-21T22:19:37.253Z",
-      "responseTime": 43
+      }
     }
   ],
   "responseFields": {
@@ -41,7 +41,8 @@
   "collectionId": "Sample-API",
   "collectionName": "Sample API",
   "createdAt": "2025-03-21T21:21:30.968Z",
-  "updatedAt": "2025-03-21T22:19:42.265Z",
+  "updatedAt": "2025-03-21T21:21:30.968Z",
   "version": 1,
-  "selectedEnvironment": "qa01"
+  "selectedEnvironment": "qa01",
+  "timestamp": "2025-03-21T22:19:37.253Z"
 }
