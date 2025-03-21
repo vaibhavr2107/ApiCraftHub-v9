@@ -219,6 +219,42 @@ ApiDefinitionService.extractOpenApiRequests = function (
           });
         }
 
+        // Extract request body properly
+        let requestBody = {};
+        if (operation.requestBody?.content) {
+          // Try application/json first
+          if (operation.requestBody.content["application/json"]) {
+            requestBody = operation.requestBody.content["application/json"].example || 
+                        operation.requestBody.content["application/json"].schema?.example || 
+                        {}; 
+          } 
+          // If no JSON body found, try other content types
+          else {
+            const contentTypes = Object.keys(operation.requestBody.content);
+            if (contentTypes.length > 0) {
+              const firstContentType = contentTypes[0];
+              requestBody = operation.requestBody.content[firstContentType].example || 
+                          operation.requestBody.content[firstContentType].schema?.example || 
+                          {};
+            }
+          }
+        }
+
+        // Extract response examples if available
+        let exampleResponseBody = {};
+        if (operation.responses) {
+          // Look for 200 OK response first
+          const successResponse = operation.responses['200'] || 
+                                operation.responses['201'] || 
+                                operation.responses['default'];
+          
+          if (successResponse?.content?.["application/json"]) {
+            exampleResponseBody = successResponse.content["application/json"].example || 
+                               successResponse.content["application/json"].schema?.example || 
+                               {};
+          }
+        }
+
         // Create a request object
         const request: Request = {
           requestId,
@@ -232,11 +268,10 @@ ApiDefinitionService.extractOpenApiRequests = function (
           pathVariables: pathParams,
           queryParams,
           headers,
-          auth: { type: "none" },
-          requestBody:
-            operation.requestBody?.content?.["application/json"]?.example || {},
+          auth: { type: "auth tiaa" }, // Set default auth type to "auth tiaa"
+          requestBody,
           responseFields: {},
-          exampleResponseBody: {},
+          exampleResponseBody,
           historyId: `history-${requestId}`,
           historyRequests: [],
           devUrl: environments.dev || "",
@@ -247,7 +282,7 @@ ApiDefinitionService.extractOpenApiRequests = function (
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           version: 1,
-          selectedEnvironment: "qa01",
+          selectedEnvironment: "qa01", // Default environment is qa01
           tags: operation.tags || [],
           collectionId: specTitle.replace(/[^\w-]/g, "-"),
           collectionName: specTitle,
