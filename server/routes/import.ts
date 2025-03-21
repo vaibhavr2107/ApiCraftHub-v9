@@ -255,7 +255,7 @@ ApiDefinitionService.extractOpenApiRequests = function (
           }
         }
 
-        // Create a request object
+        // Create a request object with the appropriate settings
         const request: Request = {
           requestId,
           routeId: requestId,
@@ -264,11 +264,11 @@ ApiDefinitionService.extractOpenApiRequests = function (
             operation.operationId ||
             `${method.toUpperCase()} ${path}`,
           method: method.toUpperCase(),
-          baseUrl: path,
+          baseUrl: path, // Keep original path as baseUrl for path parameter replacement
           pathVariables: pathParams,
           queryParams,
           headers,
-          auth: { type: "auth tiaa" }, // Set default auth type to "auth tiaa"
+          auth: { type: "bearer-tiaa" }, // Set default auth type to "bearer-tiaa"
           requestBody,
           responseFields: {},
           exampleResponseBody,
