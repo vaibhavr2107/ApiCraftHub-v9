@@ -85,34 +85,42 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
   const githubForm = useForm({
     resolver: zodResolver(githubImportSchema),
     defaultValues: {
+      projectName: "account-domain",
       projectType: "REST",
-      devUrl: "",
-      qa01Url: "",
-      qa02Url: "",
-      qa03Url: "",
-      perfUrl: "",
+      openApiPath: "api/src/main/resources/openapi",
+      wsdlPath: "api/src/main/resources/wsdl",
+      githubUrl: "https://github.com/vaibhavr2107/spring-rest-openapi.git",
+      username: "vaibhavr2107",
+      password: "",
+      devUrl: "https://dev-account-domain.company.com",
+      qa01Url: "https://qa01-account-domain.company.com",
+      qa02Url: "https://qa02-account-domain.company.com",
+      qa03Url: "https://qa03-account-domain.company.com",
+      perfUrl: "https://perf-account-domain.company.com",
     },
   });
 
   const wsdlForm = useForm({
     resolver: zodResolver(wsdlImportSchema),
     defaultValues: {
-      devUrl: "",
-      qa01Url: "",
-      qa02Url: "",
-      qa03Url: "",
-      perfUrl: "",
+      wsdlUrl: "https://dev-account-domain.company.com/service.wsdl",
+      devUrl: "https://dev-account-domain.company.com",
+      qa01Url: "https://qa01-account-domain.company.com",
+      qa02Url: "https://qa02-account-domain.company.com",
+      qa03Url: "https://qa03-account-domain.company.com",
+      perfUrl: "https://perf-account-domain.company.com",
     },
   });
 
   const openApiUrlForm = useForm({
     resolver: zodResolver(openApiUrlImportSchema),
     defaultValues: {
-      devUrl: "",
-      qa01Url: "",
-      qa02Url: "",
-      qa03Url: "",
-      perfUrl: "",
+      openApiUrl: "https://dev-account-domain.company.com/openapi.yaml",
+      devUrl: "https://dev-account-domain.company.com",
+      qa01Url: "https://qa01-account-domain.company.com",
+      qa02Url: "https://qa02-account-domain.company.com",
+      qa03Url: "https://qa03-account-domain.company.com",
+      perfUrl: "https://perf-account-domain.company.com",
     },
   });
 
