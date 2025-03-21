@@ -255,6 +255,34 @@ ApiDefinitionService.extractOpenApiRequests = function (
           }
         }
 
+        // Process environment URLs to preserve path variables and query parameters
+        const processedEnvs = {
+          dev: environments.dev || "",
+          qa01: environments.qa01 || "",
+          qa02: environments.qa02 || "",
+          qa03: environments.qa03 || "",
+          perf: environments.perf || "",
+        };
+
+        // Prepare the base URLs for each environment
+        // This preserves the path with its variables (like /users/{userId}) in the environment URLs
+        Object.keys(processedEnvs).forEach(envKey => {
+          const envUrl = processedEnvs[envKey as keyof typeof processedEnvs];
+          if (envUrl && envUrl.length > 0) {
+            // If environment URL doesn't end with a slash and path doesn't start with one, add it
+            if (!envUrl.endsWith('/') && !path.startsWith('/')) {
+              processedEnvs[envKey as keyof typeof processedEnvs] = envUrl + path;
+            } else if (envUrl.endsWith('/') && path.startsWith('/')) {
+              // If environment URL ends with slash and path starts with one, remove one
+              processedEnvs[envKey as keyof typeof processedEnvs] = envUrl.slice(0, -1) + path;
+            } else {
+              // Otherwise, just concatenate
+              processedEnvs[envKey as keyof typeof processedEnvs] = envUrl + path;
+            }
+          }
+        });
+
+        // Use the original path (with path variables intact) as the base URL
         // Create a request object with the appropriate settings
         const request: Request = {
           requestId,
@@ -274,11 +302,11 @@ ApiDefinitionService.extractOpenApiRequests = function (
           exampleResponseBody,
           historyId: `history-${requestId}`,
           historyRequests: [],
-          devUrl: environments.dev || "",
-          qa01Url: environments.qa01 || "",
-          qa02Url: environments.qa02 || "",
-          qa03Url: environments.qa03 || "",
-          perfUrl: environments.perf || "",
+          devUrl: processedEnvs.dev,
+          qa01Url: processedEnvs.qa01,
+          qa02Url: processedEnvs.qa02,
+          qa03Url: processedEnvs.qa03,
+          perfUrl: processedEnvs.perf,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           version: 1,

@@ -343,12 +343,56 @@ export function RequestPanel({
 
   const handleEnvironmentChange = (env: typeof ENVIRONMENTS[number]) => {
     let baseUrl = localRequest.baseUrl;
-
-    if (env !== 'dev') {
-      const envUrl = localRequest[`${env}Url` as keyof Request];
-      if (envUrl) {
-        baseUrl = envUrl;
+    
+    try {
+      // Extract any query parameters from the current URL
+      let queryString = '';
+      let pathWithVars = '';
+      
+      // Parse the current URL to extract the query string if it exists
+      const urlParts = baseUrl.split('?');
+      if (urlParts.length > 1) {
+        queryString = '?' + urlParts[1];
       }
+      
+      // The path part might contain path variables like /users/{userId}
+      pathWithVars = urlParts[0];
+      
+      // Get the new environment URL
+      if (env !== 'dev') {
+        const envUrl = localRequest[`${env}Url` as keyof Request];
+        if (envUrl) {
+          // If the current path is absolute (starts with http or https), we replace it fully
+          if (pathWithVars.startsWith('http://') || pathWithVars.startsWith('https://')) {
+            try {
+              // Parse the current URL to extract just the path
+              const currentUrl = new URL(pathWithVars);
+              const path = currentUrl.pathname;
+              
+              // Parse the environment URL
+              let newEnvUrl = envUrl;
+              if (!newEnvUrl.startsWith('http://') && !newEnvUrl.startsWith('https://')) {
+                newEnvUrl = 'https://' + newEnvUrl;
+              }
+              
+              // Create the new URL with the environment base and existing path
+              const newUrl = new URL(path, newEnvUrl);
+              baseUrl = newUrl.toString() + queryString;
+            } catch (e) {
+              console.warn('Error parsing URL in environment change:', e);
+              baseUrl = envUrl + queryString;
+            }
+          } else {
+            // If it's a relative path, just prepend the environment URL
+            // Make sure envUrl doesn't end with a slash and pathWithVars doesn't start with a slash
+            const envBase = envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl;
+            const relativePath = pathWithVars.startsWith('/') ? pathWithVars : '/' + pathWithVars;
+            baseUrl = envBase + relativePath + queryString;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error updating URL in environment change:', e);
     }
 
     updateLocalRequest({
