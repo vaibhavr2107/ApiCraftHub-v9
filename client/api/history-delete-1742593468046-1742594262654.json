@@ -1,0 +1,61 @@
+{
+  "requestId": "history-delete-1742593468046",
+  "routeId": "history-delete-1742593468046",
+  "name": "DELETE Request (3/22/2025, 3:27:42 AM)",
+  "method": "DELETE",
+  "baseUrl": "https://qa01-account-domain.company.com/users/{userId}",
+  "devUrl": "https://dev-account-domain.company.com/users/{userId}",
+  "qa01Url": "https://qa01-account-domain.company.com/users/{userId}",
+  "qa02Url": "https://qa02-account-domain.company.com/users/{userId}",
+  "qa03Url": "https://qa03-account-domain.company.com/users/{userId}",
+  "perfUrl": "https://perf-account-domain.company.com/users/{userId}",
+  "queryParams": {},
+  "pathVariables": {
+    "userId": ""
+  },
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-delete--users--userId--1742593468046",
+  "historyRequests": [
+    {
+      "method": "DELETE",
+      "url": "https://qa01-account-domain.company.com/users/{userId}",
+      "timestamp": "2025-03-21T21:57:42.691Z",
+      "responseTime": 21,
+      "requestBody": {},
+      "responseFields": {
+        "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+        "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+      }
+    },
+    {
+      "method": "DELETE",
+      "url": "https://qa01-account-domain.company.com/users/{userId}",
+      "requestBody": {},
+      "responseFields": {
+        "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+        "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+      },
+      "timestamp": "2025-03-21T21:46:16.669Z",
+      "responseTime": 51
+    }
+  ],
+  "responseFields": {
+    "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+    "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+  },
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Users"
+  ],
+  "collectionId": "Sample-API",
+  "collectionName": "Sample API",
+  "createdAt": "2025-03-21T21:44:28.046Z",
+  "updatedAt": "2025-03-21T21:44:28.046Z",
+  "version": 1,
+  "selectedEnvironment": "qa01",
+  "timestamp": "2025-03-21T21:57:42.692Z"
+}
