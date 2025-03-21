@@ -216,8 +216,8 @@ export function RequestPanel({
   const [isEnvDialogOpen, setIsEnvDialogOpen] = useState(false);
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [response, setResponse] = useState(null);
-  const [responseError, setResponseError] = useState(null);
+  const [response, setResponse] = useState<any>(null);
+  const [responseError, setResponseError] = useState<string | null>(null);
   const [authHeaders, setAuthHeaders] = useState({});
 
 
@@ -525,7 +525,7 @@ export function RequestPanel({
     } catch (error) {
       console.error('Error sending request:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setResponseError(errorMessage);
+      setResponseError(errorMessage as string);
       onError(errorMessage);
       toast({
         variant: "destructive",
