@@ -1,7 +1,7 @@
 {
-  "requestId": "delete--users--userId--1742593026746",
-  "routeId": "delete--users--userId--1742593026746",
-  "name": "Delete user",
+  "requestId": "history-delete-1742593026746",
+  "routeId": "history-delete-1742593026746",
+  "name": "DELETE Request (3/22/2025, 3:12:35 AM)",
   "method": "DELETE",
   "baseUrl": "https://qa01-account-domain.company.com/users/{userId}",
   "devUrl": "https://dev-account-domain.company.com/users/{userId}",
@@ -24,13 +24,13 @@
     {
       "method": "DELETE",
       "url": "https://qa01-account-domain.company.com/users/{userId}",
+      "timestamp": "2025-03-21T21:42:35.887Z",
+      "responseTime": 45,
       "requestBody": {},
       "responseFields": {
         "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
         "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
-      },
-      "timestamp": "2025-03-21T21:42:35.887Z",
-      "responseTime": 45
+      }
     }
   ],
   "responseFields": {
@@ -45,7 +45,8 @@
   "collectionId": "Sample-API",
   "collectionName": "Sample API",
   "createdAt": "2025-03-21T21:37:06.746Z",
-  "updatedAt": "2025-03-21T21:44:15.146Z",
+  "updatedAt": "2025-03-21T21:42:34.970Z",
   "version": 1,
-  "selectedEnvironment": "qa01"
+  "selectedEnvironment": "qa01",
+  "timestamp": "2025-03-21T21:42:35.890Z"
 }

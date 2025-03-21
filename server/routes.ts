@@ -1,5 +1,6 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
+import { createServer as createHttpServer, type Server } from "http";
+import { createServer as createHttpsServer } from "https";
 import { storage } from "./storage";
 import fs from 'fs';
 import path from 'path';
@@ -9,6 +10,7 @@ import { RequestSchema } from "@shared/schema";
 import requestRoutes from "./routes/requests";
 import importRoutes from "./routes/import";
 import express from 'express';
+import cors from 'cors';
 
 // Create an HTTPS agent that accepts self-signed certificates
 const httpsAgent = new https.Agent({
@@ -16,6 +18,15 @@ const httpsAgent = new https.Agent({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Enable CORS for all routes
+  app.use(cors({
+    origin: '*', // Allow all origins
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true, // Allow cookies
+    maxAge: 86400 // Cache preflight requests for 24 hours
+  }));
+
   // Add JSON parsing middleware with increased limit for file uploads
   app.use(express.json({ limit: '50mb' }));
 
@@ -115,11 +126,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure URL is properly formatted
       const requestUrl = url.startsWith('http') ? url : `https://${url}`;
 
-      // Prepare axios options
-      const options = {
+      // Prepare axios options with CORS headers
+      const options: any = {
         method: method.toLowerCase(), // axios uses lowercase method names
         url: requestUrl,
-        headers: { ...headers },
+        headers: { 
+          ...headers,
+          // Add CORS headers for the outgoing request
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+        },
         httpsAgent, // Use the agent that accepts self-signed certificates
         timeout: 30000, // 30 seconds timeout
         validateStatus: () => true, // Don't throw errors for any status code
@@ -171,8 +188,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('Proxy error:', error);
       
       // Determine if the error is from axios
-      const axiosError = error && 'isAxiosError' in error;
-      const errorResponse = axiosError && error.response ? error.response : null;
+      const axiosError = (error as any)?.isAxiosError === true;
+      const errorResponse = axiosError && (error as any)?.response ? (error as any).response : null;
       
       res.status(500).json({ 
         status: 500,
@@ -180,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data: { 
           message: error instanceof Error ? error.message : 'An unknown error occurred',
           // Include more detailed error info if available
-          cause: error.cause ? String(error.cause) : undefined,
+          cause: (error as any)?.cause ? String((error as any).cause) : undefined,
           // If it's an axios error with a response, include that data
           responseData: errorResponse ? errorResponse.data : undefined
         },
@@ -227,6 +244,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
+  // Create HTTP server by default
+  const httpServer = createHttpServer(app);
+  
+  // Check if TLS certificates exist for HTTPS
+  const certsPath = path.join(process.cwd(), 'certs');
+  let httpsServer = null;
+  
+  if (fs.existsSync(certsPath)) {
+    try {
+      const privateKey = fs.existsSync(path.join(certsPath, 'private.key')) 
+        ? fs.readFileSync(path.join(certsPath, 'private.key'), 'utf8')
+        : null;
+      
+      const certificate = fs.existsSync(path.join(certsPath, 'certificate.crt'))
+        ? fs.readFileSync(path.join(certsPath, 'certificate.crt'), 'utf8')
+        : null;
+      
+      // Only create HTTPS server if both key and certificate exist
+      if (privateKey && certificate) {
+        const credentials = { key: privateKey, cert: certificate };
+        httpsServer = createHttpsServer(credentials, app);
+        console.log('HTTPS server created with provided certificates');
+        
+        // Start HTTPS server on port 443 by default or use environment variable
+        const httpsPort = process.env.HTTPS_PORT || 443;
+        httpsServer.listen(httpsPort, () => {
+          console.log(`HTTPS server is running on port ${httpsPort}`);
+        });
+      }
+    } catch (error) {
+      console.error('Error setting up HTTPS server:', error);
+    }
+  }
+  
+  // Return the HTTP server for standard operation
   return httpServer;
 }
