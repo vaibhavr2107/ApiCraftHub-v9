@@ -199,20 +199,23 @@ export function Sidebar({ onRequestSelect }: SidebarProps) {
   function groupRequestsByCollection(requests: Request[]): Collection[] {
     const collectionMap = new Map<string, Collection>();
 
-    requests.forEach(request => {
-      const collectionId = request.collectionId || 'uncategorized';
-      const collectionName = request.collectionName || 'Uncategorized Requests';
+    // Filter out history requests from collections view
+    requests
+      .filter(request => !request.routeId?.startsWith('history-'))
+      .forEach(request => {
+        const collectionId = request.collectionId || 'uncategorized';
+        const collectionName = request.collectionName || 'Uncategorized Requests';
 
-      if (!collectionMap.has(collectionId)) {
-        collectionMap.set(collectionId, {
-          id: collectionId,
-          name: collectionName,
-          requests: []
-        });
-      }
+        if (!collectionMap.has(collectionId)) {
+          collectionMap.set(collectionId, {
+            id: collectionId,
+            name: collectionName,
+            requests: []
+          });
+        }
 
-      collectionMap.get(collectionId)!.requests.push(request);
-    });
+        collectionMap.get(collectionId)!.requests.push(request);
+      });
 
     return Array.from(collectionMap.values());
   }

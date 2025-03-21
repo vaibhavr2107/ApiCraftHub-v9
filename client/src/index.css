@@ -12,4 +12,11 @@
   body {
     @apply font-figtree antialiased bg-background text-foreground;
   }
+
+  .truncate {
+    overflow: hidden;
+    /* text-overflow: clip; */
+    white-space: break-spaces !important;
+    text-align: left !important;
+  }
 }
