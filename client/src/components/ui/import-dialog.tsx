@@ -170,7 +170,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
             <FormControl>
               <Input
                 className="h-8 text-sm"
-                placeholder="https://dev.example.com"
+                placeholder="https://dev-account-domain.company.com"
                 {...field}
               />
             </FormControl>
@@ -187,7 +187,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
             <FormControl>
               <Input
                 className="h-8 text-sm"
-                placeholder="https://qa01.example.com"
+                placeholder="https://qa01-account-domain.company.com"
                 {...field}
               />
             </FormControl>
@@ -204,7 +204,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
             <FormControl>
               <Input
                 className="h-8 text-sm"
-                placeholder="https://qa02.example.com"
+                placeholder="https://qa02-account-domain.company.com"
                 {...field}
               />
             </FormControl>
@@ -221,7 +221,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
             <FormControl>
               <Input
                 className="h-8 text-sm"
-                placeholder="https://qa03.example.com"
+                placeholder="https://qa03-account-domain.company.com"
                 {...field}
               />
             </FormControl>
@@ -238,7 +238,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
             <FormControl>
               <Input
                 className="h-8 text-sm"
-                placeholder="https://perf.example.com"
+                placeholder="https://perf-account-domain.company.com"
                 {...field}
               />
             </FormControl>
@@ -360,7 +360,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                               WSDL Folder Path
                             </FormLabel>
                             <FormControl>
-                              <Input className="h-8 text-sm" {...field} />
+                              <Input className="h-8 text-sm" placeholder="api/src/main/resources/wsdl" {...field} />
                             </FormControl>
                             <FormMessage className="text-xs" />
                           </FormItem>
@@ -458,7 +458,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                           <FormControl>
                             <Input
                               className="h-8 text-sm"
-                              placeholder="https://example.com/service.wsdl"
+                              placeholder="https://dev-account-domain.company.com/service.wsdl"
                               {...field}
                             />
                           </FormControl>
@@ -487,7 +487,7 @@ export function ImportDialog({ onImport }: ImportDialogProps) {
                           <FormControl>
                             <Input
                               className="h-8 text-sm"
-                              placeholder="https://example.com/openapi.yaml"
+                              placeholder="https://dev-account-domain.company.com/openapi.yaml"
                               {...field}
                             />
                           </FormControl>
