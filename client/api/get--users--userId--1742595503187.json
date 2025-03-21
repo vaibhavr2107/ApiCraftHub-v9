@@ -1,0 +1,34 @@
+{
+  "requestId": "get--users--userId--1742595503187",
+  "routeId": "get--users--userId--1742595503187",
+  "name": "Get user by ID",
+  "method": "GET",
+  "baseUrl": "https://qa01-account-domain.company.com/users/{userId}",
+  "devUrl": "https://dev-account-domain.company.com/users/{userId}",
+  "qa01Url": "https://qa01-account-domain.company.com/users/{userId}",
+  "qa02Url": "https://qa02-account-domain.company.com/users/{userId}",
+  "qa03Url": "https://qa03-account-domain.company.com/users/{userId}",
+  "perfUrl": "https://perf-account-domain.company.com/users/{userId}",
+  "queryParams": {},
+  "pathVariables": {
+    "userId": ""
+  },
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-get--users--userId--1742595503187",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Users"
+  ],
+  "collectionId": "Sample-API",
+  "collectionName": "Sample API",
+  "createdAt": "2025-03-21T22:18:23.187Z",
+  "updatedAt": "2025-03-21T22:18:23.187Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

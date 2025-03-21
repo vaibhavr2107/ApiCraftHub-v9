@@ -18,8 +18,23 @@
   },
   "headers": {},
   "historyId": "history-put--users--userId--1742595467222",
-  "historyRequests": [],
-  "responseFields": {},
+  "historyRequests": [
+    {
+      "method": "PUT",
+      "url": "https://qa01-account-domain.company.com/users/{userId}",
+      "requestBody": {},
+      "responseFields": {
+        "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+        "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+      },
+      "timestamp": "2025-03-21T22:19:29.359Z",
+      "responseTime": 30
+    }
+  ],
+  "responseFields": {
+    "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+    "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+  },
   "requestBody": {},
   "exampleResponseBody": {},
   "tags": [
@@ -28,7 +43,7 @@
   "collectionId": "Sample-API",
   "collectionName": "Sample API",
   "createdAt": "2025-03-21T22:17:47.222Z",
-  "updatedAt": "2025-03-21T22:17:47.222Z",
+  "updatedAt": "2025-03-21T22:19:30.650Z",
   "version": 1,
   "selectedEnvironment": "qa01"
 }

@@ -1,0 +1,72 @@
+{
+  "requestId": "history-post-1742595539352",
+  "routeId": "history-post-1742595539352",
+  "name": "POST Request (3/22/2025, 3:49:11 AM)",
+  "method": "POST",
+  "baseUrl": "https://qa01-account-domain.company.com/auth/login",
+  "devUrl": "",
+  "qa01Url": "",
+  "qa02Url": "",
+  "qa03Url": "",
+  "perfUrl": "",
+  "queryParams": {},
+  "pathVariables": {},
+  "auth": {
+    "type": "none"
+  },
+  "headers": {
+    "X-Request-ID": "xcx",
+    "X-Correlation-ID": "xcxc"
+  },
+  "historyId": "history-post-1742595539352",
+  "historyRequests": [
+    {
+      "method": "POST",
+      "url": "https://qa01-account-domain.company.com/auth/login",
+      "timestamp": "2025-03-21T22:19:11.011Z",
+      "responseTime": 34,
+      "requestBody": {
+        "username": "johndoe",
+        "password": "secretPassword123"
+      },
+      "responseFields": {
+        "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+        "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://qa01-account-domain.company.com/auth/login",
+      "requestBody": {
+        "username": "johndoe",
+        "password": "secretPassword123"
+      },
+      "responseFields": {
+        "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+        "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+      },
+      "timestamp": "2025-03-21T22:18:59.352Z",
+      "responseTime": 0
+    }
+  ],
+  "responseFields": {
+    "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+    "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+  },
+  "requestBody": {
+    "username": "johndoe",
+    "password": "secretPassword123"
+  },
+  "exampleResponseBody": {
+    "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
+    "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
+  },
+  "tags": [],
+  "collectionId": "history",
+  "collectionName": "History Requests",
+  "createdAt": "2025-03-21T22:19:07.546Z",
+  "updatedAt": "2025-03-21T22:19:07.546Z",
+  "version": 1,
+  "selectedEnvironment": "qa01",
+  "timestamp": "2025-03-21T22:19:11.012Z"
+}

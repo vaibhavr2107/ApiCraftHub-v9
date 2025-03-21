@@ -1,8 +1,8 @@
 {
-  "requestId": "history-delete-1742593468046",
-  "routeId": "history-delete-1742593468046",
-  "name": "DELETE Request (3/22/2025, 3:27:43 AM)",
-  "method": "DELETE",
+  "requestId": "history-put-1742595467222",
+  "routeId": "history-put-1742595467222",
+  "name": "PUT Request (3/22/2025, 3:49:29 AM)",
+  "method": "PUT",
   "baseUrl": "https://qa01-account-domain.company.com/users/{userId}",
   "devUrl": "https://dev-account-domain.company.com/users/{userId}",
   "qa01Url": "https://qa01-account-domain.company.com/users/{userId}",
@@ -17,29 +17,18 @@
     "type": "bearer-tiaa"
   },
   "headers": {},
-  "historyId": "history-delete--users--userId--1742593468046",
+  "historyId": "history-put--users--userId--1742595467222",
   "historyRequests": [
     {
-      "method": "DELETE",
+      "method": "PUT",
       "url": "https://qa01-account-domain.company.com/users/{userId}",
-      "timestamp": "2025-03-21T21:57:43.516Z",
-      "responseTime": 29,
+      "timestamp": "2025-03-21T22:19:29.359Z",
+      "responseTime": 30,
       "requestBody": {},
       "responseFields": {
         "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
         "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
       }
-    },
-    {
-      "method": "DELETE",
-      "url": "https://qa01-account-domain.company.com/users/{userId}",
-      "requestBody": {},
-      "responseFields": {
-        "message": "getaddrinfo ENOTFOUND qa01-account-domain.company.com",
-        "cause": "Error: getaddrinfo ENOTFOUND qa01-account-domain.company.com"
-      },
-      "timestamp": "2025-03-21T21:46:16.669Z",
-      "responseTime": 51
     }
   ],
   "responseFields": {
@@ -53,9 +42,9 @@
   ],
   "collectionId": "Sample-API",
   "collectionName": "Sample API",
-  "createdAt": "2025-03-21T21:44:28.046Z",
-  "updatedAt": "2025-03-21T21:44:28.046Z",
+  "createdAt": "2025-03-21T22:17:47.222Z",
+  "updatedAt": "2025-03-21T22:17:47.222Z",
   "version": 1,
   "selectedEnvironment": "qa01",
-  "timestamp": "2025-03-21T21:57:43.516Z"
+  "timestamp": "2025-03-21T22:19:29.359Z"
 }
