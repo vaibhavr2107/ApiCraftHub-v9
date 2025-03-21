@@ -1,0 +1,49 @@
+{
+  "requestId": "delete--users--userId--1742589680445",
+  "routeId": "delete--users--userId--1742589680445",
+  "name": "Delete user",
+  "method": "DELETE",
+  "baseUrl": "https://qa02-account-domain.company.com/?fgfgf=gfgfg",
+  "devUrl": "https://dev-account-domain.company.com",
+  "qa01Url": "https://qa01-account-domain.company.com",
+  "qa02Url": "https://qa02-account-domain.company.com",
+  "qa03Url": "https://qa03-account-domain.company.com",
+  "perfUrl": "https://perf-account-domain.company.com",
+  "queryParams": {
+    "fgfgf": "gfgfg"
+  },
+  "pathVariables": {
+    "userId": ""
+  },
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-delete--users--userId--1742589680445",
+  "historyRequests": [
+    {
+      "method": "DELETE",
+      "url": "/users/{userId}",
+      "requestBody": {},
+      "responseFields": {
+        "message": "fetch failed"
+      },
+      "timestamp": "2025-03-21T20:43:51.430Z",
+      "responseTime": 234
+    }
+  ],
+  "responseFields": {
+    "message": "fetch failed"
+  },
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Users"
+  ],
+  "collectionId": "Sample-API",
+  "collectionName": "Sample API",
+  "createdAt": "2025-03-21T20:41:20.445Z",
+  "updatedAt": "2025-03-21T20:43:52.269Z",
+  "version": 1,
+  "selectedEnvironment": "qa02"
+}
