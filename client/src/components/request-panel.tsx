@@ -487,14 +487,14 @@ export function RequestPanel({
       });
 
       const shouldAutoSave = 
-        (!request.exampleResponseBody || 
-         (typeof request.exampleResponseBody === 'object' && 
-          Object.keys(request.exampleResponseBody).length === 0)) && 
+        (!localRequest.exampleResponseBody || 
+         (typeof localRequest.exampleResponseBody === 'object' && 
+          Object.keys(localRequest.exampleResponseBody).length === 0)) && 
         res.status === 200;
 
-      // Instead of auto-saving every time, just update the state without saving
+      // Instead of auto-saving every time, just update the local state without saving
       // This way, only clicking the Save button will trigger a save
-      onRequestChange({
+      updateLocalRequest({
         historyRequests: updatedHistory,
         responseFields: actualResponseData,
         // Only set example response if it doesn't exist and the request is successful
@@ -513,10 +513,10 @@ export function RequestPanel({
       const savedHistory = localStorage.getItem("request_history") || "[]";
       const parsedHistory = JSON.parse(savedHistory);
       const newHistory = [{
-        id: `${request.method}-${Date.now()}`,
+        id: `${localRequest.method}-${Date.now()}`,
         request: {
-          method: request.method,
-          url: request.baseUrl,
+          method: localRequest.method,
+          url: localRequest.baseUrl,
           headers: formattedHeaders,
           body: reqBody
         },
@@ -580,7 +580,7 @@ export function RequestPanel({
           return acc;
         }, {} as Record<string, string>);
 
-      console.log('Saving request with example body:', request.exampleResponseBody);
+      console.log('Saving request with example body:', localRequest.exampleResponseBody);
 
       let requestBodyObj = {};
       if (bodyType === "raw" && rawBody) {
@@ -592,9 +592,9 @@ export function RequestPanel({
         }
       }
 
-      const formattedHistoryRequests = (request.historyRequests || []).map(entry => ({
-        method: entry.method || request.method,
-        url: entry.url || request.baseUrl,
+      const formattedHistoryRequests = (localRequest.historyRequests || []).map(entry => ({
+        method: entry.method || localRequest.method,
+        url: entry.url || localRequest.baseUrl,
         timestamp: entry.timestamp || new Date().toISOString(),
         responseTime: entry.responseTime || 0,
         requestBody: entry.requestBody || {},
