@@ -12,11 +12,11 @@ export async function getTiaaToken(environment: TokenEnvironment): Promise<strin
     prod: "/perf-token"
   };
 
-  const baseUrl = import.meta.env.VITE_OAUTH_PROVIDER_URL || "https://{oauth-provider-url}";
+  const baseUrl = "https://dummyjson.com/c/6bc5-5edc-4dbf-affb";
   const endpoint = tokenEndpoints[environment];
   
   try {
-    const response = await fetch(`${baseUrl}${endpoint}`, {
+    const response = await fetch(`${baseUrl}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
