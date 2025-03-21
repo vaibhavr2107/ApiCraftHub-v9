@@ -1,0 +1,34 @@
+{
+  "requestId": "delete--users--userId--1742592090969",
+  "routeId": "delete--users--userId--1742592090969",
+  "name": "Delete user",
+  "method": "DELETE",
+  "baseUrl": "https://qa01-account-domain.company.com/users/{userId}",
+  "devUrl": "https://dev-account-domain.company.com/users/{userId}",
+  "qa01Url": "https://qa01-account-domain.company.com/users/{userId}",
+  "qa02Url": "https://qa02-account-domain.company.com/users/{userId}",
+  "qa03Url": "https://qa03-account-domain.company.com/users/{userId}",
+  "perfUrl": "https://perf-account-domain.company.com/users/{userId}",
+  "queryParams": {},
+  "pathVariables": {
+    "userId": ""
+  },
+  "auth": {
+    "type": "bearer-tiaa"
+  },
+  "headers": {},
+  "historyId": "history-delete--users--userId--1742592090969",
+  "historyRequests": [],
+  "responseFields": {},
+  "requestBody": {},
+  "exampleResponseBody": {},
+  "tags": [
+    "Users"
+  ],
+  "collectionId": "Sample-API",
+  "collectionName": "Sample API",
+  "createdAt": "2025-03-21T21:21:30.969Z",
+  "updatedAt": "2025-03-21T21:21:30.969Z",
+  "version": 1,
+  "selectedEnvironment": "qa01"
+}

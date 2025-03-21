@@ -103,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Proxy route for making external API calls
+  // Proxy route for making external API calls using axios
   app.post('/api/proxy', async (req, res) => {
     try {
       const { method, url, headers = {}, body } = req.body;
@@ -115,60 +115,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Ensure URL is properly formatted
       const requestUrl = url.startsWith('http') ? url : `https://${url}`;
 
-      // Prepare fetch options
-      const options: RequestInit = {
-        method,
+      // Prepare axios options
+      const options = {
+        method: method.toLowerCase(), // axios uses lowercase method names
+        url: requestUrl,
         headers: { ...headers },
+        httpsAgent, // Use the agent that accepts self-signed certificates
+        timeout: 30000, // 30 seconds timeout
+        validateStatus: () => true, // Don't throw errors for any status code
+        maxRedirects: 5, // Follow up to 5 redirects
       };
 
       // Add body for non-GET requests
       if (method !== 'GET' && body) {
-        options.body = typeof body === 'string' ? body : JSON.stringify(body);
+        if (typeof body === 'string') {
+          try {
+            // Try to parse as JSON
+            options.data = JSON.parse(body);
+          } catch (e) {
+            // If not valid JSON, send as is
+            options.data = body;
+          }
+        } else {
+          options.data = body;
+        }
       }
 
-      // Make the request
+      console.log(`Making ${method} request to: ${requestUrl}`);
+      
+      // Make the request with axios
       const startTime = performance.now();
-      const response = await fetch(requestUrl, options);
+      const response = await axios(options);
       const endTime = performance.now();
       const responseTime = endTime - startTime;
 
-      // Process response
-      const responseData = await (async () => {
-        try {
-          const contentType = response.headers.get('content-type');
-          if (contentType && contentType.includes('application/json')) {
-            return await response.json();
-          }
-          return await response.text();
-        } catch (error) {
-          return await response.text();
-        }
-      })();
+      // Get response data
+      const responseData = response.data;
+      
+      // Format the headers from axios response (they're already an object)
+      const responseHeaders = response.headers;
 
-      // Get response headers
-      const responseHeaders: Record<string, string> = {};
-      response.headers.forEach((value, key) => {
-        responseHeaders[key] = value;
-      });
-
-      // Create response object
+      // Create response object in a format compatible with our frontend
       const result = {
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
         data: responseData,
         time: Math.round(responseTime),
-        size: JSON.stringify(responseData).length
+        size: JSON.stringify(responseData).length || 0
       };
 
       // Forward the actual status code from the original request
       res.status(response.status).json(result);
     } catch (error) {
       console.error('Proxy error:', error);
+      
+      // Determine if the error is from axios
+      const axiosError = error && 'isAxiosError' in error;
+      const errorResponse = axiosError && error.response ? error.response : null;
+      
       res.status(500).json({ 
         status: 500,
         statusText: 'Internal Server Error',
-        data: { message: error instanceof Error ? error.message : 'An unknown error occurred' },
+        data: { 
+          message: error instanceof Error ? error.message : 'An unknown error occurred',
+          // Include more detailed error info if available
+          cause: error.cause ? String(error.cause) : undefined,
+          // If it's an axios error with a response, include that data
+          responseData: errorResponse ? errorResponse.data : undefined
+        },
         time: 0,
         size: 0
       });
