@@ -1,0 +1,15 @@
+{
+  "id": "746fb678-2c09-4c41-a85a-47778cc6276c",
+  "timestamp": "2025-03-21T20:51:52.665Z",
+  "type": "github",
+  "projectName": "account-domain",
+  "projectType": "REST",
+  "githubUrl": "https://github.com/vaibhavr2107/spring-rest-openapi.git",
+  "environments": {
+    "dev": "https://dev-account-domain.company.com",
+    "qa01": "https://qa01-account-domain.company.com",
+    "qa02": "https://qa02-account-domain.company.com",
+    "qa03": "https://qa03-account-domain.company.com",
+    "perf": "https://perf-account-domain.company.com"
+  }
+}
