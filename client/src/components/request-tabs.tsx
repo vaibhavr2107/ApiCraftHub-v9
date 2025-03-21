@@ -320,21 +320,25 @@ export function RequestTabs() {
             <TabsList className="flex w-full transition-transform duration-200">
               {visibleRequests.map((request, index) => (
                 <div key={`${request.routeId}-${index}`} className="flex items-center">
-                  <TabsTrigger value={request.routeId}>
-                    {request.name || request.routeId}
-                  </TabsTrigger>
-                  {activeRequests.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCloseTab(request.routeId);
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <div className="flex items-center data-[state=active]:bg-background">
+                    <TabsTrigger value={request.routeId} className="rounded-r-none">
+                      {request.name || request.routeId}
+                    </TabsTrigger>
+                    {activeRequests.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-l-none h-9 group data-[state=active]:bg-background data-[state=active]:text-foreground border-r-0 pl-1 pr-3"
+                        data-state={request.routeId === routeId ? "active" : "inactive"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCloseTab(request.routeId);
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </TabsList>
